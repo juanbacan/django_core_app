@@ -3,7 +3,7 @@ from django.apps import AppConfig
 
 class CoreConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'applications.core'
+    name = 'core'
 
     def ready(self):
-        import applications.core.signals
+        import django_core_app.signals

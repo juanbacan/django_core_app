@@ -1,6 +1,6 @@
 from .models import Alerta
-from applications.core.models import AplicacionWeb, Alerta
-from applications.core.models import NotificacionUsuario, NotificacionUsuarioCount
+from .models import AplicacionWeb, Alerta
+from .models import NotificacionUsuario, NotificacionUsuarioCount
 from django.conf import settings
 
 

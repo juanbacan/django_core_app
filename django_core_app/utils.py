@@ -44,7 +44,7 @@ def gestionar_modulos(urls_sistema):
     :return: None
     """
 
-    from applications.core.models import CustomUser, Modulo, AgrupacionModulo, GrupoModulo
+    from .models import CustomUser, Modulo, AgrupacionModulo, GrupoModulo
     try:
         if db_table_exists(Modulo._meta.db_table) and db_table_exists(AgrupacionModulo._meta.db_table) and db_table_exists(Group._meta.db_table):
             nombres_agrupaciones_validas = [url['nombre'] for url in urls_sistema]
@@ -412,7 +412,7 @@ def replace_images(html, bucket_name=settings.FIREBASE_BUCKET_NAME, folder=setti
 # *********************************************************************************
 # Errores en la aplicacion
 def save_error(request, exception, mensaje="Error general en la aplicación"):
-    from applications.core.models import ErrorApp
+    from .models import ErrorApp
     try:
         reporter = ExceptionReporter(request, *sys.exc_info())
         text = reporter.get_traceback_text()

@@ -4,7 +4,7 @@ from django.forms.models import model_to_dict
 from pywebpush import WebPushException, webpush
 from webpush.models import Group
 from threading import Thread
-from applications.core.models import CustomUser
+from .models import CustomUser
 
 
 def _process_subscription_info(subscription):
@@ -109,10 +109,10 @@ def send_notification_to_group(group_name, payload, ttl=0):
 # *********************************************************************************
 def notify_user(usuario_notificado, usuario_notifica, url, mensaje = "", tipo='agradecimiento_solucion'):
     """
-    
+    Crea una notificación para un usuario en la aplicación.
     """
 
-    from applications.core.models import NotificacionUsuario, NotificacionUsuarioCount, TipoNotificacion
+    from .models import NotificacionUsuario, NotificacionUsuarioCount, TipoNotificacion
     tipo_notificacion = TipoNotificacion.objects.get(tipo=tipo)
     if not tipo_notificacion:
         return
@@ -137,7 +137,7 @@ def notify_user(usuario_notificado, usuario_notifica, url, mensaje = "", tipo='a
 # Notifica a un usuario en la Aplicación y mediante Webpush notification
 # *********************************************************************************
 def notify_push_app_user(usuario_notificado: CustomUser, usuario_notifica: CustomUser, url: str, mensaje: str = "", tipo: str = 'agradecimiento_solucion'):
-    from applications.core.models import TipoNotificacion, AplicacionWeb
+    from .models import TipoNotificacion, AplicacionWeb
     try:
         logo_url = AplicacionWeb.objects.first().logo.url
         URL_BASE = settings.URL_BASE

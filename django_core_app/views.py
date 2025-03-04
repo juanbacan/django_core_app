@@ -23,10 +23,10 @@ from allauth.account.models import EmailAddress
 from allauth.account.adapter import get_adapter
 from dal import autocomplete
 
-from applications.core.mixins import SecureModuleMixin
-from applications.core.models import NotificacionUsuario, NotificacionUsuarioCount, CustomUser
+from .mixins import SecureModuleMixin
+from .models import NotificacionUsuario, NotificacionUsuarioCount, CustomUser
 
-from applications.core.utils import bad_json, success_json, get_query_params, \
+from .utils import bad_json, success_json, get_query_params, \
     save_error, upload_image_to_firebase_storage
 
 

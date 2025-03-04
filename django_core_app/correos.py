@@ -3,7 +3,7 @@ from threading import Thread
 from django.core.mail import EmailMessage
 from django.db import transaction
 
-from applications.core.models import EmailCredentials, AplicacionWeb
+from .models import EmailCredentials, AplicacionWeb
 from django.core.mail.backends.smtp import EmailBackend
 
 def get_next_email():
