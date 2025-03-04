@@ -1,0 +1,135 @@
+{% extends 'layout/base_admin.html' %}
+{% load static %}
+
+{% block content %}
+  
+<div class="row">
+    <div class="col-md-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'administracion' %}{{ modulo_activo.url }}">{{ modulo_activo.nombre }}</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Crear {{ modulo_activo.nombre }}</li>
+            </ol>
+        </nav>
+
+        <div class="card border-0">
+            <div class="card-body">
+                <form method="POST" id="{% if not default_send_form  %}mainForm{% endif %}" action="{{ request.path }}" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="{% block action %}{{ action }}{% endblock %}" />
+
+                    {% if object %}
+                        <input type="hidden" name="id" value="{{ object.id }}" />
+                    {% endif %}
+
+                    {% block form_preffix %}{% endblock %}
+                    
+                    {% include 'forms/form.html' %}
+
+                    {% block form_suffix %}{% endblock %}
+
+                    <div class="card bg-light mt-4">
+                        <div class="card-body">
+                            <div class="d-flex flex-column flex-md-row justify-content-between gap-3">
+                                <div class="d-grid d-md-flex gap-2">
+                                    <input type="submit" class="btn btn-sm btn-primary" value="Guardar" name="_save" />
+                                    <input type="submit" class="btn btn-sm btn-primary" value="Guardar y Añadir Otro" name="_addanother" />
+                                    <input type="submit" class="btn btn-sm btn-primary" value="Guardar y Continuar Editando" name="_continue" />
+                                </div>
+                                {% if object and formdeleteaction %}
+                                    <div class="d-grid d-md-flex gap-2">
+                                        <a href="javascript:" nhref="{{ request.path }}?action={{ formdeleteaction }}&id={{ object.id }}" class="btn btn-sm btn-danger formmodal">Eliminar</a>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if form.iconpicker %}
+    <div class="modal fade" id="iconModal" tabindex="-1" aria-labelledby="iconModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="iconModalLabel">Selecciona un icono</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Barra de búsqueda -->
+                    <div class="mb-3">
+                        <input type="text" id="iconSearch" class="form-control" placeholder="Buscar iconos por nombre...">
+                    </div>
+                    <!-- Contenedor de iconos -->
+                    <div id="icon-list" class="row"></div>
+                    <!-- Controles de paginación -->
+                </div>
+                <div class="modal-footer">
+                    <button id="prevPage" class="btn-sm btn btn-info" disabled>Anterior</button>
+                    <span id="paginationInfo" class="align-self-center"></span>
+                    <button id="nextPage" class="btn-sm btn btn-info" disabled>Siguiente</button>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endif %}
+
+{% endblock %}
+
+
+{% block extracss %}
+  <style>
+
+  </style>
+{% endblock %}
+
+{% block extrajs %}
+    {% if form.iconpicker %}
+        <script src="{% static 'core/assets/js/iconpicker.js' %}"></script>
+    {% endif %}
+
+    <script>
+        function slugify(text) {
+            return text.toString().toLowerCase()
+                .replace(/\s+/g, '-')           // Replace spaces with -
+                .replace(/[^\w\-]+/g, '')       // Remove all non-word chars
+                .replace(/\-\-+/g, '-')         // Replace multiple - with single -
+                .replace(/^-+/, '')             // Trim - from start of text
+                .replace(/-+$/, '');            // Trim - from end of text
+        }
+
+        function quitarTildes(texto) {
+            const mapaTildes = {
+                'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u', 'ñ': 'n',
+                'Á': 'A', 'É': 'E', 'Í': 'I', 'Ó': 'O', 'Ú': 'U', 'Ñ': 'N', 
+            };
+        
+            return texto.replace(/[áéíóúñÁÉÍÓÚÑ]/g, function(letra) {
+                return mapaTildes[letra];
+            });
+        }
+
+        ready(function() {
+            {% if prepopulated_fields %}
+                
+                {% for item in prepopulated_fields %}
+                    let {{ item.field }} = document.getElementById('id_{{ item.field }}');
+                    let {{ item.source }} = document.getElementById('id_{{ item.source }}');
+
+                    {{ item.source }}.addEventListener('input', function() {
+                        {{ item.field }}.value = slugify(quitarTildes({{ item.source }}.value));
+                    });
+                {% endfor %}
+            {% endif %}
+        });
+
+    </script>
+    {{ form.media }}
+{% endblock %}
+
+{% block sidebar %}
+    {% include 'core/layout/sidebar_admin.html' %}
+{% endblock %}
