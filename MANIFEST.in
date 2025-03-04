@@ -1,2 +1,2 @@
-recursive-include django_core_app/templates *
-recursive-include django_core_app/static *
+recursive-include core/templates *
+recursive-include core/static *
