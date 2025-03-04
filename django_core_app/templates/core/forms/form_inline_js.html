@@ -1,0 +1,72 @@
+<script>
+    // Función para eliminar un inline
+    function removeInline(button) {
+        var inlineDiv = button.closest('.inline-form');
+
+        // Eliminar los editores de texto
+        var textareas = inlineDiv.querySelectorAll("textarea");
+        textareas.forEach(function(textarea) {
+            if (tinymce.get(textarea.id)) {
+                tinymce.EditorManager.execCommand('mceRemoveEditor', true, textarea.id);
+            }
+        });
+
+        if (inlineDiv) {
+            inlineDiv.remove();
+        }
+        // Obtener el prefijo del formset
+        var formsetPrefix = inlineDiv.id.split("-")[0];
+        // Actualizar el total de formularios
+        var totalFormsInput = document.querySelector("input[name$='" + formsetPrefix + "-TOTAL_FORMS']");
+        totalFormsInput.value = parseInt(totalFormsInput.value, 10) - 1;
+        
+        // Actualizar los índices de los formularios restantes
+        var formIndex = 0;
+        var formRows = document.querySelectorAll("#tbody-" + formsetPrefix + " .inline-form");
+        formRows.forEach(function(row) {
+            var inputs = row.querySelectorAll("input, select, textarea");
+            inputs.forEach(function(input) {
+                var inputName = input.name;
+                var newInputName = inputName.replace(/-\d+-/g, "-" + formIndex + "-");
+                input.name = newInputName;
+                if (input.id) {
+                    input.id = "id_" + newInputName.replace(/-/g, "_");
+                }
+            });
+            row.id = formsetPrefix + "-" + formIndex;
+            formIndex++;
+        });
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        {% for formset in form.inline_formsets %}
+            const formsetPrefix = "{{ formset.prefix }}";
+            var addButton = document.getElementById("add-inline-" + formsetPrefix);
+            var totalFormsInput = document.querySelector("input[name$='" + formsetPrefix + "-TOTAL_FORMS']");
+            var emptyInlineDiv = document.getElementById("empty-inline-" + formsetPrefix);
+            
+            var emptyFormHtml = emptyInlineDiv.querySelector(".inline-form").outerHTML;        
+            addButton.addEventListener("click", function() {
+                var formCount = parseInt(totalFormsInput.value, 10);
+                var newFormHtml = emptyFormHtml.replace(/__prefix__/g, formCount);
+                var template = document.createElement("template");
+                template.innerHTML = newFormHtml.trim();
+                var newRow = template.content.firstElementChild;
+
+                document.getElementById("tbody-" + formsetPrefix).appendChild(newRow);
+                totalFormsInput.value = formCount + 1;
+
+                // Inicializar los editores de texto en caso de que existan tinymce
+                var newTextareas = newRow.querySelectorAll("textarea");
+                newTextareas.forEach(function(textarea) {
+                    if (!textarea.id) {
+                        textarea.id = "id_" + textarea.name.replace(/-/g, "_") + "_" + formCount;
+                    }
+                    if (!tinymce.get(textarea.id)) {
+                        tinymce.EditorManager.execCommand('mceAddEditor', true, textarea.id);
+                    }
+                });
+            });
+        {% endfor %}
+    });
+</script>

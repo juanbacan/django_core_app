@@ -1,0 +1,80 @@
+<hr class="my-4">
+{% for formset in form.inline_formsets %}
+    <div class="card mb-4" id="inline-container-{{ formset.prefix }}">
+        <div class="card-header bg-primary bg-soft">
+            {{ formset.verbose_name_plural }}
+        </div>
+        {{ formset.management_form }}
+        <div class="table-responsive">
+            <table data-sortable class="table table-bordered table-hover" id="formset-table-{{ formset.prefix }}">
+                <thead>
+                    <tr style="vertical-align: middle;">
+                        {% for fields in formset.empty_form.visible_fields %}
+                            <th id="col-{{ formset.prefix }}-{{ fields.name }}" style="font-size: 14px;">{{ fields.label }}</th>
+                        {% endfor %}
+                        <th id="col-{{ formset.prefix }}-DELETE"></th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-{{ formset.prefix }}">
+                    {% for form in formset %}
+                        <tr id="{{ formset.prefix }}-{{ forloop.counter0 }}" class="inline-form">
+                            {% for fields in form.hidden_fields %}
+                                {{ fields }}
+                            {% endfor %}
+                            {% for fields in form.visible_fields %}
+                                <td>
+                                    {{ fields }}
+                                    {% if fields.errors %}
+                                        {% for error in fields.errors %}
+                                            <div class="text-danger small fw-bold">{{ error }}</div>
+                                        {% endfor %}
+                                    {% endif %}
+                                </td>
+                            {% endfor %}
+                            <td class="text-center">
+                                {% if not form.instance.pk %}
+                                    <a href="#" class="remove-inline" onclick="removeInline(this)">
+                                        <i class="fa-solid fa-circle-xmark" style="color: #888;"></i>
+                                    </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card-footer">
+        <div class="d-flex justify-content-end">
+            <button type="button" class="btn btn-dark btn-sm" id="add-inline-{{ formset.prefix }}">
+                <i class="fa-solid fa-plus"></i>
+                Agregar {{ formset.verbose_name }}
+            </button>
+        </div>
+    </div>
+{% endfor %}
+
+{% for formset in form.inline_formsets %}
+    <table id="empty-inline-{{ formset.prefix }}" style="display: none;">
+        <tr id="{{ formset.prefix }}-__prefix__" class="inline-form">
+            {% for fields in formset.empty_form.hidden_fields %}
+                {{ fields }}
+            {% endfor %}
+            {% for fields in formset.empty_form.visible_fields %}
+                <td>
+                    {{ fields }}
+                    {% if fields.errors %}
+                        {% for error in fields.errors %}
+                            <div class="text-danger small fw-bold">{{ error }}</div>
+                        {% endfor %}
+                    {% endif %}
+                </td>
+            {% endfor %}
+            <td class="text-center">
+                <a href="#" class="remove-inline" onclick="removeInline(this)">
+                    <i class="fa-solid fa-circle-xmark" style="color: #888;"></i>
+                </a>
+            </td>
+        </tr>
+    </table>
+{% endfor %}

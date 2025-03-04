@@ -1,0 +1,26 @@
+<div class="px-2 mt-3">
+    <div class="accordion accordion-flush custom-accordion" id="accordion-sidebar-admin">
+        {% for a in agrupacion_modulos %}
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="accordion-header-{{ a.id }}">
+                    <button class="accordion-button {% if not a.activo %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#accordion-content-{{ a.id }}" aria-expanded="false" aria-controls="accordion-content-{{ a.id }}">
+                        <span class=""><i class="{{ a.icono }} me-2"></i> {{ a.nombre }}</span>
+                    </button>
+                </h2>
+                <div id="accordion-content-{{ a.id }}" class="accordion-collapse collapse {% if a.activo %}show{% endif %}" aria-labelledby="accordion-header-{{ a.id }}">
+                    <div class="accordion-body p-0">
+                        <div class="list-group list-group-flush">
+                            {% for m in a.modulos_activos %}
+                                <a href="{% url 'administracion' %}{{ m.url }}" class="list-group-item list-group-item-action {% if m.url in request.path %}active{% endif %}">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <p class="mb-0"><i class="fa-regular fa-circle mx-2 fa-2xs"></i> {{ m.nombre }}</p>
+                                    </div>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>

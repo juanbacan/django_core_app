@@ -1,0 +1,23 @@
+{% block extracss %}{% endblock extracss %}
+
+{% comment %} <div class="modal-dialog {% block modalsize %}modal-xl{% endblock modalsize %} modal-dialog-centered {% block fullscreenn %}modal-fullscreen-lg-down{% endblock %}"> {% endcomment %}
+<div class="modal-dialog modal-dialog-scrollable {% block modalsize %}modal-xl{% endblock modalsize %} {% block fullscreenn %}modal-fullscreen-lg-down{% endblock %}">
+    <div class="modal-content">
+        <div class="modal-header">
+            {% if title %}
+                <h4 class="modal-title fs-6">{{ title }}</h4>
+            {% else %}
+                <h4 class="modal-title fs-6">{% block title %}{% endblock title %}</h4>
+            {% endif %}
+            <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close">
+            </button>
+        </div>
+        <div class="modal-body">
+            {% block body %}
+                {{ body }}
+            {% endblock body %}
+        </div>
+    </div>
+</div>
+
+{% block extrajs %}{% endblock extrajs %}

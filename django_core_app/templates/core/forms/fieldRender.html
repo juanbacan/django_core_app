@@ -1,0 +1,46 @@
+{% comment %} {{ field }}
+
+{% if field.field.widget.attrs.validate %}
+    <div class="invalid-feedback">
+        {{ field.field.widget.attrs.validate }}
+    </div>
+{% endif %}
+
+{% if field.errors %}
+    <div class="invalid-feedback">
+        {% for error in field.errors %}
+            <small class="text-danger fw-bold">* {{ error }}</small>
+        {% endfor %}
+    </div>
+{% endif %} {% endcomment %}
+
+{% if field.field.widget.attrs.widget == 'number' %}
+    <div class="d-flex justify-content-start">
+        <div class="input-group" style="width: 150px;">
+            <button type="button" class="input-group-text text-center" id="btnMinus-{{ field.name }}">&nbsp;-&nbsp;</button>
+            {{ field }}
+            <button type="button" class="input-group-text text-center" id="btnPlus-{{ field.name }}">&nbsp;+&nbsp;</button>
+        </div>
+    </div>  
+{% elif field.field.widget.attrs.input_group %}
+    <div class="input-group">
+        <span class="input-group-text">{{ field.field.widget.attrs.input_group }}</span>
+        {{ field }}
+    </div>
+{% else %}
+    {{ field }}
+{% endif %}
+
+{% if field.field.widget.attrs.validate %}
+    <div class="invalid-feedback">
+        {{ field.field.widget.attrs.validate }}
+    </div>
+{% endif %}
+
+{% if field.errors %}
+    <div class="field-error-message text-danger">
+        {% for error in field.errors %}
+            <small class="text-danger fw-bold">* {{ error }}</small>
+        {% endfor %}
+    </div>
+{% endif %}

@@ -1,0 +1,58 @@
+{% extends "core/modals/modal.html" %}
+{% block modalsize %}modal-md{% endblock modalsize %}
+{% block title %}<h2 class="mb-0">Inicia Sesión</h2>{% endblock title %}
+{% load account socialaccount %}
+{% load blog_extras %}
+
+{% block body %}
+	<div class="alert alert-primary" role="alert">
+		<p class="text-center mb-0">Debes iniciar sesión para poder realizar esta acción.</p>
+		<p class="text-center mb-0"><span style="margin-right: 5px;">¿No tienes una cuenta?</span> <a href="{% url 'account_signup' %}?next={{ request.META.HTTP_REFERER }}">Regístrate</a></p>
+	</div>
+
+	
+	{% get_providers as socialaccount_providers %}
+	{% if socialaccount_providers %}
+		<div class="socialaccount_ballot">
+			{% include "socialaccount/snippets/provider_list.html" with process="login" %}
+			<div class="mt-5 mb-3 text-center" style="color: #929292; font-size: 13px; font-weight: 600;">o puedes ingresar con:</div>
+		</div>
+		{% include "socialaccount/snippets/login_extra.html" %}
+	{% endif %}
+
+	<form class="login" method="POST" action="{% url 'account_login' %}">
+		{% csrf_token %}
+		<input type="hidden" name="next" value="{{ request.META.HTTP_REFERER }}">
+		<div class="row">
+			{% for field in form %}
+				<div class="col-md-12 d-flex align-items-center mb-3 gap-1">
+					<div class="label-container-form" style="width: 160px;">
+						<label class="form-label form-label-text">{{ field.label }}:</label>
+					</div>
+					<div class="w-100">
+						{{ field|add_class }}
+					</div>
+				</div>
+			{% endfor %}
+		</div>
+
+		{% comment %} Form errors {% endcomment %}
+		{% if form.non_field_errors %}
+			<div class="alert alert-danger mt-3">
+				{% for error in form.non_field_errors %}
+					{{ error }}
+				{% endfor %}
+			</div>
+		{% endif %}
+
+		{% if redirect_field_value %}
+			<input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
+		{% endif %}
+		<div class="mb-2 text-center w-100 d-grid">
+			<button class="btn btn-secondary" type="submit">Iniciar Sesión</button>
+		</div>
+		<div class="mt-4 text-center">
+			<a class="text-center" style="color: #74788D; text-decoration: none" href="{% url 'account_reset_password' %}"><i class="fa-solid fa-lock fa-xs"></i>  ¿Olvidaste tu contraseña?</a>
+		</div>
+	</form>
+{% endblock body %}

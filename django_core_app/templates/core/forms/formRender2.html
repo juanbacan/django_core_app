@@ -1,0 +1,45 @@
+<div class="row">
+    {% for field in form %}
+        {% if field.is_hidden %}
+            {{ field }}
+        {% else %}
+            {% if field.field.widget.attrs.separator %}
+                <div class="col-12 mb-3">
+                    <div class="alert alert-primary" role="alert" style="font-size:0.9rem; padding: 5px 20px; margin-bottom: 4px">
+                        {{ field.field.widget.attrs.separator }}
+                    </div>
+                </div>
+            {% endif %}
+
+            {% if field.field.widget.attrs.labelwidth %}
+                <div class="mb-3 col-md-{{field.field.widget.attrs.labelwidth}} d-flex flex-wrap" id="fieldset_{{ field.name }}">
+            {% else %}
+                <div class="mb-3 col-md-12 d-flex flex-wrap" id="fieldset_{{ field.name }}">
+            {% endif %}
+                    <div class="" style="width: 200px;">
+                        <label class="form-label form-label-text">{{ field.label }}</label>
+                    </div>
+                    <div class="d-flex">
+                        <div class="w-100">
+                            {{ field }}
+                            {% if field.field.widget.attrs.validate %}
+                                <div class="invalid-feedback">
+                                    {{ field.field.widget.attrs.validate }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="valid-feedback">Looks good!</div>
+                </div> 
+            
+            {% if field.errors %}
+                <div id="error_{{ field.name }}">
+                    {% for error in field.errors %}
+                        <small class="text-danger fw-bold">* {{ error }}</small>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endif %}
+    {% endfor %}
+</div>
