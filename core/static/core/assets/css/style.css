@@ -1,0 +1,102 @@
+/* @import url("https://fonts.googleapis.com/css?family=Montserrat:300,400,500,700&amp;display=swap");
+
+body {
+    font-family: 'Montserrat', sans-serif !important;
+} */
+
+/* @import url("https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap");
+
+body {
+    font-family: 'Roboto', sans-serif !important;
+} */
+
+/* @import url("https://fonts.googleapis.com/css?family=Open+Sans:300,400,500,700&display=swap");
+
+body {
+    font-family: 'Open Sans', sans-serif !important;
+} */
+
+.preloader-static {
+    align-items: center;
+    background: rgba(54, 54, 54, 0.767);
+    display: flex;
+    height: 100vh;
+    justify-content: center;
+    left: 0;
+    position: fixed;
+    top: 0;
+    transition: opacity 0.2s linear;
+    width: 100%;
+    z-index: 9999;
+    opacity: 1;
+    transform: opacity 1s linear;
+    display: none;
+}
+
+.dropdown-menu-lg {
+    width: 320px;
+}
+
+.dropdown-custom-sm[data-bs-popper] {
+    right: -60px!important;
+    left: auto;
+}
+
+/* ON hover notificacion */
+.notificacion:hover {
+    background-color: #e4e4e4;
+}
+
+.notificacion-leida{
+    background-color: #f5f5f5!important;
+}
+
+.d-mobile {
+    display: none; /* Oculta por defecto */
+}
+
+@media (min-width: 840px) {
+    .d-mobile {
+        display: inline; /* Muestra el span cuando el ancho es mayor a 840px */
+    }
+}
+
+.btn-xs{
+    padding: 0.25rem 0.5rem;
+    font-size: 0.575rem;
+    line-height: 1.5;
+    border-radius: 0.2rem;
+}
+
+.select2-container {
+    z-index: 1056!important;
+}
+
+.wrs_tickContainer {
+    display: none;
+}
+
+.link {
+    cursor: pointer;
+    color: inherit;
+    text-decoration: none;
+}
+
+.link2 {
+    cursor: pointer;
+    color: inherit;
+}
+
+.katex-html {
+    display: none;
+}
+
+.MathJax {
+    font-size: 1.3em!important;
+}
+
+.katex-display {
+    display: inline-block!important;
+    margin: 0!important;
+    text-align: center!important;
+}

@@ -1,7 +1,6 @@
 baseenv/
 venv/
 media/
-static/
 package-lock.json
 *.pyc
 .idea/
