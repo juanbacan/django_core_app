@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="django-core-app",  # Nombre que tendrá en PyPI
-    version="0.1.6",         # Versión inicial (usa Semantic Versioning)
+    version="0.1.7",         # Versión inicial (usa Semantic Versioning)
     packages=find_packages(),
     include_package_data=True,  # Incluye archivos declarados en MANIFEST.in
     install_requires=[
@@ -14,6 +14,7 @@ setup(
         "django-resized",
         "django-tinymce==3.5.0",
         "django-pwa",
+        "django-social-share",
         "django-webpush",
         "firebase-admin",
         "numpy",
