@@ -1,0 +1,135 @@
+<div class="mt-3 overflow-auto">
+    <nav aria-label="Paginacion">
+        {% if url_params %}
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" aria-label="Previous" href="?pagina={{ page_obj.previous_page_number }}&{{ url_params }}">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <a class="page-link" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                {% endif %}
+
+                {% if page_obj.number > 7 %}
+                    <li class="page-item">
+                        <a class="page-link" href="?pagina=1&{{ url_params }}">1</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?pagina=1&{{ url_params }}">2</a>
+                    </li>
+                    <li class="page-item">
+                        <span class="page-link">...</span>
+                    </li>
+                {% endif %}
+
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <li class="page-item active">
+                            <a class="page-link" href="?pagina={{ num }}&{{ url_params }}">{{ num }}</a>
+                        </li>
+                    {% elif num <= 7 and page_obj.number <= 7 %}
+                        <li class="page-item">
+                            <a class="page-link" href="?pagina={{ num }}&{{ url_params }}">{{ num }}</a>
+                        </li>
+                    {% elif num > page_obj.number|add:'-4' and num < page_obj.number|add:'4' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?pagina={{ num }}&{{ url_params }}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                    {% if page_obj.number < page_obj.paginator.num_pages|add:'-6' %}
+                        <li class="page-item">
+                            <span class="page-link">...</span>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?pagina={{ page_obj.paginator.num_pages }}&{{ url_params }}">{{ page_obj.paginator.num_pages }}</a>
+                        </li>
+                    {% elif page_obj.number < page_obj.paginator.num_pages|add:'-6' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?pagina={{ page_obj.paginator.num_pages }}&{{ url_params }}">{{ page_obj.paginator.num_pages }}</a>
+                        </li>
+                    {% endif %}
+
+                    <li class="page-item">
+                        <a class="page-link" aria-label="Next" href="?pagina={{ page_obj.next_page_number }}&{{ url_params }}">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        {% else %}
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" aria-label="Previous" href="?pagina={{ page_obj.previous_page_number }}">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <a class="page-link" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                {% endif %}
+
+                {% if page_obj.number > 7 %}
+                    <li class="page-item">
+                        <a class="page-link" href="?pagina=1">1</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?pagina=1">2</a>
+                    </li>
+                    <li class="page-item">
+                        <span class="page-link">...</span>
+                    </li>
+                {% endif %}
+
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <li class="page-item active">
+                            <a class="page-link" href="?pagina={{ num }}">{{ num }}</a>
+                        </li>
+                    {% elif num <= 7 and page_obj.number <= 7 %}
+                        <li class="page-item">
+                            <a class="page-link" href="?pagina={{ num }}">{{ num }}</a>
+                        </li>
+                    {% elif num > page_obj.number|add:'-4' and num < page_obj.number|add:'4' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?pagina={{ num }}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                    {% if page_obj.number < page_obj.paginator.num_pages|add:'-6' %}
+                        <li class="page-item">
+                            <span class="page-link">...</span>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?pagina={{ page_obj.paginator.num_pages }}">{{ page_obj.paginator.num_pages }}</a>
+                        </li>
+                    {% elif page_obj.number < page_obj.paginator.num_pages|add:'-6' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?pagina={{ page_obj.paginator.num_pages }}">{{ page_obj.paginator.num_pages }}</a>
+                        </li>
+                    {% endif %}
+
+                    <li class="page-item">
+                        <a class="page-link" aria-label="Next" href="?pagina={{ page_obj.next_page_number }}">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        {% endif %}
+    </nav>
+</div>
