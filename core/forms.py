@@ -46,8 +46,10 @@ class BootstrapFieldsMixin:
             if hasattr(field.widget, "input_type"):
                 if field.widget.input_type == "checkbox":
                     field.widget.attrs["class"] = field.widget.attrs["class"].replace("form-control", "form-check-input")
-                if field.widget.input_type == "select":
+                elif field.widget.input_type == "select":
                     field.widget.attrs["class"] += " form-select"
+                elif field.widget.input_type == "radio":
+                    field.widget.attrs["class"] += " form-check-input"
 
             if "validate" in field.widget.attrs:
                 validation_attrs = self.get_validation_attrs(field.widget.attrs["validate"])
