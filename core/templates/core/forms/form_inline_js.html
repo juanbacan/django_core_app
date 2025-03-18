@@ -38,35 +38,38 @@
         });
     }
 
-    document.addEventListener("DOMContentLoaded", function() {
-        {% for formset in form.inline_formsets %}
-            const formsetPrefix = "{{ formset.prefix }}";
-            var addButton = document.getElementById("add-inline-" + formsetPrefix);
-            var totalFormsInput = document.querySelector("input[name$='" + formsetPrefix + "-TOTAL_FORMS']");
-            var emptyInlineDiv = document.getElementById("empty-inline-" + formsetPrefix);
-            
-            var emptyFormHtml = emptyInlineDiv.querySelector(".inline-form").outerHTML;        
-            addButton.addEventListener("click", function() {
-                var formCount = parseInt(totalFormsInput.value, 10);
-                var newFormHtml = emptyFormHtml.replace(/__prefix__/g, formCount);
-                var template = document.createElement("template");
-                template.innerHTML = newFormHtml.trim();
-                var newRow = template.content.firstElementChild;
-
-                document.getElementById("tbody-" + formsetPrefix).appendChild(newRow);
-                totalFormsInput.value = formCount + 1;
-
-                // Inicializar los editores de texto en caso de que existan tinymce
-                var newTextareas = newRow.querySelectorAll("textarea");
-                newTextareas.forEach(function(textarea) {
-                    if (!textarea.id) {
-                        textarea.id = "id_" + textarea.name.replace(/-/g, "_") + "_" + formCount;
-                    }
-                    if (!tinymce.get(textarea.id)) {
-                        tinymce.EditorManager.execCommand('mceAddEditor', true, textarea.id);
-                    }
-                });
+    function initInlineFormset(prefix) {
+        let addButton = document.getElementById("add-inline-" + prefix);
+        let totalFormsInput = document.querySelector("input[name='" + prefix + "-TOTAL_FORMS']");
+        let emptyInlineDiv = document.getElementById("empty-inline-" + prefix);
+    
+        let emptyFormHtml = emptyInlineDiv.querySelector(".inline-form").outerHTML;
+    
+        addButton.addEventListener("click", function() {
+            let formCount = parseInt(totalFormsInput.value, 10);
+            let newFormHtml = emptyFormHtml.replace(/__prefix__/g, formCount);
+            let template = document.createElement("template");
+            template.innerHTML = newFormHtml.trim();
+            let newRow = template.content.firstElementChild;
+    
+            document.getElementById("tbody-" + prefix).appendChild(newRow);
+            totalFormsInput.value = formCount + 1;
+    
+            // Inicializar tinymce, si corresponde
+            let newTextareas = newRow.querySelectorAll("textarea");
+            newTextareas.forEach(function(textarea) {
+                if (!textarea.id) {
+                    textarea.id = "id_" + textarea.name.replace(/-/g, "_") + "_" + formCount;
+                }
+                if (!tinymce.get(textarea.id)) {
+                    tinymce.EditorManager.execCommand('mceAddEditor', true, textarea.id);
+                }
             });
-        {% endfor %}
-    });
+        });
+    }
+    
+    document.addEventListener("DOMContentLoaded", function() {
+        initInlineFormset("pram_sospechoso");
+        initInlineFormset("pram_concominante");
+    });   
 </script>
