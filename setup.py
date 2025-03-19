@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="django-core-app",  # Nombre que tendrá en PyPI
-    version="0.1.15",         # Versión inicial (usa Semantic Versioning)
+    version="0.1.16",         # Versión inicial (usa Semantic Versioning)
     packages=find_packages(),
     include_package_data=True,  # Incluye archivos declarados en MANIFEST.in
     install_requires=[
@@ -11,15 +11,19 @@ setup(
         "beautifulsoup4",
         "django-allauth",
         "django-autocomplete-light",
+        "django-cropperjs",
+        "django-nested-admin",
+        "django-mptt",
+        "django-pwa",
         "django-resized",
         "django-tinymce==3.5.0",
-        "django-pwa",
         "django-social-share",
         "django-webpush",
         "firebase-admin",
         "numpy",
         "pandas",
         "pillow",
+        "psycopg2-binary",
     ],
     author="juanbacan",
     author_email="juan.ingaor@gmail.com",
