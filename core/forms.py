@@ -28,6 +28,16 @@ class BootstrapFieldsMixin:
                 self.fields[field_name].widget.attrs.setdefault('autofocus', '')
                 break
 
+        # Si el formulario define fieldsets, precomputamos los bound fields
+        if hasattr(self, 'fieldsets'):
+            self.fieldset_bound = []
+            for title, options in self.fieldsets:
+                # Obtenemos la lista de nombres de campos definidos en el fieldset
+                field_names = options.get('fields', [])
+                # Creamos una lista con los bound fields, comprobando que existan en self.fields
+                bound_fields = [self[field_name] for field_name in field_names if field_name in self.fields]
+                self.fieldset_bound.append((title, bound_fields))
+
     def configure_field(self, field):
         # Aplica automáticamente DateInput en los DateField
         if isinstance(field, forms.DateField):

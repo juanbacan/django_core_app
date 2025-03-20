@@ -1,0 +1,22 @@
+<div class="row">
+    {% for title, fields in form.fieldset_bound %}
+        <div class="col-12 mb-3">
+            <div class="alert alert-primary" role="alert" style="font-size:0.9rem; padding: 5px 20px; margin-bottom: 4px">
+                {{ title }}
+            </div>
+        </div>
+
+        {% for field in fields %}
+            <div class="col-12 mb-3">
+                {{ field }}
+                {% if field.errors %}
+                    <div id="error_{{ field.name }}">
+                        {% for error in field.errors %}
+                            <small class="text-danger fw-bold">* {{ error }}</small>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        {% endfor %}
+    {% endfor %}
+</div>
