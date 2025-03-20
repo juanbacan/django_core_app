@@ -69,7 +69,8 @@
     }
     
     document.addEventListener("DOMContentLoaded", function() {
-        initInlineFormset("pram_sospechoso");
-        initInlineFormset("pram_concominante");
-    });   
+        {% for formset in formsets %}
+            initInlineFormset("{{ formset.prefix }}");
+        {% endfor %}
+    });  
 </script>
