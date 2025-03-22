@@ -103,28 +103,28 @@ class NotificacionesPushAppView(ViewAdministracionBase):
         context['title'] = 'Enviar notificación a todos los usuarios'
         context['message'] = 'Se enviará una notificación a todos los usuarios'
         context['form'] = NotificacionAndroidMasivaForm()
-        return render(request, 'modals/formModal.html', context)
+        return render(request, 'core/modals/formModal.html', context)
     
     def get_notificaciones_push_usuario(self, request, context, *args, **kwargs):
         context['title'] = 'Enviar notificación push a un usuario'
         context['message'] = 'Se enviará una notificación push al usuario seleccionado'
         context['form'] = NotificacionPushUsuarioForm()
-        return render(request, 'modals/formModal.html', context)
+        return render(request, 'core/modals/formModal.html', context)
 
     def get_notificaciones_app_usuario(self, request, context, *args, **kwargs):
         context['title'] = 'Enviar notificación app a un usuario'
         context['message'] = 'Se enviará una notificación app al usuario seleccionado'
         context['form'] = NotificacionAppUsuarioForm()
-        return render(request, 'modals/formModal.html', context)
+        return render(request, 'core/modals/formModal.html', context)
     
     def get_notificaciones_pushapp_usuario(self, request, context, *args, **kwargs):
         context['title'] = 'Enviar notificación pushapp a un usuario'
         context['message'] = 'Se enviará una notificación pushapp al usuario seleccionado'
         context['form'] = NotificacionPushAppUsuarioForm()
-        return render(request, 'modals/formModal.html', context)
+        return render(request, 'core/modals/formModal.html', context)
 
     def get_notificaciones_push_masiva(self, request, context, *args, **kwargs):
         context['title'] = 'Enviar notificación push masiva'
         context['message'] = 'Se enviará una notificación push a todos los usuarios'
         context['form'] = NotificacionPushMasivaForm()
-        return render(request, 'modals/formModal.html', context)
+        return render(request, 'core/modals/formModal.html', context)

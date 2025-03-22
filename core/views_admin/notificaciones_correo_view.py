@@ -133,26 +133,26 @@ class NotificacionesCorreoView(ViewAdministracionBase):
         context['title'] = 'Enviar correo personalizado'
         context['message'] = 'Se enviará un email a este correo'
         context['form'] = CorreoPersonalizadoForm()
-        return render(request, 'modals/formModal.html', context)
+        return render(request, 'core/modals/formModal.html', context)
 
     def get_notificaciones_correo_usuario(self, request, context, *args, **kwargs):
         context['title'] = 'Enviar correo a un usuario'
         context['message'] = 'Se enviará un email al usuario seleccionado'
         context['form'] = CorreoUsuarioForm()
-        return render(request, 'modals/formModal.html', context)
+        return render(request, 'core/modals/formModal.html', context)
 
     def get_notificaciones_correo_masivo(self, request, context, *args, **kwargs):
         context['title'] = 'Enviar correo a masivo'
         context['message'] = 'Se enviará un email a todos los usuarios activos'
         context['form'] = CorreoMasivoForm()
-        return render(request, 'modals/formModal.html', context)
+        return render(request, 'core/modals/formModal.html', context)
     0
     def get_notificaciones_correo_template_editar(self, request, context, *args, **kwargs):
         template = CorreoTemplate.objects.get(id=self.data.get('id'))
         context['title'] = 'Editar Template'
         context['form'] = CorreoTemplateForm(instance=template)
         context['formid'] = template.id
-        return render(request, 'modals/formModal.html', context)
+        return render(request, 'core/modals/formModal.html', context)
 
     def get_notificaciones_correo_template_crear(self, request, context, *args, **kwargs):
         context['title'] = 'Crear Template'
@@ -160,14 +160,14 @@ class NotificacionesCorreoView(ViewAdministracionBase):
         tipo = self.data.get('tipo', 'correos')
         form.add_form(tipo)
         context['form'] = form
-        return render(request, 'modals/formModal.html', context)
+        return render(request, 'core/modals/formModal.html', context)
     
     def get_notificaciones_correo_template_eliminar(self, request, context, *args, **kwargs):
         template = CorreoTemplate.objects.get(id=self.data.get('id'))
         context['title'] = 'Eliminar Template'
         context['message'] = '¿Está seguro de que desea eliminar el template ' + template.nombre + '?'
         context['formid'] = template.id
-        return render(request, 'modals/formModal.html', context)
+        return render(request, 'core/modals/formModal.html', context)
 
     def get_notificaciones_correo_template_ver(self, request, context, *args, **kwargs):
         context['usuario'] = request.user
