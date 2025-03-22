@@ -4,7 +4,7 @@ from django.conf import settings
 
 from core.models import CustomUser, AplicacionWeb
 from core.views import ViewAdministracionBase
-from administracion_forms import NotificacionPushUsuarioForm, NotificacionAppUsuarioForm, \
+from core.administracion_forms import NotificacionPushUsuarioForm, NotificacionAppUsuarioForm, \
     NotificacionPushAppUsuarioForm, NotificacionPushMasivaForm, NotificacionAndroidMasivaForm
 
 from core.utils import success_json, bad_json

@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from core.views import ViewAdministracionBase
-from administracion_forms import GrupoForm
+from core.administracion_forms import GrupoForm
 from django.contrib.auth.models import Group
 
 from core.utils import error_json, success_json, get_redirect_url

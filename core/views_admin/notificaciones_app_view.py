@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from core.models import TipoNotificacion, NotificacionUsuario
 from core.views import ViewAdministracionBase
-from administracion_forms import TipoNotificacionForm
+from core.administracion_forms import TipoNotificacionForm
 
 from core.utils import error_json, success_json, get_redirect_url
 
