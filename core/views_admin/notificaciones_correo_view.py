@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.template.loader import render_to_string
 
 from core.models import CorreoTemplate
-from core.views_admin import ViewAdministracionBase
+from core.views import ViewAdministracionBase
 from core.administracion_forms import CorreoUsuarioForm, CorreoTemplateForm, \
     CorreoTemplateEnviarForm, CorreoPersonalizadoForm, CorreoMasivoForm
 

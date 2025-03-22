@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from core.views_admin import ViewAdministracionBase
+from core.views import ViewAdministracionBase
 from administracion_forms import GrupoForm
 from django.contrib.auth.models import Group
 

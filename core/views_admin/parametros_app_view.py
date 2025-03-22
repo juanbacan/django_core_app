@@ -4,7 +4,7 @@ from django.shortcuts import render, redirect
 from core.utils import success_json, error_json
 
 from core.models import AplicacionWeb
-from core.views_admin import ViewAdministracionBase
+from core.views import ViewAdministracionBase
 from administracion_forms import AplicacionWebForm
 
 class ParametrosAppView(ViewAdministracionBase):

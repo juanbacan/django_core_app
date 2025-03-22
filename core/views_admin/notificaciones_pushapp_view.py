@@ -3,7 +3,7 @@ from django.shortcuts import render
 from django.conf import settings
 
 from core.models import CustomUser, AplicacionWeb
-from core.views_admin import ViewAdministracionBase
+from core.views import ViewAdministracionBase
 from administracion_forms import NotificacionPushUsuarioForm, NotificacionAppUsuarioForm, \
     NotificacionPushAppUsuarioForm, NotificacionPushMasivaForm, NotificacionAndroidMasivaForm
 

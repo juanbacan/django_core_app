@@ -4,7 +4,7 @@ from django.contrib.auth import login, logout
 
 from core.administracion_forms import CustomUserForm
 from core.models import CustomUser
-from core.views_admin import ViewAdministracionBase
+from core.views import ViewAdministracionBase
 
 from core.utils import success_json, error_json, get_url_params, get_redirect_url
 
