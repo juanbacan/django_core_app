@@ -4,6 +4,8 @@ from bs4 import BeautifulSoup
 from django import template
 from django.utils import timezone
 from django.utils.safestring import mark_safe
+from django.utils.html import escape
+
 
 register = template.Library()
 
@@ -225,6 +227,7 @@ def exclude_filter_url(url, exclude="pagina,kword"):
     else:
         return url
     
+
 @register.filter(expects_localtime=True)
 def fecha_con_mes(fecha):
     meses = [
@@ -249,6 +252,73 @@ def descripcion_corta(html, longitud=130):
 def descripcion(html):
     soup = BeautifulSoup(html, "html.parser")
     return soup.get_text()
+
+
+@register.simple_tag
+def avatar_small(usuario, width=40):
+    photo = usuario.get_photo_user()
+    avatar = f"border: solid 1px #b5b5b5; width:{width}px; height:{width}px; border-radius: 50%; object-fit: cover;"
+
+    if photo:
+        html = f'<div style="background-image: url({photo}); background-size: cover; {avatar}"></div>'
+    else:
+        html = f'<div class="bg-lightgray d-flex justify-content-center align-items-center h2" style="{avatar}">{usuario.get_nombre_completo()[0]}</div>'
+    return mark_safe(html)
+
+
+@register.simple_tag
+def avatar_img(url, width=40, padding=5, extra_styles="", html_attrs=""):
+    """
+    Generate an HTML div element with an image inside for an avatar, centered with padding.
+    
+    :param url: The URL of the avatar image.
+    :param width: The width and height of the avatar in pixels. Default is 40px.
+    :param padding: The padding around the image in pixels. Default is 5px.
+    :param extra_styles: Additional CSS styles to apply to the div.
+    :param html_attrs: Additional HTML attributes to include in the div.
+    :return: A safe HTML string containing the div element with an image inside.
+    """
+    # Escape the URL to prevent injection attacks
+    escaped_url = escape(url)
+    
+    # Calculate the inner width and height considering padding
+    inner_width = width - 2 * padding
+    
+    # Create the base style for the outer container
+    outer_styles = (
+        f"display: inline-block; "
+        f"width: {width}px; "
+        f"height: {width}px; "
+        f"padding: {padding}px; "
+        f"border: solid 1px #b5b5b5; "
+        f"border-radius: 50%; "
+        f"box-sizing: border-box; "
+        f"overflow: hidden; "
+        f"background-color: #f9f9f9; "
+        f"{extra_styles}"
+    )
+    
+    # Create the base style for the inner image
+    inner_styles = (
+        f"width: {inner_width}px; "
+        f"height: {inner_width}px; "
+        f"object-fit: cover;"
+    )
+    
+    # Construct the HTML element
+    html = (
+        f'<div style="{outer_styles}" {html_attrs}>'
+            f'<img src="{escaped_url}" style="{inner_styles}" alt="Avatar" />'
+        f'</div>'
+    )
+    
+    return mark_safe(html)
+  
+
+@register.simple_tag
+def custom_avatar_small(content, background="bg-lightgray", color="text-dark"):
+    html = f'<div class="avatar {background} {color} d-flex justify-content-center align-items-center h2">{content}</div>'
+    return mark_safe(html)  
 
 
 register.filter("call", callmethod)
