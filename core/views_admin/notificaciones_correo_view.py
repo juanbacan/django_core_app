@@ -126,7 +126,7 @@ class NotificacionesCorreoView(ViewAdministracionBase):
         context['correos'] = templates.filter(tipo='correos')
         context['inscripciones'] = templates.filter(tipo='inscripciones')
         context['premium'] = templates.filter(tipo='premium')
-        return render(request, 'administracion/notificaciones/correos.html', context)
+        return render(request, 'core/administracion/notificaciones/correos.html', context)
         
 
     def get_notificaciones_correo_personalizado(self, request, context, *args, **kwargs):
@@ -183,5 +183,5 @@ class NotificacionesCorreoView(ViewAdministracionBase):
         template = CorreoTemplate.objects.get(id=self.data.get('id'))
         context['formid'] = template.id
         context['form'] = CorreoTemplateEnviarForm()
-        return render(request, 'administracion/notificaciones/correo_template_enviar.html', context)
+        return render(request, 'core/administracion/notificaciones/correo_template_enviar.html', context)
                     

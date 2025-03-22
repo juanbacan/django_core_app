@@ -1,0 +1,97 @@
+{% extends 'layout/base_admin.html' %}
+{% block content %}
+  <div class="row">
+    <div class="col-md-12">
+        <div class="card border-0">
+            <h5 class="card-header">
+                <i class="fa-solid fa-envelope"></i> Opciones de Envio de Notificaciones Push y App
+            </h5>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <a class="link d-flex h-100 formmodal" nhref="{{ request.path }}?action=notificaciones_push_usuario">
+                            <div class="card text-bg-primary mb-3" style="max-width: 18rem;">
+                                <div class="card-body">
+                                  <h5 class="card-title">Notificación Push a Usuario</h5>
+                                  <p class="card-text">
+                                    Envia una notificación  push  a un usuario en específico
+                                  </p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a class="link d-flex h-100 formmodal" nhref="{{ request.path }}?action=notificaciones_app_usuario">
+                            <div class="card text-bg-secondary text-white mb-3" style="max-width: 18rem;">
+                                <div class="card-body">
+                                  <h5 class="card-title">Notificaciones App a Usuario</h5>
+                                  <p class="card-text">
+                                    Envia una notificación  a la app a un usuario en específico
+                                  </p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a class="link d-flex h-100 formmodal" nhref="{{ request.path }}?action=notificaciones_pushapp_usuario">
+                            <div class="card text-bg-success text-white mb-3" style="max-width: 18rem;">
+                                <div class="card-body">
+                                  <h5 class="card-title">Notificación Push y App</h5>
+                                  <p class="card-text">
+                                    Envia una notificación push y a la app a un usuario en específico
+                                  </p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a class="link d-flex h-100 formmodal" nhref="{{ request.path }}?action=notificaciones_push_masiva">
+                            <div class="card text-bg-danger mb-3" style="max-width: 18rem;">
+                                <div class="card-body">
+                                  <h5 class="card-title">Notificación Push Masiva</h5>
+                                  <p class="card-text">
+                                    Envia una notificación push a todos los usuarios de la plataforma
+                                  </p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                      <a class="link d-flex h-100 formmodal" nhref="{{ request.path }}?action=notificaciones_android_masiva">
+                          <div class="card text-bg-warning mb-3" style="max-width: 18rem;">
+                              <div class="card-body">
+                                <h5 class="card-title">Notificación Android</h5>
+                                <p class="card-text">
+                                  Envia una notificación push a la aplicación android mediante Firebase
+                                </p>
+                              </div>
+                          </div>
+                      </a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+  </div>
+{% endblock %}
+
+
+{% block extracss %}
+  <link href="/static/autocomplete_light/select2.css" media="screen" rel="stylesheet">
+  <style>
+
+  </style>
+{% endblock %}
+
+{% block extrajs %}
+  <script src="https://code.jquery.com/jquery-3.6.3.min.js" integrity="sha256-pvPw+upLPUjgMXY0G+8O0xUf+/Im1MZjXxxgOcBQBXU=" crossorigin="anonymous"></script>
+  <script src="/static/admin/js/vendor/select2/select2.full.js"></script>
+  <script src="/static/autocomplete_light/autocomplete_light.js"></script>
+  <script src="/static/autocomplete_light/select2.js"></script>
+  <script src="/static/autocomplete_light/i18n/es.js"></script>
+{% endblock %}
+
+{% block sidebar %}
+  {% include 'layout/sidebar_admin.html' %}
+{% endblock %}

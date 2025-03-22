@@ -1,0 +1,128 @@
+{% extends 'layout/base_admin.html' %}
+{% block content %}
+  <div class="row">
+		<div class="col-md-12">
+			<div class="d-flex flex-wrap gap-3 justify-content-between align-items-center mb-4">
+				<div>
+					<h1 class="mb-0 h3"><i class="{{ modulo_activo.icon }}"></i> {{ modulo_activo.nombre }}</h1>
+				</div>
+				<div class="ms-auto">
+					<a class="btn btn-sm btn-dark" href="{{ path }}?action=add"><i class="fa-solid fa-circle-plus"></i> Agregar {{ modulo_activo }}</a>
+				</div>
+			</div>
+
+			<div style="max-width: 500px">
+				<form method="GET" role="form" action=".">
+					<div class="input-group mb-3">
+					<input type="text" id="search" name="search" value="{{ request.GET.search }}" class="form-control" placeholder="Buscar {{ modulo_activo.nombre }} ...">
+					<button type="submit" class="btn btn-dark btn-sm">Buscar <i class="fa-solid fa-magnifying-glass"></i></button>
+					</div>
+				</form>
+			</div>
+
+			<div class="card border-0">
+				<div class="card-body">
+					<div class="table-responsive">
+						<table class="table small table-striped table-hover">
+							<thead>
+								<tr>
+									<th>Nombre</th>
+									<th>Apellido</th>
+									<th>Usuario</th>
+									<th>Correo</th>
+									<th>Acciones</th>
+								</tr>
+							</thead>
+							<tbody>
+							{% for object in page_obj %}
+								<tr>
+									<td>{{ object.first_name }}</td>
+									<td>{{ object.last_name }}</td>
+									<td>{{ object.username }}</td>
+									<td>{{ object.mi_email|default:"-" }}</td>
+									{% comment %} <td>
+										<a href="" class="btn btn-sm btn-warning" title="Editar usuario">
+										<i class="fa-solid fa-user-edit"></i>
+										</a>
+										<a href="" class="btn btn-sm btn-danger" title="Eliminar usuario">
+										<i class="fa-solid fa-user-slash"></i>
+										</a>
+										<button onClick="ingresarUsuario('{{ usuario.id }}')" class="btn btn-sm btn-dark" title="Ingresar como este usuario">
+										<i class="fa-solid fa-user-check"></i>
+										</button>
+									</td> {% endcomment %}
+									<td>
+                                        <div class="dropdown">
+                                            <button class="btn btn-info btn-xs dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                Acciones
+                                            </button>
+                                            <ul class="dropdown-menu">
+                                                <li>
+                                                    <a class="dropdown-item btn" href="{{ path }}?action=edit&id={{ object.id }}">
+                                                        <i class="fa-solid fa-pencil"></i> Editar
+                                                    </a>
+													<button onClick="ingresarUsuario('{{ object.id }}')" class="dropdown-item btn" title="Ingresar como este usuario">
+														<i class="fa-solid fa-user-check"></i> Ingresar
+													</button>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </td>
+								</tr>
+							{% endfor %}
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+			{% include 'core/partials/pagination.html' %}
+		</div>
+  </div>
+{% endblock %}
+
+
+{% block extracss %}
+  <link href="/static/autocomplete_light/select2.css" media="screen" rel="stylesheet">
+  <style>
+
+  </style>
+{% endblock %}
+
+{% block extrajs %}
+  <script src="https://code.jquery.com/jquery-3.6.3.min.js" integrity="sha256-pvPw+upLPUjgMXY0G+8O0xUf+/Im1MZjXxxgOcBQBXU=" crossorigin="anonymous"></script>
+  <script src="/static/admin/js/vendor/select2/select2.full.js"></script>
+  <script src="/static/autocomplete_light/autocomplete_light.js"></script>
+  <script src="/static/autocomplete_light/select2.js"></script>
+  <script src="/static/autocomplete_light/i18n/es.js"></script>
+
+  <script>
+    function ingresarUsuario(id){
+      bloqueoInterfaz(true);
+      $.ajax({
+        url: '{{ request.path }}?action=ingresar_usuario&id=' + id,
+        type: 'GET',
+        success: function(data){
+          desbloqueoInterfaz();
+          if (data.result !== 'ok') {
+            showErrorMessage(data.message || 'Error al ingresar como este usuario');
+            return;
+          }
+          const sessionId = data.resp.sessionId;
+          localStorage.removeItem('sessionid');
+          localStorage.setItem('sessionid', data.sessionid);
+          window.location.href = '/';
+            
+        },
+        error: function(data){
+          desbloqueoInterfaz();
+          showErrorMessage('Error al ingresar como este usuario');
+        }
+      });
+    }
+  </script>
+
+{% endblock %}
+
+{% block sidebar %}
+  {% include 'layout/sidebar_admin.html' %}
+{% endblock %}

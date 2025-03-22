@@ -97,7 +97,7 @@ class NotificacionesPushAppView(ViewAdministracionBase):
         if self.action and hasattr(self, f'get_{self.action}'):
             return getattr(self, f'get_{self.action}')(request, context, *args, **kwargs)
         
-        return render(request, 'administracion/notificaciones/pushapp.html', context)
+        return render(request, 'core/administracion/notificaciones/pushapp.html', context)
 
     def get_notificaciones_android_masiva(self, request, context, *args, **kwargs):
         context['title'] = 'Enviar notificación a todos los usuarios'

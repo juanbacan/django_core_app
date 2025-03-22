@@ -41,7 +41,7 @@ class NotificacionesAppView(ViewAdministracionBase):
             return getattr(self, f'get_{self.action}')(request, context, *args, **kwargs)
         
         context['objects'] = TipoNotificacion.objects.order_by('id')
-        return render(request, 'administracion/notificaciones/notificaciones_app.html', context)
+        return render(request, 'core/administracion/notificaciones/notificaciones_app.html', context)
 
     def get_add(self, request, context, *args, **kwargs):
         context['form'] = TipoNotificacionForm()

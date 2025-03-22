@@ -33,7 +33,7 @@ class GroupsView(ViewAdministracionBase):
             return getattr(self, f'get_{self.action}')(request, context, *args, **kwargs)
         
         context['objects'] = Group.objects.order_by('id')
-        return render(request, 'administracion/grupos/lista.html', context)
+        return render(request, 'core/administracion/grupos/lista.html', context)
 
     def get_add(self, request, context, *args, **kwargs):
         context['form'] = GrupoForm()

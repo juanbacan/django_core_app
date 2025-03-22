@@ -33,7 +33,7 @@ class AgrupacionModulosView(ViewAdministracionBase):
             return getattr(self, f'get_{self.action}')(request, context, *args, **kwargs)
         
         context['objects'] = AgrupacionModulo.objects.order_by('orden', 'id')
-        return render(request, 'administracion/agrupacion_modulos/lista.html', context)
+        return render(request, 'core/administracion/agrupacion_modulos/lista.html', context)
 
     def get_add(self, request, context, *args, **kwargs):
         context['form'] = AgrupacionModuloForm()

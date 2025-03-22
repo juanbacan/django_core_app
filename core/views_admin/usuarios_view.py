@@ -55,7 +55,7 @@ class UsuariosView(ViewAdministracionBase):
         context['page_obj'] = paginator.get_page(page_number)
         context['url_params'] = get_url_params(self.request)
 
-        return render(request, 'administracion/usuarios/lista.html', context)
+        return render(request, 'core/administracion/usuarios/lista.html', context)
     
     def get_add(self, request, context, *args, **kwargs):
         context['form'] = CustomUserForm()

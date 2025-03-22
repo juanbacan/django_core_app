@@ -1,0 +1,42 @@
+{% extends 'layout/base_admin.html' %}
+{% block content %}
+  <div class="row">
+    <div class="col-md-12">
+        <div class="card border-0">
+            <h5 class="card-header">
+                <i class="fa-solid fa-envelope"></i> Opciones de Envio de Correos
+            </h5>
+            <div class="card-body">
+              <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="notificaciones_correo_template_crear">
+
+                <div class="card mb-3 border-0 rounded-3 ">
+                    <div class="card-body">
+                        <h2 class="h4 text-primary mb-3">Agregando Nuevo Template</h2>
+                        {% include  'layout/form.html' %}
+                        
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-sm btn-dark"><i class="fas fa-save"></i> Agregar</button>
+                            <a href="" class="btn btn-sm btn-danger"><i class="fas fa-times"></i> Cancelar</a>
+                        </div>
+                    </div>
+                </div>
+              </form>
+            </div>
+        </div>
+    </div>
+  </div>
+{% endblock %}
+
+
+{% block extracss %}
+{% endblock %}
+
+{% block extrajs %}
+  {{ form.media }}
+{% endblock %}
+
+{% block sidebar %}
+  {% include 'layout/sidebar_admin.html' %}
+{% endblock %}

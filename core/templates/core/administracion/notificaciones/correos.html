@@ -1,0 +1,237 @@
+{% extends 'layout/base_admin.html' %}
+{% block content %}
+  <div class="row">
+    <div class="col-md-12">
+        <div class="card shadow border-0">
+            <h5 class="card-header">
+                <i class="fa-solid fa-envelope"></i> Opciones de Envio de Correos
+            </h5>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <a class="link d-flex h-100 formmodal" nhref="{{ request.path }}?action=notificaciones_correo_masivo">
+                            <div class="card text-bg-primary mb-3" style="max-width: 18rem;">
+                                <div class="card-body">
+                                  <h5 class="card-title">Masivo</h5>
+                                  <p class="card-text">
+                                    Envia correos a todos los usuarios
+                                  </p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a class="link d-flex h-100 formmodal" nhref="{{ request.path }}?action=notificaciones_correo_usuario">
+                            <div class="card text-bg-secondary text-white mb-3" style="max-width: 18rem;">
+                                <div class="card-body">
+                                  <h5 class="card-title">Usuario</h5>
+                                  <p class="card-text">
+                                    Envia correos a un usuario en específico
+                                  </p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a class="link d-flex h-100 formmodal" nhref="{{ request.path }}?action=notificaciones_correo_personalizado">
+                            <div class="card text-bg-success text-white mb-3" style="max-width: 18rem;">
+                                <div class="card-body">
+                                  <h5 class="card-title">Personalizado</h5>
+                                  <p class="card-text">
+                                    Envia correos a un email en específico
+                                  </p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a class="link d-flex h-100 formmodal" nhref="{{ request.path }}?action=notificaciones_correo_template">
+                            <div class="card text-bg-danger mb-3" style="max-width: 18rem;">
+                                <div class="card-body">
+                                  <h5 class="card-title">Template</h5>
+                                  <p class="card-text">
+                                    Muestra los templates de correos
+                                  </p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-12 mt-4">
+      <div class="card shadow border-0">
+        <h5 class="card-header">
+          <i class="fa-solid fa-envelope"></i> Administrador de Templates de Correos Electrónicos
+        </h5>
+        <div class="card-body">
+
+          <div class="col-md-12 mb-3">
+            <a class="btn btn-sm btn-dark formmodal" nhref="{{ request.path }}?action=notificaciones_correo_template_crear&tipo=correos">
+              <i class="fa-solid fa-plus"></i> Crear Template
+            </a>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-bordered ">
+              <thead>
+                <tr class="table-primary">
+                  <th>Título</th>
+                  <th>Subject</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for template in correos %}
+                  <tr>
+                    <td>{{ template.nombre }}</td>
+                    <td>{{ template.subject }}</td>
+                    <td>
+                      <a class="btn btn-xs btn-primary formmodal" data-bs-toggle="tooltip" title="Editar Template" data-bs-custom-class="custom-tooltip" nhref="{{ request.path }}?action=notificaciones_correo_template_editar&id={{ template.id }}">
+                        <i class="fa-solid fa-edit"></i>
+                      </a>
+                      <a class="btn btn-xs btn-info formmodal" data-bs-toggle="tooltip" title="Ver Template" data-bs-custom-class="custom-tooltip" nhref="{{ request.path }}?action=notificaciones_correo_template_ver&id={{ template.id }}">
+                        <i class="fa-solid fa-eye"></i>
+                      </a>
+                      <a class="btn btn-xs btn-dark formmodal" data-bs-toggle="tooltip" title="Enviar correo" data-bs-custom-class="custom-tooltip" nhref="{{ request.path }}?action=notificaciones_correo_template_enviar&id={{ template.id }}">
+                        <i class="fa-solid fa-envelope"></i>
+                      </a>
+                      <a class="btn btn-xs btn-danger formmodal" data-bs-toggle="tooltip" title="Eliminar Template" data-bs-custom-class="custom-tooltip" nhref="{{ request.path }}?action=notificaciones_correo_template_eliminar&id={{ template.id }}">
+                        <i class="fa-solid fa-trash"></i>
+                      </a>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-12 mt-4">
+      <div class="card shadow border-0">
+        <h5 class="card-header">
+          <i class="fa-solid fa-envelope"></i> Administrador de Correos Inscripciones Curso
+        </h5>
+        <div class="card-body">
+          <div class="col-md-12 mb-3">
+            <a class="btn btn-sm btn-dark formmodal" nhref="{{ request.path }}?action=notificaciones_correo_template_crear&tipo=inscripciones">
+              <i class="fa-solid fa-plus"></i> Crear Template
+            </a>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-bordered ">
+              <thead>
+                <tr class="table-primary">
+                  <th>Título</th>
+                  <th>Subject</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for template in inscripciones %}
+                  <tr>
+                    <td>{{ template.nombre }}</td>
+                    <td>{{ template.subject }}</td>
+                    <td>
+                      <a class="btn btn-xs btn-primary formmodal" data-bs-toggle="tooltip" title="Editar Template" data-bs-custom-class="custom-tooltip" nhref="{{ request.path }}?action=notificaciones_correo_template_editar&id={{ template.id }}">
+                        <i class="fa-solid fa-edit"></i>
+                      </a>
+                      <a class="btn btn-xs btn-info formmodal" data-bs-toggle="tooltip" title="Ver Template" data-bs-custom-class="custom-tooltip" nhref="{{ request.path }}?action=notificaciones_correo_template_ver&id={{ template.id }}">
+                        <i class="fa-solid fa-eye"></i>
+                      </a>
+                      <a class="btn btn-xs btn-dark formmodal" data-bs-toggle="tooltip" title="Enviar correo" data-bs-custom-class="custom-tooltip" nhref="{{ request.path }}?action=notificaciones_correo_template_enviar&id={{ template.id }}">
+                        <i class="fa-solid fa-envelope"></i>
+                      </a>
+                      <a class="btn btn-xs btn-danger formmodal" data-bs-toggle="tooltip" title="Eliminar Template" data-bs-custom-class="custom-tooltip" nhref="{{ request.path }}?action=notificaciones_correo_template_eliminar&id={{ template.id }}">
+                        <i class="fa-solid fa-trash"></i>
+                      </a>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-12 mt-4">
+      <div class="card shadow border-0">
+        <h5 class="card-header">
+          <i class="fa-solid fa-envelope"></i> Administrador de Notificaciones Usuarios Premium
+        </h5>
+        <div class="card-body">
+          <div class="col-md-12 mb-3">
+            <a class="btn btn-sm btn-dark formmodal" nhref="{{ request.path }}?action=notificaciones_correo_template_crear&tipo=premium">
+              <i class="fa-solid fa-plus"></i> Crear Template
+            </a>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-bordered ">
+              <thead>
+                <tr class="table-primary">
+                  <th>Título</th>
+                  <th>Subject</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for template in premium %}
+                  <tr>
+                    <td>{{ template.nombre }}</td>
+                    <td>{{ template.subject }}</td>
+                    <td>
+                      <a class="btn btn-xs btn-primary formmodal" data-bs-toggle="tooltip" title="Editar Template" data-bs-custom-class="custom-tooltip" nhref="{{ request.path }}?action=notificaciones_correo_template_editar&id={{ template.id }}">
+                        <i class="fa-solid fa-edit"></i>
+                      </a>
+                      <a class="btn btn-xs btn-info formmodal" data-bs-toggle="tooltip" title="Ver Template" data-bs-custom-class="custom-tooltip" nhref="{{ request.path }}?action=notificaciones_correo_template_ver&id={{ template.id }}">
+                        <i class="fa-solid fa-eye"></i>
+                      </a>
+                      <a class="btn btn-xs btn-dark formmodal" data-bs-toggle="tooltip" title="Enviar correo" data-bs-custom-class="custom-tooltip" nhref="{{ request.path }}?action=notificaciones_correo_template_enviar&id={{ template.id }}">
+                        <i class="fa-solid fa-envelope"></i>
+                      </a>
+                      <a class="btn btn-xs btn-danger formmodal" data-bs-toggle="tooltip" title="Eliminar Template" data-bs-custom-class="custom-tooltip" nhref="{{ request.path }}?action=notificaciones_correo_template_eliminar&id={{ template.id }}">
+                        <i class="fa-solid fa-trash"></i>
+                      </a>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+
+  </div>
+{% endblock %}
+
+
+{% block extracss %}
+  <link href="/static/autocomplete_light/select2.css" media="screen" rel="stylesheet">
+  <style>
+
+  </style>
+{% endblock %}
+
+{% block extrajs %}
+  <script src="https://code.jquery.com/jquery-3.6.3.min.js" integrity="sha256-pvPw+upLPUjgMXY0G+8O0xUf+/Im1MZjXxxgOcBQBXU=" crossorigin="anonymous"></script>
+  <script src="/static/admin/js/vendor/select2/select2.full.js"></script>
+  <script src="/static/autocomplete_light/autocomplete_light.js"></script>
+  <script src="/static/autocomplete_light/select2.js"></script>
+  <script src="/static/autocomplete_light/i18n/es.js"></script>
+  <script src="/static/tinymce/tinymce.min.js"></script>
+{% endblock %}
+
+{% block sidebar %}
+  {% include 'layout/sidebar_admin.html' %}
+{% endblock %}

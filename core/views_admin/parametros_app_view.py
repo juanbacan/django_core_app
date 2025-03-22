@@ -27,6 +27,6 @@ class ParametrosAppView(ViewAdministracionBase):
         
         aplicacionweb = AplicacionWeb.objects.get_or_create(id=1)[0]
         context['form'] = AplicacionWebForm(instance=aplicacionweb)
-        return render(request, 'administracion/aplicacion/parametros_app.html', context)
+        return render(request, 'core/administracion/aplicacion/parametros_app.html', context)
     
         

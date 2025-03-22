@@ -1,0 +1,135 @@
+{% extends 'layout/base_admin.html' %}
+{% load static %}
+
+
+{% block content %}
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex flex-wrap gap-3 justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="mb-0 h3"><i class="{{ modulo_activo.icon }}"></i> {{ modulo_activo.nombre }}</h1>
+                </div>
+            </div>
+
+            <form method="POST" action="{{ request.path }}" id="mainForm" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="guardar_parametros_app">
+                <div class="card border-0 mt-4">
+                    <div class="card-body">
+                        <h2 class="h5">Información Principal</h2>
+                        <hr>
+                        <div class="row">
+                            <div class="col-lg-6 mb-3">
+                                <label for="id_url" class="fw-bold mb-2">{{ form.url.label }}</label>
+                                {% include 'forms/fieldRender.html' with field=form.url %}
+                            </div>
+                            <div class="col-lg-6 mb-3">
+                                <label for="id_url" class="fw-bold mb-2">{{ form.titulo_sitio.label }}</label>
+                                {% include 'forms/fieldRender.html' with field=form.titulo_sitio %}
+                            </div>
+                            <div class="col-lg-6 mb-3">
+                                <div>
+                                    <label for="id_url" class="fw-bold mb-2">{{ form.favicon.label }}</label>
+                                </div>
+                                {% include 'forms/fieldRender.html' with field=form.favicon %}
+                            </div>
+                            <div class="col-lg-6 mb-3">
+                                <div>
+                                    <label for="id_url" class="fw-bold mb-2">{{ form.logo.label }}</label>
+                                </div>
+                                {% include 'forms/fieldRender.html' with field=form.logo %}
+                            </div>
+                            <div class="col-lg-6 mb-3">
+                                <div>
+                                    <label for="id_url" class="fw-bold mb-2">{{ form.logo_horizontal.label }}</label>
+                                </div>
+                                {% include 'forms/fieldRender.html' with field=form.logo_horizontal %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card border-0 mt-3">
+                    <div class="card-body">
+                        <h2 class="h5">SEO Meta Tags</h2>
+                        <hr>
+                        <div class="row">
+                            <div class="col-lg-6 mb-3">
+                                <label for="id_url" class="fw-bold mb-2">{{ form.title.label }}</label>
+                                {% include 'forms/fieldRender.html' with field=form.title %}
+                            </div>
+                            <div class="col-lg-6 mb-3">
+                                <label for="id_url" class="fw-bold mb-2">{{ form.meta_title.label }}</label>
+                                {% include 'forms/fieldRender.html' with field=form.meta_title %}
+                            </div>
+                            <div class="col-lg-12 mb-3">
+                                <label for="id_url" class="fw-bold mb-2">{{ form.meta_description.label }}</label>
+                                {% include 'forms/fieldRender.html' with field=form.meta_description %}
+                            </div>
+                            <div class="col-lg-6 mb-3">
+                                <label for="id_url" class="fw-bold mb-2">{{ form.social_images.label }}</label>
+                                {% include 'forms/fieldRender.html' with field=form.social_images %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card border-0 mt-3">
+                    <div class="card-body">
+                        <h2 class="h5">Notificaciones Webpush</h2>
+                        <hr>
+                        <div class="row">
+                            <div class="col-lg-6 mb-3">
+                                <div>
+                                    <label for="id_url" class="fw-bold mb-2">{{ form.logo_webpush.label }}</label>
+                                </div>
+                                {% include 'forms/fieldRender.html' with field=form.logo_webpush %}
+                            </div>
+                            <div class="col-lg-6 mb-3">
+                                <label for="id_url" class="fw-bold mb-2">{{ form.group_name_webpush.label }}</label>
+                                {% include 'forms/fieldRender.html' with field=form.group_name_webpush %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card border-0 mt-3">
+                    <div class="card-body">
+                        <h2 class="h5">Contacto</h2>
+                        <hr>
+                        <div class="row">
+                            <div class="col-lg-6 mb-3">
+                                <label for="id_url" class="fw-bold mb-2">{{ form.celular_contacto.label }}</label>
+                                {% include 'forms/fieldRender.html' with field=form.celular_contacto %}
+                            </div>
+                            <div class="col-lg-6 mb-3">
+                                <label for="id_url" class="fw-bold mb-2">{{ form.email_contacto.label }}</label>
+                                {% include 'forms/fieldRender.html' with field=form.email_contacto %}
+                            </div>
+                            <div class="col-lg-6 mb-3">
+                                <label for="id_url" class="fw-bold mb-2">{{ form.facebook.label }}</label>
+                                {% include 'forms/fieldRender.html' with field=form.facebook %}
+                            </div>
+                            <div class="col-lg-6 mb-3">
+                                <label for="id_url" class="fw-bold mb-2">{{ form.instagram.label }}</label>
+                                {% include 'forms/fieldRender.html' with field=form.instagram %}
+                            </div>
+                            <div class="col-lg-6 mb-3">
+                                <label for="id_url" class="fw-bold mb-2">{{ form.tiktok.label }}</label>
+                                {% include 'forms/fieldRender.html' with field=form.tiktok %}
+                            </div>
+                            <div class="col-lg-6 mb-3">
+                                <label for="id_url" class="fw-bold mb-2">{{ form.youtube.label }}</label>
+                                {% include 'forms/fieldRender.html' with field=form.youtube %}
+                            </div>
+                            <div class="col-lg-6 mb-3">
+                                <label for="id_url" class="fw-bold mb-2">{{ form.linkedin.label }}</label>
+                                {% include 'forms/fieldRender.html' with field=form.linkedin %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-end my-4">
+                    <button type="submit" class="btn btn-primary">Guardar Cambios <i class="fas fa-save"></i></button>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endblock content %}

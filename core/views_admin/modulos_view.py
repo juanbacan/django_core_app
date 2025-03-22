@@ -33,7 +33,7 @@ class ModulosView(ViewAdministracionBase):
             return getattr(self, f'get_{self.action}')(request, context, *args, **kwargs)
         
         context['objects'] = Modulo.objects.order_by('orden', 'id')
-        return render(request, 'administracion/modulos/lista.html', context)
+        return render(request, 'core/administracion/modulos/lista.html', context)
 
     def get_add(self, request, context, *args, **kwargs):
         context['form'] = ModuloForm()

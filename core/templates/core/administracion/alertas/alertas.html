@@ -1,0 +1,100 @@
+{% extends 'layout/base_admin.html' %}
+{% block content %}
+  
+  <div class="row">
+    <div class="col-md-12">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h1 class="mb-0"><i class="fa-solid fa-list"></i> Alertas</h1>
+        </div>
+        <div>
+          <a class="btn btn-sm btn-dark" href="{% url 'administracion' %}?action=add_alerta">
+            <i class="fa-solid fa-circle-plus"></i> Agregar Alerta
+          </a>
+        </div>
+      </div>
+
+      <div style="max-width: 500px">
+        <form method="GET">
+            <div class="input-group mb-3">
+              <input type="text" id="kword" name="kword" value="{{ request.GET.kword }}" class="form-control" placeholder="Buscar alerta ...">
+              <input type="hidden" name="action" value="alertas">
+              <button type="submit" class="btn btn-primary btn-sm">Buscar <i class="fa-solid fa-magnifying-glass"></i></button>
+            </div>
+        </form>
+      </div>
+      {% if request.GET.kword %}
+			<div class="d-flex justify-content-between mt-3">
+        <p class="fw-bold">Se encontraron {{ page_obj.paginator.count }} alertas</p>
+        <p>Página <span class="fw-bold">{{ page_obj.number }}</span> de <span class="fw-bold">{{ page_obj.paginator.num_pages }}</span></p>
+      </div>
+      {% endif %}
+
+      <div class="card border-0">
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table small table-striped table-hover">
+                <thead>
+                  <tr>
+                    <th>Título</th>
+                    <th>Descripción</th>
+                    <th>Color</th>
+                    <th> Activo </th>
+                    <th> Url </th>
+                    <th width="15%">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for alerta in page_obj %}
+                    <tr>
+                      <td>{{ alerta.titulo }}</td>
+                      <td>{{ alerta.descripcion|safe }}</td>
+                      <td>{{ alerta.color }}</td>
+                      <td>
+                        {% if alerta.activo %}
+                          <i class="fa-solid fa-circle-check text-success"></i>
+                        {% else %}
+                          <i class="fa-solid fa-circle-xmark text-danger"></i>
+                        {% endif %}
+                      </td>
+                      <td>{{ alerta.url }}</td>
+                      <td>
+                        <div class="dropdown">
+                          <button class="btn btn-info btn-xs dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Acciones
+                          </button>
+                          <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'administracion' %}?action=edit_alerta&id={{ alerta.id }}"><i class="fa-solid fa-pencil"></i> Editar</a></li>
+                            <li><a class="dropdown-item formmodal" href="javascript:" nhref="{% url 'administracion' %}?action=del_alerta&id={{ alerta.id }}"><i class="fa-solid fa-trash"></i> Eliminar</a></li>
+                          </ul>
+                        </div>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+
+              {% include 'core/partials/pagination.html' %}
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+
+{% block extracss %}
+  <style>
+
+  </style>
+{% endblock %}
+
+{% block extrajs %}
+
+{% endblock %}
+
+{% block sidebar %}
+  {% include 'layout/sidebar_admin.html' %}
+{% endblock %}

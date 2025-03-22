@@ -1,0 +1,20 @@
+{% extends 'modals/formModal.html' %}
+
+{% block extrajs %}
+  <script>
+    // Chequear cambios en el checkbox id_masivo
+    $('#id_masivo').change(function() {
+      if($(this).is(":checked")) {
+        
+        // Hide and unvalid id_correo
+        $('#fieldset_correo').hide();
+        $('#fieldset_usuario').hide();
+        $('#fieldset_separator_correo').hide();
+      } else {
+          $('#fieldset_correo').show();
+          $('#fieldset_usuario').show();
+          $('#fieldset_separator_correo').show();
+      }
+    });
+  </script>
+{% endblock extrajs %}
