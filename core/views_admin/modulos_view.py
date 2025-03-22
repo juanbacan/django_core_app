@@ -37,9 +37,9 @@ class ModulosView(ViewAdministracionBase):
 
     def get_add(self, request, context, *args, **kwargs):
         context['form'] = ModuloForm()
-        return render(request, 'forms/formAdmin.html', context)
+        return render(request, 'core/forms/formAdmin.html', context)
         
     def get_edit(self, request, context, *args, **kwargs):
         context['object'] = modulo = Modulo.objects.get(pk=self.data.get('id'))
         context['form'] = ModuloForm(instance=modulo)
-        return render(request, 'forms/formAdmin.html', context)
+        return render(request, 'core/forms/formAdmin.html', context)

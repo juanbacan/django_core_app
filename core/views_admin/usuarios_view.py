@@ -59,13 +59,13 @@ class UsuariosView(ViewAdministracionBase):
     
     def get_add(self, request, context, *args, **kwargs):
         context['form'] = CustomUserForm()
-        return render(request, 'forms/formAdmin.html', context)
+        return render(request, 'core/forms/formAdmin.html', context)
     
     def get_edit(self, request, context, *args, **kwargs):
         id = self.data.get('id')
         context['object'] = CustomUser.objects.get(id=id)
         context['form'] = CustomUserForm(instance=context['object'])
-        return render(request, 'forms/formAdmin.html', context)
+        return render(request, 'core/forms/formAdmin.html', context)
     
     def get_ingresar_usuario(self, request, context, *args, **kwargs):
         usuario_original = request.user.id

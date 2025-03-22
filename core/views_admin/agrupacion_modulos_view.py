@@ -37,9 +37,9 @@ class AgrupacionModulosView(ViewAdministracionBase):
 
     def get_add(self, request, context, *args, **kwargs):
         context['form'] = AgrupacionModuloForm()
-        return render(request, 'forms/formAdmin.html', context)
+        return render(request, 'core/forms/formAdmin.html', context)
         
     def get_edit(self, request, context, *args, **kwargs):
         context['object'] = modulo = AgrupacionModulo.objects.get(pk=self.data.get('id'))
         context['form'] = AgrupacionModuloForm(instance=modulo)
-        return render(request, 'forms/formAdmin.html', context)
+        return render(request, 'core/forms/formAdmin.html', context)

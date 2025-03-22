@@ -37,9 +37,9 @@ class GroupsView(ViewAdministracionBase):
 
     def get_add(self, request, context, *args, **kwargs):
         context['form'] = GrupoForm()
-        return render(request, 'forms/formAdmin.html', context)
+        return render(request, 'core/forms/formAdmin.html', context)
         
     def get_edit(self, request, context, *args, **kwargs):
         context['object'] = modulo = Group.objects.get(pk=self.data.get('id'))
         context['form'] = GrupoForm(instance=modulo)
-        return render(request, 'forms/formAdmin.html', context)
+        return render(request, 'core/forms/formAdmin.html', context)
