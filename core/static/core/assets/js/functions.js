@@ -9,6 +9,7 @@ async function fetchRequest(url, params, csrftoken=csrf_token) {
         headers: {
             'Content-Type': 'application/json',
             'X-CSRFToken': csrftoken,
+            'X-Requested-With': 'XMLHttpRequest'
         },
         body: JSON.stringify(params),
         credentials: 'same-origin',
@@ -27,7 +28,11 @@ async function fetchRequest(url, params, csrftoken=csrf_token) {
 function fetchRequest2(options) {
     return new Promise((resolve, reject) => {
         let url = options.url;
-        headers = {'Content-Type': 'application/json', 'X-CSRFToken': csrf_token};
+        headers = {
+            'Content-Type': 'application/json', 
+            'X-CSRFToken': csrf_token,
+            'X-Requested-With': 'XMLHttpRequest'
+        };
         if (options.headers) headers = Object.assign(headers, options.headers);
         let init = { method: options.method || 'GET', headers: headers };
         
@@ -163,7 +168,6 @@ async function handleResponse(resp, data, modalName = 'modalEdicion') {
     }, { once: true });
 }
 
-
 function resetFormModals() {
     // Elimina todos los event listeners previos para evitar duplicados
     const modals = document.getElementsByClassName('formmodal');
@@ -183,8 +187,26 @@ function resetFormModals() {
                 const nhref = updatedModals[i].getAttribute('nhref');
                 if (!nhref) return;
                 bloqueoInterfaz();
-                console.log('Cargando formulario desde servidor');
-                const resp = await fetch(nhref);
+                const resp = await fetch(nhref, {
+                    method: 'GET',  // Especifica el método si no es POST
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    credentials: 'same-origin'  // Para manejar cookies en sesiones autenticadas
+                });
+                if (!resp.ok) {
+                    desbloqueoInterfaz();
+                    // Manejo de errores del servidor (400, 500, etc.)
+                    if (resp.status === 500) {
+                        const errorData = await resp.json();
+                        showErrorMessage(errorData.mensaje || 'Error interno del servidor. Por favor, inténtelo más tarde.');
+                    } else if (resp.status >= 400) {
+                        showErrorMessage('Error interno del servidor. Por favor, inténtelo más tarde.');
+                    } else {
+                        showErrorMessage(`Error inesperado (${resp.status}).`);
+                    }
+                }
+
                 const data = await resp.text();
                 const modal = document.querySelector('.modal.show');
                 if (modal) {
@@ -194,11 +216,13 @@ function resetFormModals() {
                 handleResponse(resp, data);
                 desbloqueoInterfaz();
             } catch {
+                console.log('Error al cargar el formulario');
                 desbloqueoInterfaz();
             }
         });
     }
 }
+
 
 resetFormModals();
 
