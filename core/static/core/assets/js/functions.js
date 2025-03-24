@@ -253,7 +253,8 @@ const submitModalForm1 = async (formid = 'modalForm1', showError = true) => {
         }
         const resp = await fetch(form.getAttribute('action'), {
             method: 'POST',
-            body: formData
+            body: formData,
+            headers: {'X-Requested-With': 'XMLHttpRequest'},
         });
 
         // Manejo de errores del servidor (400, 500, etc.)
