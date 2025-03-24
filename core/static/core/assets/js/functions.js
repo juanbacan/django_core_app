@@ -287,7 +287,8 @@ const submitModalForm1 = async (formid = 'modalForm1', showError = true) => {
                 }
                 if (showError) showErrorMessage(errorData.mensaje || 'Error de validación en el formulario');
             } else if (resp.status >= 500) {
-                if (showError) showErrorMessage('Error interno del servidor. Por favor, inténtelo más tarde.');
+                const errorData = await resp.json();
+                if (showError) showErrorMessage(errorData.mensaje || 'Error interno del servidor. Por favor, inténtelo más tarde.');
             } else {
                 if (showError) showErrorMessage(`Error inesperado (${resp.status}).`);
             }
