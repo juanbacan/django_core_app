@@ -112,6 +112,35 @@ class WhatsappBot:
             print(f"Error al enviar el mensaje: {e}")
             return {"status": False, "message": f"Error al enviar el mensaje: {str(e)}"}
 
+    def send_image(self, image_base64):
+        """Envía una imagen en formato Base64 al número especificado."""
+        if not self.number or not image_base64:
+            return {
+                "status": False,
+                "message": "Número y la imagen en Base64 son requeridos."
+            }
+
+        try:
+            url = f"{self.url}/send-image"
+            headers = {
+                "Content-Type": "application/json",
+                "x-api-key": settings.WHATSAPP_API_KEY
+            }
+            data = {
+                "number": format_phone_number(self.number),
+                "image": image_base64
+            }
+            
+            response = requests.post(url, json=data, headers=headers)
+            if response.status_code == 200:
+                return response.json()
+            else:
+                return {"status": False, "message": "Error al enviar la imagen."}
+            
+        except Exception as e:
+            print(f"Error al enviar la imagen: {e}")
+            return {"status": False, "message": f"Error al enviar la imagen: {str(e)}"}
+
 
     def get_status(self):
         url = f"{self.url}/status"
