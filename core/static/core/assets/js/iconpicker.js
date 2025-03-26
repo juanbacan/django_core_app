@@ -1,4 +1,4 @@
-const jsonPath = '/static/icons/icons.json'; // Ruta del archivo JSON
+const jsonPath = '/static/core/icons/icons.json'; // Ruta del archivo JSON
 const iconsPerPage = 54; // Cantidad de iconos por página
 let allIcons = []; // Lista completa de iconos
 let filteredIcons = []; // Lista filtrada para búsqueda
