@@ -128,6 +128,9 @@
 
     </script>
     {{ form.media }}
+    {% if form.inline_formsets %}
+        {% include 'core/forms/form_inline_js.html' %}
+    {% endif %}
 {% endblock %}
 
 {% block sidebar %}

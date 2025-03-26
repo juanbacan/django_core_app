@@ -69,7 +69,7 @@
     }
     
     document.addEventListener("DOMContentLoaded", function() {
-        {% for formset in formsets %}
+        {% for formset in form.inline_formsets %}
             initInlineFormset("{{ formset.prefix }}");
         {% endfor %}
     });  
