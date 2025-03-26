@@ -90,3 +90,60 @@ def send_whatsapp_message_thread(number: str, message: str):
     :param message: El mensaje a enviar.
     """
     WhatsappMessageThread(number, message).start()
+
+
+class WhatsappBot:
+    def __init__(self, number=None, message=None):
+        self.url = settings.WHATSAPP_API_URL
+        self.number = number
+        self.message = message
+
+    def send_message(self):
+        if not self.number or not self.message:
+            return {
+                "status": False,
+                "message": "Número y mensaje son requeridos para enviar un mensaje."
+            }
+
+        try:
+            send_whatsapp_message_thread(self.number, self.message)
+            return {"status": True, "message": "Mensaje enviado correctamente."}
+        except Exception as e:
+            print(f"Error al enviar el mensaje: {e}")
+            return {"status": False, "message": f"Error al enviar el mensaje: {str(e)}"}
+
+
+    def get_status(self):
+        url = f"{self.url}/status"
+        try:
+            response = requests.get(url)
+            if response.status_code == 200:
+                data = response.json()
+                return data.get("status") == "connected"
+        except requests.RequestException as e:
+            print(f"Error al conectar con la API de WhatsApp: {e}")
+        return None
+    
+    def get_qr_code(self):
+        url = f"{self.url}/get-qr"
+        try:
+            response = requests.get(url)
+            if response.status_code == 200:
+                return response.json().get("qr")
+        except requests.RequestException as e:
+            print(f"Error al obtener el código QR: {e}")
+        return None
+    
+    def desconectar(self):
+        url = f"{self.url}/disconnect"
+        try:
+            headers = {
+                "Content-Type": "application/json",
+                "x-api-key": API_KEY
+            }
+            response = requests.post(url, headers=headers)
+            if response.status_code == 200:
+                return response.json()
+        except requests.RequestException as e:
+            print(f"Error al desconectar el bot de WhatsApp: {e}")
+        return None
