@@ -168,8 +168,20 @@ class BaseInline:
         }
         
         if self.form is not None:
+            # Asegurarse que el formulario tenga un Meta y un modelo asociado
+            if not hasattr(self.form, 'Meta') or not hasattr(self.form.Meta, 'model'):
+                raise ValueError("El formulario proporcionado debe tener un 'Meta' con 'model' especificado.")
+            
+            # Si el formulario tiene un modelo especificado en su Meta, actualizamos formset_params
+            form_model = self.form.Meta.model
+            if form_model is not None:
+                formset_params["model"] = form_model
+            
+            # Pasar el formulario al formset
             formset_params["form"] = self.form
+            
         else:
+            # Si no se proporciona un formulario, se genera uno automáticamente
             BootstrapInlineForm = type(
                 "BootstrapInlineForm",
                 (BootstrapFieldsMixin, forms.ModelForm),
@@ -177,6 +189,7 @@ class BaseInline:
             )
             formset_params["form"] = BootstrapInlineForm
 
+        # Generar el FormSet con el modelo adecuado
         FormSet = forms.inlineformset_factory(**formset_params)
         
         # Crear instancia del FormSet
