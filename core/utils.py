@@ -157,9 +157,22 @@ def error_json(mensaje=None, error=None, forms=[], extradata=None):
         if forms:
             errors = {}
             for form in forms:
-                errors.update({field: list(errors) for field, errors in form.errors.items()})
-            data['forms'] = errors
-            
+                # Procesa los errores del formulario principal
+                if form.errors:
+                    for field, error_list in form.errors.items():
+                        errors[field] = list(error_list)
+                # Procesa los errores de los formsets inline
+                for formset in getattr(form, 'inline_formsets', []):
+                    for index, inline_form in enumerate(formset):
+                        if inline_form.errors:
+                            for field, error_list in inline_form.errors.items():
+                                key = f"{formset.prefix}-{index}-{field}"
+                                errors[key] = list(error_list)
+            if errors:
+                data['forms'] = errors
+                if data['mensaje'] is None:
+                    data['mensaje'] = "Hay errores en el formulario"
+
         return JsonResponse(data, status=400)
     except Exception as ex:
         return JsonResponse(data, status=400)
