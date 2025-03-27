@@ -168,7 +168,7 @@ class WhatsappBot:
         try:
             headers = {
                 "Content-Type": "application/json",
-                "x-api-key": API_KEY
+                "x-api-key": settings.WHATSAPP_API_KEY
             }
             response = requests.post(url, headers=headers)
             if response.status_code == 200:
