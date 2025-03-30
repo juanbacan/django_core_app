@@ -1,0 +1,108 @@
+{% extends 'layout/base_admin.html' %}
+
+{% block extracss %}
+    <style>
+        /* Indicador de estado */
+        .indicator {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .disconnected .indicator {
+            background-color: red;
+            animation: blink 1s infinite;
+        }
+
+        .connected .indicator {
+            background-color: green;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+	<div class="row">
+		<div class="col-md-12">
+            <div class="d-flex flex-wrap gap-3 justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="mb-0 h3"><i class="{{ modulo_activo.icon }}"></i> {{ modulo_activo.nombre }}</h1>
+                </div>
+                <div class="ms-auto">
+                    {% comment %} <a class="btn btn-sm btn-dark" href="{{ path }}?action=add"><i class="fa-solid fa-circle-plus"></i> Agregar {{ modulo_activo }}</a> {% endcomment %}
+                    <div class="d-flex gap-3">
+                        {% if status %}
+                            <a class="btn btn-sm btn-dark formmodal" href="javascript:" nhref="{{ path }}?action=enviar_mensaje_usuario"><i class="fa-solid fa-envelope"></i> Enviar Mensaje</a>
+                             <a class="btn btn-sm btn-danger formmodal" href="javascript:" nhref="{{ path }}?action=desconectar"><i class="fa-solid fa-power-off"></i> Desconectar</a>
+                        {% endif %}
+
+                        <div class="d-flex align-items-center {% if not status %}disconnected{% else %}connected{% endif %}">
+                            <div class="indicator"></div>
+                            <span class="fw-bold">
+                                {% if not status %}
+                                    Desconectado
+                                {% else %}
+                                    Conectado
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+			<div style="max-width: 500px">
+				<form method="GET" role="form" action=".">
+					<div class="input-group mb-3">
+					<input type="text" id="search" name="search" value="{{ request.GET.search }}" class="form-control" placeholder="Buscar {{ modulo_activo.nombre }} ...">
+					<button type="submit" class="btn btn-dark btn-sm">Buscar <i class="fa-solid fa-magnifying-glass"></i></button>
+					</div>
+				</form>
+			</div>
+
+            {% if status %}
+                <div class="card border-0 table-responsive">
+                    <div class="card-body">
+                        <table class="table small table-hover table-striped">
+                            <thead>
+                                <tr>
+                                    <th>ChatID</th>
+                                    <th>Nombre</th>
+                                    <th>Apellido</th>
+                                    <th>Username</th>
+                                    <th>¿Es Premium?</th>
+                                    <th>¿Es Admin?</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {% else %}
+                <div class="alert alert-warning text-center" role="alert">
+                    <strong>WhatsApp está desconectado.</strong> Por favor, escanea el código QR para conectarte.
+                </div>
+                {% if qr %}
+                    <div class="text-center mb-3">
+                        <img src="{{ qr }}" alt="Código QR de WhatsApp" class="img-fluid border rounded">
+                    </div>
+                    <div class="text-center">
+                        <button class="btn btn-outline-primary" onclick="location.reload()">Actualizar QR</button>
+                    </div>
+                {% else %}
+                    <div class="alert alert-danger text-center" role="alert">
+                        No se ha podido obtener el código QR. Intenta nuevamente.
+                    </div>
+                {% endif %}
+            {% endif %}
+		</div>
+	</div>
+
+{% endblock %}
