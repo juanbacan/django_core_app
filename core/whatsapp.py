@@ -93,86 +93,136 @@ def send_whatsapp_message_thread(number: str, message: str):
 
 
 class WhatsappBot:
-    def __init__(self, number=None, message=None):
-        self.url = settings.WHATSAPP_API_URL
-        self.number = number
-        self.message = message
+    """
+    Clase para interactuar con la API de WhatsApp (múltiples sesiones).
+    Puedes crear una instancia de esta clase por cada 'session_name' que quieras usar,
+    o manejarlo dinámicamente (crear, enviar, etc.).
+    """
+    def __init__(self):
+        self.session_name = settings.WHATSAPP_SESSION_NAME
+        self.base_url = settings.WHATSAPP_API_URL 
+        self.api_key = settings.WHATSAPP_API_KEY  
 
-    def send_message(self):
-        if not self.number or not self.message:
-            return {
-                "status": False,
-                "message": "Número y mensaje son requeridos para enviar un mensaje."
-            }
-
+    def create_session(self):
+        """
+        Llama al endpoint /create-session para crear/inicializar una sesión con 'session_name'.
+        Si la sesión ya existe, el servidor podría dar un error 500 (o 400) indicando que ya existe.
+        """
+        url = f"{self.base_url}/create-session"
+        headers = {
+            "Content-Type": "application/json",
+            "x-api-key": self.api_key
+        }
+        data = {
+            "sessionName": self.session_name
+        }
         try:
-            send_whatsapp_message_thread(self.number, self.message)
-            return {"status": True, "message": "Mensaje enviado correctamente."}
-        except Exception as e:
-            print(f"Error al enviar el mensaje: {e}")
-            return {"status": False, "message": f"Error al enviar el mensaje: {str(e)}"}
-
-    def send_image(self, image_base64):
-        """Envía una imagen en formato Base64 al número especificado."""
-        if not self.number or not image_base64:
-            return {
-                "status": False,
-                "message": "Número y la imagen en Base64 son requeridos."
-            }
-
-        try:
-            url = f"{self.url}/send-image"
-            headers = {
-                "Content-Type": "application/json",
-                "x-api-key": settings.WHATSAPP_API_KEY
-            }
-            data = {
-                "number": format_phone_number(self.number),
-                "image": image_base64
-            }
-            
             response = requests.post(url, json=data, headers=headers)
-            if response.status_code == 200:
-                return response.json()
-            else:
-                return {"status": False, "message": "Error al enviar la imagen."}
-            
-        except Exception as e:
-            print(f"Error al enviar la imagen: {e}")
-            return {"status": False, "message": f"Error al enviar la imagen: {str(e)}"}
-
-
-    def get_status(self):
-        url = f"{self.url}/status"
-        try:
-            response = requests.get(url)
-            if response.status_code == 200:
-                data = response.json()
-                return data.get("status") == "connected"
+            return response.json()
         except requests.RequestException as e:
-            print(f"Error al conectar con la API de WhatsApp: {e}")
-        return None
-    
+            return {"status": False, "message": f"Error al crear sesión: {str(e)}"}
+
     def get_qr_code(self):
-        url = f"{self.url}/get-qr"
+        """
+        Obtiene el QR en base64 de la sesión actual (/get-qr/<sessionName>).
+        Devuelve None si no existe o no está disponible.
+        """
+        url = f"{self.base_url}/get-qr/{self.session_name}"
         try:
             response = requests.get(url)
             if response.status_code == 200:
                 return response.json().get("qr")
+            else:
+                return None
         except requests.RequestException as e:
             print(f"Error al obtener el código QR: {e}")
         return None
-    
-    def desconectar(self):
-        url = f"{self.url}/disconnect"
+
+    def get_status(self):
+        """
+        Verifica si la sesión está conectada. 
+        Retorna True/False o None si hay error.
+        """
+        url = f"{self.base_url}/status/{self.session_name}"
+        headers = {
+            "x-api-key": self.api_key
+        }
         try:
-            headers = {
-                "Content-Type": "application/json",
-                "x-api-key": settings.WHATSAPP_API_KEY
-            }
-            response = requests.post(url, headers=headers)
+            response = requests.get(url, headers=headers)
             if response.status_code == 200:
-                return response.json()
+                data = response.json()
+                return data.get("status") == "connected"
+            else:
+                return None
+        except requests.RequestException as e:
+            print(f"Error al verificar estado: {e}")
+            return None
+
+    def send_message(self, number, message=""):
+        """
+        Envía un mensaje de texto a 'number' a través de la sesión actual.
+        POST /send-message/<sessionName>
+        """
+        if not number or not message:
+            return {
+                "status": False,
+                "message": "Número y mensaje son requeridos para enviar un mensaje."
+            }
+        url = f"{self.base_url}/send-message/{self.session_name}"
+        headers = {
+            "Content-Type": "application/json",
+            "x-api-key": self.api_key
+        }
+        data = {
+            "number": format_phone_number(number),      # Asumimos que el servidor formatea, si no, agregas '@c.us'
+            "message": message
+        }
+        try:
+            response = requests.post(url, json=data, headers=headers)
+            return response.json()  # El servidor retorna su JSON con el status
+        except requests.RequestException as e:
+            print(f"Error al enviar el mensaje: {e}")
+            return {"status": False, "message": f"Error al enviar el mensaje: {str(e)}"}
+
+    def send_image(self, number, image_base64):
+        """
+        Envía una imagen en formato Base64 al número especificado en la sesión actual.
+        POST /send-image/<sessionName>
+        Recuerda que la ruta /send-image/:sessionName debe existir en tu servidor Node.
+        """
+        if not number or not image_base64:
+            return {
+                "status": False,
+                "message": "Número e imagen (Base64) son requeridos."
+            }
+        url = f"{self.base_url}/send-image/{self.session_name}"
+        headers = {
+            "Content-Type": "application/json",
+            "x-api-key": self.api_key
+        }
+        data = {
+            "number": format_phone_number(number),
+            "image": image_base64  # Debes asegurarte de enviar la cadena base64 válida
+        }
+        try:
+            response = requests.post(url, json=data, headers=headers)
+            return response.json()
+        except requests.RequestException as e:
+            print(f"Error al enviar la imagen: {e}")
+            return {"status": False, "message": f"Error al enviar la imagen: {str(e)}"}
+
+    def disconnect(self):
+        """
+        Desconecta (logout) la sesión actual.
+        POST /disconnect/<sessionName>
+        """
+        url = f"{self.base_url}/disconnect/{self.session_name}"
+        headers = {
+            "x-api-key": self.api_key
+        }
+        try:
+            response = requests.post(url, headers=headers)
+            return response.json()
         except requests.RequestException as e:
             print(f"Error al desconectar el bot de WhatsApp: {e}")
-        return None
+            return {"status": False, "message": f"Error al desconectar: {str(e)}"}
