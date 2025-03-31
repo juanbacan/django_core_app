@@ -6,3 +6,4 @@ from .modulos_view import *
 from .agrupacion_modulos_view import *
 from .grupos_view import *
 from .notificaciones_app_view import *
+from .whatsappbot_admin import *
