@@ -3,7 +3,6 @@ from django.conf import settings
 
 from core.views import ViewAdministracionBase
 from core.administracion_forms import MensajeUsuarioForm
-
 from core.utils import error_json, success_json, get_redirect_url
 from core.whatsapp import send_whatsapp_message, WhatsappBot
 
@@ -30,7 +29,7 @@ class WhatsappBotAdminView(ViewAdministracionBase):
         whatsappbot = WhatsappBot()
         whatsappbot.desconectar()
         return success_json(url=get_redirect_url(request))
-    
+        
     def get(self, request, *args, **kwargs):
         context = self.get_context_data(**kwargs)
         
@@ -41,9 +40,10 @@ class WhatsappBotAdminView(ViewAdministracionBase):
         context['status'] = status = whatsappbot.get_status()
 
         if not status:
+            whatsappbot.create_session()
             context['qr'] = whatsappbot.get_qr_code()
 
-        return render(request, 'core/administracion/whatsapp/whatsapp_admin.html', context)
+        return render(request, 'whatsappbot/admin/whatsapp_admin.html', context)
     
     def get_enviar_mensaje_usuario(self, request, context, *args, **kwargs):
         context['form'] = MensajeUsuarioForm()
