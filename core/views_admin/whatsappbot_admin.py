@@ -43,7 +43,7 @@ class WhatsappBotAdminView(ViewAdministracionBase):
             whatsappbot.create_session()
             context['qr'] = whatsappbot.get_qr_code()
 
-        return render(request, 'whatsappbot/admin/whatsapp_admin.html', context)
+        return render(request, 'core/administracion/whatsapp/whatsapp_admin.html', context)
     
     def get_enviar_mensaje_usuario(self, request, context, *args, **kwargs):
         context['form'] = MensajeUsuarioForm()
