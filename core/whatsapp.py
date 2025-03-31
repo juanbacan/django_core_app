@@ -50,8 +50,9 @@ def send_whatsapp_message(number: str, message: str):
     """
     WHATSAPP_API_URL = settings.WHATSAPP_API_URL
     API_KEY = settings.WHATSAPP_API_KEY
+    SESSION_NAME = settings.WHATSAPP_SESSION_NAME
 
-    url = f"{WHATSAPP_API_URL}/send-message"
+    url = f"{WHATSAPP_API_URL}/send-message/{SESSION_NAME}"
 
     headers = {
         "Content-Type": "application/json",
