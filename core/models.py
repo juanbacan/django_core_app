@@ -44,18 +44,18 @@ class CustomUser(AbstractUser):
             return self.email
         correo_no_verificado = EmailAddress.objects.filter(user=self).first()
         return correo_no_verificado.email if correo_no_verificado else None
-
-                
+         
     def mis_agrupaciones_modulos(self):
         if self.is_superuser:
             return AgrupacionModulo.objects.all()
-        return AgrupacionModulo.objects.filter(modulos__in=self.groups.values_list('modulos', flat=True)).distinct() 
+        return AgrupacionModulo.objects.filter(modulos__grupomodulo__grupo__in=self.groups.all()).distinct()
 
     def mi_lista_modulos_id(self):
         if self.is_superuser:
             return list(Modulo.objects.values_list('id', flat=True))
-        return list(GrupoModulo.objects.filter(group__in=self.groups.all()).values_list('modulos__id', flat=True))
-                
+        
+        modulos_ids = Modulo.objects.filter(grupomodulo__grupo__in=self.groups.all()).distinct().values_list('id', flat=True)
+        return list(modulos_ids)   
                 
     @staticmethod
     def flexbox_query(query):
@@ -307,7 +307,6 @@ class CorreoTemplate(ModeloBase):
         verbose_name = "Correo Template"
         verbose_name_plural = "Correos Templates"
     
-
 
 class Modulo(ModeloBase):
     url = models.CharField(max_length=255)

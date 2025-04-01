@@ -2,26 +2,39 @@ from django.contrib import messages
 from django.contrib.auth.mixins import AccessMixin
 from django.shortcuts import redirect
 from django.utils.translation import gettext_lazy as trans
-
+from core.models import GrupoModulo, Modulo
 
 def has_access_module(request):
-    if request.user.is_superuser:
+    """
+    Retorna True si el usuario pertenece a un grupo que tenga un Modulo
+    cuyo `url` coincida (o esté contenida) en `path`. De lo contrario False.
+    """
+    user = request.user
+    path = request.path
+
+    if not user.is_authenticated:
+        return False
+    elif user.is_superuser:
         return True
 
-    # if not request.user.es_administrativo:
-    #     return False
+    # Obtenemos los ID de los grupos a los que pertenece el usuario
+    group_ids = user.groups.values_list('id', flat=True)
 
-    # has_module = Modulo.objects.no_deleted_filter(
-    #     id__in=GroupModulo.objects.no_deleted_filter(
-    #         group__in=request.user.groups.all()
-    #     ).values_list(
-    #         'modulos__id', flat=True
-    #     )
-    # ).annotate(
-    #     url_2=CustomValueDb(request.path)
-    # ).filter(url_2__istartswith=F('url')).exists()
+    # Recuperamos todas las URLs de 'modulos' asociadas a esos grupos
+    # (usando tu modelo GrupoModulo como nexo)
+    modulos_urls = GrupoModulo.objects.filter(
+        grupo_id__in=group_ids
+    ).values_list('modulos__url', flat=True)
 
-    # return has_module
+    if path == '/administracion/' and modulos_urls:
+        return True
+ 
+    for modulo_url in modulos_urls:
+        # if modulo_url and path.startswith(modulo_url):
+        if modulo_url and modulo_url in path:
+            return True
+
+    return False
 
 
 class SecureModuleMixin(AccessMixin):
