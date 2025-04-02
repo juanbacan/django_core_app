@@ -288,6 +288,7 @@ def avatar_img(url, width=40, padding=5, extra_styles="", html_attrs=""):
     outer_styles = (
         f"display: inline-block; "
         f"width: {width}px; "
+        f"min-width: {width}px; "
         f"height: {width}px; "
         f"padding: {padding}px; "
         f"border: solid 1px #b5b5b5; "
