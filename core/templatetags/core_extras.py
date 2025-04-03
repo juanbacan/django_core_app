@@ -322,6 +322,23 @@ def custom_avatar_small(content, background="bg-lightgray", color="text-dark"):
     return mark_safe(html)  
 
 
+@register.simple_tag
+def wrap_images(html):
+    soup = BeautifulSoup(html, "html.parser")
+    for img in soup.find_all("img"):
+        if img.parent.name == "a" and img.parent.parent.name == "div" and "simmplelightbox" in img.parent.parent.get("class", []):
+            continue
+
+        src = img.get("src")
+        new_wrapper = soup.new_tag("div", **{"class": "simmplelightbox"})
+        link = soup.new_tag("a", href=src)
+        img.wrap(link)
+        link.wrap(new_wrapper)
+        img.insert_after("\n")  # Opcional: para mantener formato
+
+    return str(soup)
+
+
 register.filter("call", callmethod)
 register.filter("args", args)
 register.filter("to_char", to_char)
