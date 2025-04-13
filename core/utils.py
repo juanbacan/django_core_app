@@ -567,9 +567,15 @@ def get_redirect_url(request, object=None, action='edit'):
                 return f'{request.path}?action={action}&id={object.instance.pk}'
             else:
                 return f'{request.path}?action={action}&id={object.pk}'
+        elif action:
+            if object and hasattr(object, 'instance'):
+                return f'{request.path}?action={action}&id={object.instance.pk}'
+            else:
+                return f'{request.path}?action={action}&id={object.pk}'
         return request.path
     except Exception as ex:
         print(ex)
         return request.path
+
 
 
