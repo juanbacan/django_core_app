@@ -551,7 +551,7 @@ def replace_quizziz_html(html):
     html = html.replace('text-content-base ', '')
     return html
 
-def get_redirect_url(request, object=None):
+def get_redirect_url(request, object=None, action='edit'):
     """
     Genera la URL de redirección según los parámetros del formulario.
 
@@ -564,9 +564,9 @@ def get_redirect_url(request, object=None):
             return f'{request.path}?action=add'
         elif '_continue' in request.POST:
             if object and hasattr(object, 'instance'):
-                return f'{request.path}?action=edit&id={object.instance.pk}'
+                return f'{request.path}?action={action}&id={object.instance.pk}'
             else:
-                return f'{request.path}?action=edit&id={object.pk}'
+                return f'{request.path}?action={action}&id={object.pk}'
         return request.path
     except Exception as ex:
         print(ex)
