@@ -242,6 +242,15 @@ const submitModalForm1 = async (formid = 'modalForm1', showError = true) => {
 
     if (!form.checkValidity()) return;
 
+    if (typeof beforeSubmitModalForm1 === 'function') {
+        desbloqueoInterfaz();
+        const continuar = await beforeSubmitModalForm1(form);
+        if (!continuar) {
+            form.classList.remove('was-validated');
+            return;
+        }
+    }
+
     bloqueoInterfaz();
 
     try {
