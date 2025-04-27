@@ -1,7 +1,10 @@
 import json, bson, requests, base64, math, sys, os, io
 import pandas as pd
+import datetime
 from bs4 import BeautifulSoup
 from PIL import Image
+from io import BytesIO
+from typing import Iterable, List, Union, Sequence, Callable
 
 from django.http import JsonResponse, Http404
 from django.utils import timezone
@@ -11,6 +14,7 @@ from django.views.debug import ExceptionReporter
 from django.conf import settings
 from django.contrib.auth.models import Group
 from firebase_admin import storage
+
 
 def reset_model(model):
     """
@@ -563,13 +567,13 @@ def get_redirect_url(request, object=None, action='edit'):
         if '_addanother' in request.POST:
             return f'{request.path}?action=add'
         elif '_continue' in request.POST:
-            if object and hasattr(object, 'instance'):
-                return f'{request.path}?action={action}&id={object.instance.pk}'
+            if object and hasattr(object, 'pk'):
+                return f'{request.path}?action={action}&id={object.pk}'
             else:
                 return f'{request.path}?action={action}&id={object.pk}'
         elif action:
-            if object and hasattr(object, 'instance'):
-                return f'{request.path}?action={action}&id={object.instance.pk}'
+            if object and hasattr(object, 'pk'):
+                return f'{request.path}'
             else:
                 return f'{request.path}?action={action}&id={object.pk}'
         return request.path
@@ -578,4 +582,68 @@ def get_redirect_url(request, object=None, action='edit'):
         return request.path
 
 
+def _resolve_attr(instance, attr_path: str):
+    """
+    Recorre un objeto siguiendo 'campo' o 'relacion__subrelacion__campo'.
+    Devuelve '' si encuentra None en el camino.
+    Convierte fechas/datetimes a ISO para que Excel las reconozca.
+    """
+    value = instance
+    for part in attr_path.split('__'):
+        value = getattr(value, part, None)
+        if value is None:
+            return ""
+    if isinstance(value, (datetime.date, datetime.datetime)):
+        return value.isoformat()
+    return str(value)
 
+
+FieldSpec = Union[
+    str,                               # atributo o path a través de '__'
+    Sequence[str],                     # varios atributos → concatenación con espacio
+    Callable[[object], str]            # función que recibe la instancia y devuelve texto
+]
+
+
+def _get_value(instance, spec: FieldSpec) -> str:
+    """Obtiene el valor según el tipo de spec."""
+    if callable(spec):
+        return str(spec(instance) if spec else "")
+    if isinstance(spec, (list, tuple)):
+        # Concatena los atributos con un espacio intermedio
+        return " ".join(_resolve_attr(instance, p) for p in spec).strip()
+    # spec es str
+    return _resolve_attr(instance, spec)
+
+
+def queryset_to_excel(
+        queryset: Iterable,
+        headers: List[str],
+        fields: List[FieldSpec],
+        sheet_name: str = "Hoja1"
+):
+    """
+    Genera un XLSX (BytesIO) a partir de un queryset usando pandas.
+
+    headers  → nombres visibles en Excel
+    fields   → especificaciones de columnas (str | tuple/list[str] | callable)
+    La longitud de ambas listas debe coincidir.
+    """
+    if len(headers) != len(fields):
+        raise ValueError("headers y fields deben tener la misma longitud")
+
+    # --- Construir lista de dicts fila a fila ---
+    data = [
+        {header: _get_value(obj, spec) for header, spec in zip(headers, fields)}
+        for obj in queryset
+    ]
+
+    df = pd.DataFrame(data, columns=headers).fillna("")
+
+    # --- Exportar a memoria ---
+    buffer = BytesIO()
+    with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
+        df.to_excel(writer, sheet_name=sheet_name, index=False)
+
+    buffer.seek(0)
+    return buffer
