@@ -1,13 +1,12 @@
-import requests, os
+import os
 from datetime import date
 
 from django.shortcuts import redirect, render
-from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
-from django.views.generic import ListView, View
+from django.http import HttpResponseRedirect, JsonResponse
+from django.views.generic import View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
-from django.urls import reverse_lazy
 from django.contrib.auth import login, logout
 from django.contrib import messages
 from django import forms
@@ -23,6 +22,8 @@ from django.views.decorators.http import require_POST
 from allauth.account.adapter import get_adapter
 from allauth.socialaccount.models import SocialAccount, SocialApp
 from allauth.account.models import EmailAddress
+import allauth.account.forms as forms_allauth
+
 from dal import autocomplete
 
 from google.oauth2 import id_token
@@ -132,7 +133,7 @@ def one_tap_google_login(request):
                 user.first_name = idinfo.get("given_name", "")
                 user.last_name  = idinfo.get("family_name", "")
                 user.email      = email
-                
+
                 adapter.populate_username(request, user)
                 user.save()
 
@@ -305,8 +306,8 @@ class SuperuserRequiredMixin(LoginRequiredMixin):
 class LoginModalView(View):
     def get(self, request, *args, **kwargs):
         context = {}
-        context['form'] = forms.LoginForm()
-        return render(request, 'forms/formLoginModal.html', context)
+        context['form'] = forms_allauth.LoginForm()
+        return render(request, 'core/forms/formLoginModal.html', context)
     
 
 class ViewClassBase(ContextMixin, View):
