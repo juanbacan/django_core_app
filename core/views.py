@@ -128,10 +128,12 @@ def one_tap_google_login(request):
                 # No hay email ni usuario → creamos el User primero
                 adapter = get_adapter(request)
                 user = adapter.new_user(request)
-                adapter.populate_username(request, user)
+
                 user.first_name = idinfo.get("given_name", "")
                 user.last_name  = idinfo.get("family_name", "")
                 user.email      = email
+                
+                adapter.populate_username(request, user)
                 user.save()
 
                 # Ahora sí podemos crear EmailAddress enlazado al usuario
