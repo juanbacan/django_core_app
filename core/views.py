@@ -16,12 +16,17 @@ from django.conf import settings
 from django.views.generic.base import ContextMixin
 from django.db import transaction
 from django.db.models import Q
+from django.contrib.sites.models import Site
+from django.views.decorators.http import require_POST
 
-from allauth.account.adapter import DefaultAccountAdapter as account_adapter
-from allauth.socialaccount.models import SocialAccount
-from allauth.account.models import EmailAddress
+
 from allauth.account.adapter import get_adapter
+from allauth.socialaccount.models import SocialAccount, SocialApp
+from allauth.account.models import EmailAddress
 from dal import autocomplete
+
+from google.oauth2 import id_token
+from google.auth.transport import requests as g_requests
 
 from .mixins import SecureModuleMixin
 from .models import NotificacionUsuario, NotificacionUsuarioCount, CustomUser
@@ -57,82 +62,99 @@ def autenticar_usuario(request, user):
     return redirect(request.META.get('HTTP_REFERER', '/'))
 
 
-@csrf_exempt
+@csrf_exempt          # no hay token csrf en el POST que llega desde el widget
+@require_POST         # sólo permitimos método POST
+@transaction.atomic   # todo-o-nada: BD coherente si algo falla
 def one_tap_google_login(request):
+    """
+    Endpoint para Google One-Tap.  
+    1. Recibe el id_token (`credential`) del widget.  
+    2. Lo valida localmente con la librería oficial de Google.  
+    3. Localiza o crea User, SocialAccount y EmailAddress.  
+    4. Autentica al usuario en la sesión y responde.
+    """
     try:
-        credential = request.POST.get('credential')
-        if not credential:
-            return HttpResponse('Error: Falta el token de credencial', status=400)
+        token = request.POST.get("credential")
+        if not token:
+            return JsonResponse({"error": "missing_token"}, status=400)
         
-        # Se recomienda utilizar GET para consultar tokeninfo
-        url = f'https://oauth2.googleapis.com/tokeninfo?id_token={credential}'
-        resp = requests.post(url)
-        
-        if resp.status_code != 200:
-            return HttpResponse(f'Error: {resp.text}', status=resp.status_code)
-        
-        data = resp.json()
-        extra_data = obtener_extra_data(data)
-        uid = data.get('sub')
-        email = data.get('email')
-        # Convertir el valor de verificación a booleano
-        is_email_verified = str(data.get('email_verified', 'false')).lower() == 'true'
-        
-        # Si el usuario ya tiene una cuenta social asociada con Google, actualizar y loguear
-        if SocialAccount.objects.filter(uid=uid, provider='google').exists():
-            social = SocialAccount.objects.get(uid=uid, provider='google')
-            user = social.user
-            try:
-                email_obj, _ = EmailAddress.objects.get_or_create(user=user, email=email)
-                email_obj.verified = is_email_verified
-                email_obj.save()
-            except Exception as ex:
-                save_error(request, ex, "ONE TAP GOOGLE LOGIN - Actualización de EmailAddress")
-            
-            return autenticar_usuario(request, user)
-        else:
-            # Si existe un EmailAddress para este email, utilizar el usuario asociado
-            try:
-                email_obj = EmailAddress.objects.get(email=email)
-                email_obj.verified = is_email_verified
-                email_obj.save()
-                user = email_obj.user
-                SocialAccount.objects.create(
-                    user=user,
-                    uid=uid,
-                    provider='google',
-                    extra_data=extra_data
-                )
-                return autenticar_usuario(request, user)
+        # ── 0) Obtener el client_id desde SocialApp ───────────────────────
+        try:
+            current_site = Site.objects.get_current(request)
+            google_app   = SocialApp.objects.get(
+                provider="google", sites=current_site
+            )
+            client_id = google_app.client_id
+        except SocialApp.DoesNotExist:
+            return JsonResponse({"error": "google_not_configured"}, status=500)
 
-            except EmailAddress.DoesNotExist:
-                # Si no existe EmailAddress, se crea el usuario y se asocia
-                form = forms.Form()
-                form.cleaned_data = {
-                    'first_name': data.get('given_name'),
-                    'last_name': data.get('family_name'),
-                    'email': email,
-                }
-                adapter = get_adapter()
-                new_user = adapter.new_user(request)
-                user = adapter.save_user(request, new_user, form=form)
-                
-                SocialAccount.objects.create(
-                    user=user,
-                    uid=uid,
-                    provider='google',
-                    extra_data=extra_data
-                )
+        # ── 1) Validar id_token ─────────────────────────────────────────────
+        try:
+            idinfo = id_token.verify_oauth2_token(
+                token,
+                g_requests.Request(),
+                client_id
+            )
+        except ValueError:
+            return JsonResponse({"error": "invalid_token"}, status=400)
+
+        # idinfo ya está verificado (aud, exp, firma, issuer)
+        uid         = idinfo["sub"]
+        email       = idinfo["email"]
+        is_verified = idinfo.get("email_verified", False)
+        extra_data  = obtener_extra_data(idinfo)
+
+        # ── 2) SocialAccount existente ─────────────────────────────────────
+        try:
+            social = SocialAccount.objects.select_related("user").get(
+                uid=uid, provider="google"
+            )
+            user = social.user
+
+        except SocialAccount.DoesNotExist:
+            # ── 3) ¿Existe EmailAddress con el mismo email? ────────────────────
+            email_obj = (
+                EmailAddress.objects.select_related("user")
+                .filter(email=email)
+                .first()
+            )
+
+            if email_obj:
+                # Hay usuario previo con ese email → lo actualizamos
+                user = email_obj.user
+                email_obj.verified = is_verified
+                email_obj.save()
+            else:
+                # No hay email ni usuario → creamos el User primero
+                adapter = get_adapter(request)
+                user = adapter.new_user(request)
+                adapter.populate_username(request, user)
+                user.first_name = idinfo.get("given_name", "")
+                user.last_name  = idinfo.get("family_name", "")
+                user.email      = email
+                user.save()
+
+                # Ahora sí podemos crear EmailAddress enlazado al usuario
                 EmailAddress.objects.create(
                     user=user,
                     email=email,
-                    verified=is_email_verified,
-                    primary=True
+                    verified=is_verified,
+                    primary=True,
                 )
-                return autenticar_usuario(request, user)
+
+            # En ambos casos, si no existe SocialAccount aún, lo creamos
+            SocialAccount.objects.get_or_create(
+                user=user,
+                uid=uid,
+                provider="google",
+                defaults={"extra_data": extra_data},
+            )
+
+        return autenticar_usuario(request, user)
+
     except Exception as ex:
         save_error(request, ex, "ONE TAP GOOGLE LOGIN")
-        return redirect('account_login')
+        return JsonResponse({"error": "server_error"}, status=500)
 
 
 def api(request):
