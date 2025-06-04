@@ -74,9 +74,11 @@ class NotificationThread(Thread):
         """
         Enviar notificaciones a todos los destinatarios.
         """
-        with ThreadPoolExecutor(max_workers=10) as executor:
-            for recipient in self.recipients:
-                executor.submit(_send_push_notification, recipient, self.payload, self.ttl)
+        for recipient in self.recipients:
+            _send_push_notification(recipient, self.payload, self.ttl)
+        # with ThreadPoolExecutor(max_workers=10) as executor:
+        #     for recipient in self.recipients:
+        #         executor.submit(_send_push_notification, recipient, self.payload, self.ttl)
 
 
 
