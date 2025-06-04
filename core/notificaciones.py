@@ -5,6 +5,7 @@ from pywebpush import WebPushException, webpush
 from webpush.models import Group
 from threading import Thread
 from .models import CustomUser
+from concurrent.futures import ThreadPoolExecutor
 
 
 def _process_subscription_info(subscription):
@@ -47,9 +48,10 @@ def _send_push_notification(recipient, payload, ttl=0):
     subscription_data = _process_subscription_info(recipient.subscription)
     try:
         webpush(subscription_info=subscription_data, data=payload, ttl=ttl, **vapid_data)
-        print("Notificación enviada correctamente ************************************************** ")
+        print(f"[WebPush OK] Notificación enviada a: {recipient}")
     except WebPushException as e:
-        print("Error WebPush No encontrado ************************************************** ")
+        status = e.response.status_code if e.response else "No response"
+        print(f"[WebPush ERROR] Usuario: {recipient}, Endpoint: {subscription_data.get('endpoint')}, Status: {status}")
         if e.response.status_code == 410:
             recipient.subscription.delete()
         else:
@@ -72,8 +74,9 @@ class NotificationThread(Thread):
         """
         Enviar notificaciones a todos los destinatarios.
         """
-        for recipient in self.recipients:
-            _send_push_notification(recipient, self.payload, self.ttl)
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            for recipient in self.recipients:
+                executor.submit(_send_push_notification, recipient, self.payload, self.ttl)
 
 
 
@@ -89,7 +92,7 @@ def send_notification_to_user(user, payload, ttl=0):
     """
     Envía una notificación a un usuario.
     """
-    recipients = user.webpush_info.select_related("subscription")
+    recipients = user.webpush_info.select_related("subscription").order_by("-id")
     NotificationThread(recipients, payload, ttl).start()
 
 
@@ -100,7 +103,7 @@ def send_notification_to_group(group_name, payload, ttl=0):
     """
     Envía una notificación a un grupo.
     """
-    recipients = Group.objects.get(name=group_name).webpush_info.select_related("subscription")
+    recipients = Group.objects.get(name=group_name).webpush_info.select_related("subscription").order_by("-id")
     NotificationThread(recipients, payload, ttl).start()
 
 
