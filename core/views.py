@@ -401,16 +401,15 @@ class ViewAdministracionBase(LoginRequiredMixin, SecureModuleMixin, ViewClassBas
 
         context['agrupacion_modulos'] = []
         if self.request.user.is_authenticated:
+            # Lista de ids a los que el usuario tiene acceso
             context["lista_modulos_id"] = self.request.user.mi_lista_modulos_id()
             agrupacion_modulos = self.request.user.mis_agrupaciones_modulos()
             # Ver cual agrupacion de modulos esta activa dependiendo de la url del modulo y la url actual
             url_actual = self.request.path
             for agrupacion in agrupacion_modulos:
-                for modulo in agrupacion.modulos.all():
+                for modulo in agrupacion.modulos_activos:
                     if modulo.url in url_actual:
                         setattr(agrupacion, 'activo', True)
                         context['modulo_activo'] = modulo
-                        # context['agrupacion_activa'] = agrupacion
-                        break
             context['agrupacion_modulos'] = agrupacion_modulos
         return context
