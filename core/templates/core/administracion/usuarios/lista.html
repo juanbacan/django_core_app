@@ -30,6 +30,7 @@
 									<th>Apellido</th>
 									<th>Usuario</th>
 									<th>Correo</th>
+									<th>Grupos</th>
 									<th>Acciones</th>
 								</tr>
 							</thead>
@@ -40,6 +41,13 @@
 									<td>{{ object.last_name }}</td>
 									<td>{{ object.username }}</td>
 									<td>{{ object.mi_email|default:"-" }}</td>
+									<td>
+										{% for grupo in object.groups.all %}
+											{{ grupo.name }}{% if not forloop.last %}, {% endif %}
+										{% empty %}
+											Sin grupo
+										{% endfor %}
+									</td>
 									{% comment %} <td>
 										<a href="" class="btn btn-sm btn-warning" title="Editar usuario">
 										<i class="fa-solid fa-user-edit"></i>
