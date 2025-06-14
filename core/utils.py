@@ -1,4 +1,4 @@
-import json, bson, requests, base64, math, sys, os, io
+import json, bson, requests, base64, math, sys, os, io, re, uuid
 import pandas as pd
 import datetime
 from bs4 import BeautifulSoup
@@ -351,78 +351,48 @@ def upload_url_image_to_firebase_storage(url, bucket_name=settings.FIREBASE_BUCK
         return None
     
 
-def replace_images(html, bucket_name=settings.FIREBASE_BUCKET_NAME, folder=settings.TINYMCE_IMAGES_FOLDER):
-    # bucket = storage.bucket("pre-online.appspot.com")
+DATA_URI_RE = re.compile(r'^data:(image/[\w.+-]+);base64,')
+
+def replace_images(html: str, bucket_name=settings.FIREBASE_BUCKET_NAME, folder=settings.FIREBASE_IMAGES_FOLDER) -> str:
     bucket = storage.bucket(bucket_name)
+    soup = BeautifulSoup(html, "html.parser")
 
-    soup = BeautifulSoup(html, 'html.parser')
-    for img in soup.find_all('img'):
-        imagen = img['src']
+    for img in soup.find_all("img"):
+        src = img.get("src", "")
 
-        if not imagen.startswith('data:image'):
-            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-                       'Referer': 'https://quizizz.com/admin/quiz/636186fc7c0111001dd1c409/adjectives?fromSearch=true&source=',
-                       'Sec-Ch-Ua-Mobile': '?0',
-                       'Sec-Ch-Ua': '" Not A;Brand";v="99", "Chromium";v="121", "Google Chrome";v="121"',
-                       'Sec-Ch-Ua-Platform': '"Windows"',
-                       'Connection': 'keep-alive',
-                       'Accept-Encoding': 'gzip, deflate, br',
-                       'Accept': '*/*',
-                       }
-            response = requests.get(imagen, headers=headers)
+        # --- 1) data:image/… ---------------------------------------------
+        m = DATA_URI_RE.match(src)
+        if m:
+            mime = m.group(1)                     # p.ej. image/png
+            ext  = mime.split("/")[-1]            # png
+            raw  = base64.b64decode(src.split(",", 1)[1])
 
-            if response.status_code == 200:
-                content = response.content
-                tipo_archivo = get_image_type(io.BytesIO(content))
-                blob = bucket.blob(folder + "/" + str(bson.ObjectId()) + "." + tipo_archivo)
-                blob.upload_from_string(response.content, content_type=response.headers['content-type'])
-                blob.make_public()
-                img['src'] = blob.public_url
+        # --- 2) URL remota -----------------------------------------------
+        else:
+            try:
+                r = requests.get(src, timeout=10, headers={"User-Agent": "Mozilla/5.0"})
+                r.raise_for_status()
+            except Exception as e:
+                print(f"[replace_images] no se pudo descargar {src}: {e}")
+                continue
 
-                if "alt" in img.attrs:
-                    img["alt"] = "Banco de preguntas"
-                else:
-                    img["alt"] = "Banco de preguntas"
+            raw  = r.content
+            mime = r.headers.get("content-type") or f"image/{get_image_type(io.BytesIO(r.content)) or 'png'}"
+            ext  = mime.split("/")[-1]
 
-        else :
-            # Upload image to firebase storage
-            imagen = imagen.replace('data:image/png;base64,', '')
-            imagen = imagen.replace('data:image/jpeg;base64,', '')
-            imagen = imagen.replace('data:image/jpg;base64,', '')
-            imagen = imagen.replace('data:image/gif;base64,', '')
-            imagen = imagen.replace('data:image/svg+xml;base64,', '')
-            imagen = imagen.replace('data:image/webp;base64,', '')
-            imagen = imagen.replace('data:image/bmp;base64,', '')
-            imagen = imagen.replace('data:image/tiff;base64,', '')
-            imagen = imagen.replace('data:image/vnd.microsoft.icon;base64,', '')
-            imagen = imagen.replace('data:image/x-icon;base64,', '')
-            imagen = imagen.replace('data:image/vnd.wap.wbmp;base64,', '')
-            imagen = imagen.replace('data:image/x-xbitmap;base64,', '')
-            imagen = imagen.replace('data:image/x-xbm;base64,', '')
-            imagen = imagen.replace('data:image/x-win-bitmap;base64,', '')
-            imagen = imagen.replace('data:image/x-windows-bmp;base64,', '')
-            imagen = imagen.replace('data:image/x-ms-bmp;base64,', '')
-            imagen = imagen.replace('data:image/bmp;base64,', '')
-            imagen = imagen.replace('data:image/x-bmp;base64,', '')
-            imagen = imagen.replace('data:image/x-bitmap;base64,', '')
-            imagen = imagen.replace('data:image/x-xbitmap;base64,', '')
-            imagen = imagen.replace('data:image/x-win-bitmap;base64,', '')
-
-            imagen = imagen.encode('utf-8')
-            imagen = base64.b64decode(imagen)
-
-            blob = bucket.blob(folder + "/" + str(bson.ObjectId()))
-            blob.upload_from_string(imagen, content_type="image/png")
+        # --- 3) subir a Firebase -----------------------------------------
+        blob_name = os.path.join(folder, f"{uuid.uuid4().hex}.{ext}")
+        blob      = bucket.blob(blob_name)
+        blob.upload_from_string(raw, content_type=mime)
+        try:
             blob.make_public()
-            img['src'] = blob.public_url
+        except Exception:
+            pass
 
-            if "alt" in img.attrs:
-                img["alt"] = "Banco de preguntas"
-            else:
-                img["alt"] = "Banco de preguntas"
+        img["src"] = blob.public_url
+        img["alt"] = "Banco de preguntas"
 
     return str(soup)
-
 
 # *********************************************************************************
 # Guardar errores de la aplicación
