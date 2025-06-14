@@ -27,7 +27,7 @@ class WhatsappBotAdminView(ViewAdministracionBase):
     
     def post_desconectar(self, request, context, *args, **kwargs):
         whatsappbot = WhatsappBot()
-        whatsappbot.desconectar()
+        whatsappbot.disconnect()
         return success_json(url=get_redirect_url(request))
         
     def get(self, request, *args, **kwargs):
