@@ -39,7 +39,10 @@ def has_access_module(request):
 
 class SecureModuleMixin(AccessMixin):
     def handle_no_permission(self):
-        return redirect("/")
+        # Si esta logueado pero no tiene acceso a la vista redirigir al inicio
+        if self.request.user.is_authenticated:
+            return redirect('/')
+        return redirect('/accounts/login/?next=' + self.request.path)
 
     def dispatch(self, request, *args, **kwargs):
         has_access, error_message = False, None
@@ -53,6 +56,6 @@ class SecureModuleMixin(AccessMixin):
         if not has_access:
             messages.error(request, trans("No tienes acceso"))
             error_message and messages.error(request, f'Método: {request.method}, Error: {error_message}')
-            return self.handle_no_permission()
+            return self.handle_no_permission(request)
 
         return super().dispatch(request, *args, **kwargs)
