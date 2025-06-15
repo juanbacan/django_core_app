@@ -259,7 +259,7 @@ class CustomUserAutocompleteView(autocomplete.Select2QuerySetView):
 @csrf_exempt
 @login_required
 def upload_image(request, series: str=None, article: str=None): 
-       
+    
     if request.method != "POST":
         return JsonResponse({'Error Message': "Wrong request"})
     
@@ -272,7 +272,7 @@ def upload_image(request, series: str=None, article: str=None):
         return JsonResponse({"Error Message": f"Wrong file suffix ({file_name_suffix}), supported are .jpg, .png, .gif, .webp, .jpeg"})
 
     if not settings.HABILITADO_FIREBASE:
-        file_path = os.path.join(settings.MEDIA_ROOT, 'cargadas', file_obj.name)
+        file_path = os.path.join(settings.MEDIA_ROOT, 'cargadas_tiny', file_obj.name)
         try:
             with open(file_path, 'wb+') as f:
                 for chunk in file_obj.chunks():
@@ -286,7 +286,7 @@ def upload_image(request, series: str=None, article: str=None):
 
         return JsonResponse({
             'message': 'Image uploaded successfully',
-            'location': os.path.join(settings.MEDIA_URL, 'cargadas', file_obj.name)
+            'location': os.path.join(settings.MEDIA_URL, 'cargadas_tiny', file_obj.name)
         })
     else: 
         url = upload_image_to_firebase_storage(file_obj)        
