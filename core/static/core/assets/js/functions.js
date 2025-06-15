@@ -341,7 +341,11 @@ const submitModalForm1 = async (formid = 'modalForm1', showError = true) => {
     } catch (error) {
         // Manejo de excepciones (error de red u otros)
         desbloqueoInterfaz();
-        if (showError) showErrorMessage('Error de red o servidor no disponible. Por favor, inténtelo más tarde.');
+        if (showError) {
+            const mensaje = 'Error de red o servidor no disponible. Por favor, inténtelo más tarde.\n\n' +
+                            (error?.message ? `Detalles técnicos: ${error.message}` : '');
+            showErrorMessage(mensaje);
+        }
         console.error('Error inesperado:', error);
     }
 };
