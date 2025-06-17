@@ -45,6 +45,12 @@
                                 </div>
                                 {% include 'core/forms/fieldRender.html' with field=form.logo_horizontal %}
                             </div>
+                            <div class="col-lg-6 mb-3">
+                                <div>
+                                    <label for="id_url" class="fw-bold mb-2">{{ form.logo_horizontal_negativo.label }}</label>
+                                </div>
+                                {% include 'core/forms/fieldRender.html' with field=form.logo_horizontal_negativo %}
+                            </div>
                         </div>
                     </div>
                 </div>
