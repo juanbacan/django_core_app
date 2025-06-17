@@ -105,6 +105,7 @@ class AplicacionWeb(ModeloBase):
     favicon = models.ImageField(upload_to='aplicacion_web', null=True, blank=True)
     logo = ResizedImageField(size=[160, 160], force_format="WEBP", quality=75, upload_to='aplicacion_web', null=True, blank=True, verbose_name=u'Logo')
     logo_horizontal = ResizedImageField(size=[160, 160], force_format="WEBP", quality=75, upload_to='aplicacion_web', null=True, blank=True, verbose_name=u'Logo horizontal')
+    logo_horizontal_negativo = ResizedImageField(size=[160, 160], force_format="WEBP", quality=75, upload_to='aplicacion_web', null=True, blank=True, verbose_name=u'Logo horizontal negativo')
     image_content = ResizedImageField(size=[1200, None], force_format="WEBP", quality=75, upload_to='aplicacion_web', null=True, blank=True, verbose_name=u'Imagen Contenido')
     # SEO
     social_images = ResizedImageField(size=[1200, None], force_format="WEBP", quality=75, upload_to='aplicacion_web', null=True, blank=True, verbose_name=u'Imagen Social')
