@@ -147,3 +147,37 @@ html, body {
     margin-bottom: 0;
     margin-left: 0;
 }
+
+/* Dark themed sidebar */
+.sidebar-dark {
+    background: linear-gradient(180deg, #343a40, #212529);
+    color: #adb5bd;
+}
+
+.sidebar-dark .accordion-button {
+    background-color: transparent;
+    color: #adb5bd;
+}
+
+.sidebar-dark .accordion-button:not(.collapsed) {
+    color: #fff;
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.sidebar-dark .accordion-button::after {
+    filter: invert(80%);
+}
+
+.sidebar-dark .accordion-item {
+    border: none;
+}
+
+.sidebar-dark .list-group-item {
+    background-color: transparent;
+    color: #adb5bd;
+}
+
+.sidebar-dark .list-group-item.active {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
