@@ -28,7 +28,8 @@ class CustomUser(AbstractUser):
         return social.get_avatar_url() if social else None
     
     def get_nombre_completo(self):
-        return f"{self.first_name} {self.last_name}" if self.first_name and self.last_name else self.username
+        nombre = f"{self.first_name or ''} {self.last_name or ''}".strip()
+        return nombre if nombre else self.username
 
     def mis_correos(self):
         return EmailAddress.objects.filter(user=self)
