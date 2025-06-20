@@ -4,8 +4,9 @@
 {% block breadcrumb %}
     <li class="breadcrumb-item"><a href="{% url 'administracion' %}{{ modulo_activo.url }}">{{ modulo_activo.nombre }}</a></li>
     <li class="breadcrumb-item active" aria-current="page">Crear {{ modulo_activo.nombre }}</li>
+{% endblock %}
+
 {% block content %}
-  
 <div class="row">
     <div class="col-md-12">
         <div class="card border-0">
