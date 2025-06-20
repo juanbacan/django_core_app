@@ -1,17 +1,13 @@
 {% extends 'layout/base_admin.html' %}
 {% load static %}
 
+{% block breadcrumb %}
+    <li class="breadcrumb-item"><a href="{% url 'administracion' %}{{ modulo_activo.url }}">{{ modulo_activo.nombre }}</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Crear {{ modulo_activo.nombre }}</li>
 {% block content %}
   
 <div class="row">
     <div class="col-md-12">
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="{% url 'administracion' %}{{ modulo_activo.url }}">{{ modulo_activo.nombre }}</a></li>
-                <li class="breadcrumb-item active" aria-current="page">Crear {{ modulo_activo.nombre }}</li>
-            </ol>
-        </nav>
-
         <div class="card border-0">
             <div class="card-body">
                 <form method="POST" id="{% if not default_send_form  %}mainForm{% endif %}" action="{{ request.path }}" enctype="multipart/form-data">
