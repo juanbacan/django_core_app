@@ -411,5 +411,7 @@ class ViewAdministracionBase(LoginRequiredMixin, SecureModuleMixin, ViewClassBas
                     if modulo.url in url_actual:
                         setattr(agrupacion, 'activo', True)
                         context['modulo_activo'] = modulo
+                        context['agrupacion_activa'] = agrupacion
+                        break
             context['agrupacion_modulos'] = agrupacion_modulos
         return context
