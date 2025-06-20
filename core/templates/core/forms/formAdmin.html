@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block breadcrumb %}
-    <li class="breadcrumb-item" aria-current="page">{{ modulo_activo.nombre }}</li>
+    <li class="breadcrumb-item" aria-current="page">{{ agrupacion_activa.nombre }}</li>
     <li class="breadcrumb-item"><a href="{% url 'administracion' %}{{ modulo_activo.url }}">{{ modulo_activo.nombre }}</a></li>
     <li class="breadcrumb-item active" aria-current="page">Crear {{ modulo_activo.nombre }}</li>
 {% endblock %}
