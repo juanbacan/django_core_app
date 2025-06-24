@@ -17,7 +17,7 @@ from django.db import transaction
 from django.db.models import Q
 from django.contrib.sites.models import Site
 from django.views.decorators.http import require_POST
-
+from django.forms import modelform_factory
 
 from allauth.account.adapter import get_adapter
 from allauth.socialaccount.models import SocialAccount, SocialApp
@@ -419,19 +419,29 @@ class ViewAdministracionBase(LoginRequiredMixin, SecureModuleMixin, ViewClassBas
 
 
 class ModeloVistaCRUD(ViewAdministracionBase):
+    """
+    Clase base para vistas CRUD de modelos en la administración.
+    Debes definir los siguientes atributos en la subclase:
+    - `modelo`: El modelo Django que se va a gestionar.
+    - `form_class`: La clase de formulario para crear/editar el modelo.
+    - `template_list`: La plantilla para listar los objetos del modelo.
+    - `template_form`: La plantilla para el formulario de creación/edición.
+    - `exclude_fields`: Campos a excluir del formulario (opcional, por defecto incluye campos de auditoría).
+    """
     modelo = None
     form_class = None
     template_form = 'core/forms/formAdmin.html'
     template_list = ''
+    exclude_fields = ('created_at', 'updated_at', 'created_by', 'modified_by')
 
-    def __init__(self, *args, **kwargs):
+    def dispatch(self, request, *args, **kwargs):
         if not self.modelo:
-            raise ValueError("Debe definir el modelo en la clase ModeloVistaCRUD")
+            raise ValueError("Debes definir el atributo 'modelo'")
         if not self.template_list:
-            raise ValueError("Debe definir el template_list en la clase ModeloVistaCRUD")
+            raise ValueError("Debes definir el atributo 'template_list'")
         if not self.form_class:
-            raise ValueError("Debe definir el form_class en la clase ModeloVistaCRUD")
-        super().__init__(*args, **kwargs)
+            self.form_class = modelform_factory(self.modelo, exclude=self.exclude_fields)
+        return super().dispatch(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
         context = self.get_context_data(**kwargs)
