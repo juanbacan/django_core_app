@@ -418,7 +418,7 @@ class ViewAdministracionBase(LoginRequiredMixin, SecureModuleMixin, ViewClassBas
         return context
 
 
-class ModeloVistaCRUD(ViewAdministracionBase):
+class ModelCRUDView(ViewAdministracionBase):
     """
     Clase base para vistas CRUD de modelos en la administración.
     Debes definir los siguientes atributos en la subclase:
