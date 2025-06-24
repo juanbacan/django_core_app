@@ -33,7 +33,8 @@ from .mixins import SecureModuleMixin
 from .models import NotificacionUsuario, NotificacionUsuarioCount, CustomUser
 
 from .utils import bad_json, success_json, get_query_params, \
-    save_error, upload_image_to_firebase_storage
+    save_error, upload_image_to_firebase_storage, get_redirect_url, \
+    error_json
 
 
 def obtener_extra_data(data):
@@ -415,3 +416,72 @@ class ViewAdministracionBase(LoginRequiredMixin, SecureModuleMixin, ViewClassBas
                         break
             context['agrupacion_modulos'] = agrupacion_modulos
         return context
+
+
+class ModeloVistaCRUD(ViewAdministracionBase):
+    modelo = None
+    form_class = None
+    template_form = 'core/forms/formAdmin.html'
+    template_list = ''
+
+    def __init__(self, *args, **kwargs):
+        if not self.modelo:
+            raise ValueError("Debe definir el modelo en la clase ModeloVistaCRUD")
+        if not self.template_list:
+            raise ValueError("Debe definir el template_list en la clase ModeloVistaCRUD")
+        if not self.form_class:
+            raise ValueError("Debe definir el form_class en la clase ModeloVistaCRUD")
+        super().__init__(*args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        context = self.get_context_data(**kwargs)
+        if self.action and hasattr(self, f'post_{self.action}'):
+            return getattr(self, f'post_{self.action}')(request, context, *args, **kwargs)
+        return error_json(mensaje="Acción no permitida")
+
+    def post_add(self, request, context, *args, **kwargs):
+        form = self.form_class(request.POST)
+        if form.is_valid():
+            form.save()
+            return success_json(url=get_redirect_url(request))
+        return error_json(mensaje="Error al guardar el objeto", forms=[form])
+
+    def post_edit(self, request, context, *args, **kwargs):
+        instance = self.modelo.objects.get(pk=self.data.get('id'))
+        form = self.form_class(request.POST, instance=instance)
+        if form.is_valid():
+            form.save()
+            return success_json(url=get_redirect_url(request))
+        return error_json(mensaje="Error al guardar el objeto", forms=[form])
+
+    def post_delete(self, request, context, *args, **kwargs):
+        obj = self.modelo.objects.get(id=request.POST.get('id'))
+        obj.delete()
+        return success_json(url=get_redirect_url(request))
+
+    def get(self, request, *args, **kwargs):
+        context = self.get_context_data(**kwargs)
+        if self.action and hasattr(self, f'get_{self.action}'):
+            return getattr(self, f'get_{self.action}')(request, context, *args, **kwargs)
+        context['objs'] = self.modelo.objects.order_by('id')
+        return render(request, self.template_list, context)
+
+    def get_add(self, request, context, *args, **kwargs):
+        context['form'] = self.form_class()
+        return render(request, self.template_form, context)
+
+    def get_edit(self, request, context, *args, **kwargs):
+        obj = self.modelo.objects.get(pk=self.data.get('id'))
+        context['obj'] = obj
+        context['form'] = self.form_class(instance=obj)
+        return render(request, self.template_form, context)
+
+    def get_delete(self, request, context, *args, **kwargs):
+        obj = self.modelo.objects.get(pk=self.data.get('id'))
+        context.update({
+            'title': "Eliminar Objeto",
+            'message': "¿Está seguro de que desea eliminar el objeto?",
+            'formid': obj.id,
+            'delete_obj': True
+        })
+        return render(request, 'core/modals/formModal.html', context)
