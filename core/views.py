@@ -31,6 +31,7 @@ from google.auth.transport import requests as g_requests
 
 from .mixins import SecureModuleMixin
 from .models import NotificacionUsuario, NotificacionUsuarioCount, CustomUser
+from .forms import ModelBaseForm
 
 from .utils import bad_json, success_json, get_query_params, \
     save_error, upload_image_to_firebase_storage, get_redirect_url, \
@@ -440,7 +441,11 @@ class ModelCRUDView(ViewAdministracionBase):
         if not self.template_list:
             raise ValueError("Debes definir el atributo 'template_list'")
         if not self.form_class:
-            self.form_class = modelform_factory(self.model, exclude=self.exclude_fields)
+            self.form_class = modelform_factory(
+                self.model,
+                exclude=self.exclude_fields,
+                form=ModelBaseForm
+            )
         return super().dispatch(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
