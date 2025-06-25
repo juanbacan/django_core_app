@@ -509,7 +509,7 @@ class ModelCRUDView(ViewAdministracionBase):
         objs = self.model.objects.order_by('id')
         context['objs'] = objs
 
-        if not self.template_list:
+        if self.template_list == 'core/layout/list.html':
             headers, specs = self.build_display()
             context.update({
                 'display_headers': headers,
