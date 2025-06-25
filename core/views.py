@@ -493,7 +493,8 @@ class ModelCRUDView(ViewAdministracionBase):
         form = self.form_class(request.POST, instance=instance)
         if form.is_valid():
             form.save()
-            return success_json(url=get_redirect_url(request))
+            messages.success(request, "Objeto actualizado correctamente")
+            return success_json(url=get_redirect_url(request, object=instance))
         return error_json(mensaje="Error al guardar el objeto", forms=[form])
 
     def post_delete(self, request, context, *args, **kwargs):
@@ -524,7 +525,7 @@ class ModelCRUDView(ViewAdministracionBase):
 
     def get_edit(self, request, context, *args, **kwargs):
         obj = self.model.objects.get(pk=self.data.get('id'))
-        context['obj'] = obj
+        context['object'] = obj
         context['form'] = self.form_class(instance=obj)
         return render(request, self.template_form, context)
 
