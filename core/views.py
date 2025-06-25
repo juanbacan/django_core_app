@@ -509,7 +509,7 @@ class ModelCRUDView(ViewAdministracionBase):
         objs = self.model.objects.order_by('id')
         headers, specs = self.build_display()
         context.update({
-            "objects": objs,
+            "objs": objs,
             "display_headers": headers,
             "display_specs":  specs,
         })
