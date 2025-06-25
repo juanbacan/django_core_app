@@ -422,25 +422,25 @@ class ModelCRUDView(ViewAdministracionBase):
     """
     Clase base para vistas CRUD de modelos en la administración.
     Debes definir los siguientes atributos en la subclase:
-    - `modelo`: El modelo Django que se va a gestionar.
+    - `model`: El modelo Django que se va a gestionar.
     - `form_class`: La clase de formulario para crear/editar el modelo.
     - `template_list`: La plantilla para listar los objetos del modelo.
     - `template_form`: La plantilla para el formulario de creación/edición.
     - `exclude_fields`: Campos a excluir del formulario (opcional, por defecto incluye campos de auditoría).
     """
-    modelo = None
+    model = None
     form_class = None
     template_form = 'core/forms/formAdmin.html'
     template_list = ''
     exclude_fields = ('created_at', 'updated_at', 'created_by', 'modified_by')
 
     def dispatch(self, request, *args, **kwargs):
-        if not self.modelo:
-            raise ValueError("Debes definir el atributo 'modelo'")
+        if not self.model:
+            raise ValueError("Debes definir el atributo 'model'")
         if not self.template_list:
             raise ValueError("Debes definir el atributo 'template_list'")
         if not self.form_class:
-            self.form_class = modelform_factory(self.modelo, exclude=self.exclude_fields)
+            self.form_class = modelform_factory(self.model, exclude=self.exclude_fields)
         return super().dispatch(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
@@ -457,7 +457,7 @@ class ModelCRUDView(ViewAdministracionBase):
         return error_json(mensaje="Error al guardar el objeto", forms=[form])
 
     def post_edit(self, request, context, *args, **kwargs):
-        instance = self.modelo.objects.get(pk=self.data.get('id'))
+        instance = self.model.objects.get(pk=self.data.get('id'))
         form = self.form_class(request.POST, instance=instance)
         if form.is_valid():
             form.save()
@@ -465,7 +465,7 @@ class ModelCRUDView(ViewAdministracionBase):
         return error_json(mensaje="Error al guardar el objeto", forms=[form])
 
     def post_delete(self, request, context, *args, **kwargs):
-        obj = self.modelo.objects.get(id=request.POST.get('id'))
+        obj = self.model.objects.get(id=request.POST.get('id'))
         obj.delete()
         return success_json(url=get_redirect_url(request))
 
@@ -473,7 +473,7 @@ class ModelCRUDView(ViewAdministracionBase):
         context = self.get_context_data(**kwargs)
         if self.action and hasattr(self, f'get_{self.action}'):
             return getattr(self, f'get_{self.action}')(request, context, *args, **kwargs)
-        context['objs'] = self.modelo.objects.order_by('id')
+        context['objs'] = self.model.objects.order_by('id')
         return render(request, self.template_list, context)
 
     def get_add(self, request, context, *args, **kwargs):
@@ -481,13 +481,13 @@ class ModelCRUDView(ViewAdministracionBase):
         return render(request, self.template_form, context)
 
     def get_edit(self, request, context, *args, **kwargs):
-        obj = self.modelo.objects.get(pk=self.data.get('id'))
+        obj = self.model.objects.get(pk=self.data.get('id'))
         context['obj'] = obj
         context['form'] = self.form_class(instance=obj)
         return render(request, self.template_form, context)
 
     def get_delete(self, request, context, *args, **kwargs):
-        obj = self.modelo.objects.get(pk=self.data.get('id'))
+        obj = self.model.objects.get(pk=self.data.get('id'))
         context.update({
             'title': "Eliminar Objeto",
             'message': "¿Está seguro de que desea eliminar el objeto?",
