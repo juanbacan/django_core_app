@@ -339,6 +339,11 @@ def wrap_images(html):
     return str(soup)
 
 
+@register.filter
+def attr(obj, attr_name):
+    return getattr(obj, attr_name, '')
+
+
 register.filter("call", callmethod)
 register.filter("args", args)
 register.filter("to_char", to_char)

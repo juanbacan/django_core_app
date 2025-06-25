@@ -432,21 +432,31 @@ class ModelCRUDView(ViewAdministracionBase):
     model = None
     form_class = None
     template_form = 'core/forms/formAdmin.html'
-    template_list = ''
+    template_list = None
+    list_display = None
     exclude_fields = ('created_at', 'updated_at', 'created_by', 'modified_by')
 
     def dispatch(self, request, *args, **kwargs):
         if not self.model:
             raise ValueError("Debes definir el atributo 'model'")
-        if not self.template_list:
-            raise ValueError("Debes definir el atributo 'template_list'")
+        
         if not self.form_class:
             self.form_class = modelform_factory(
                 self.model,
                 exclude=self.exclude_fields,
                 form=ModelBaseForm
             )
+
+        if not self.template_list:
+            if not self.list_display:
+                raise ValueError("Si no defines 'template_list', debes definir 'list_display'")
+            self.template_list = 'core/layout/list.html'  # Template genérico por defecto
+
         return super().dispatch(request, *args, **kwargs)
+    
+
+    def get_list_display(self):
+        return self.list_display or [field.name for field in self.model._meta.fields]
 
     def post(self, request, *args, **kwargs):
         context = self.get_context_data(**kwargs)
@@ -478,7 +488,9 @@ class ModelCRUDView(ViewAdministracionBase):
         context = self.get_context_data(**kwargs)
         if self.action and hasattr(self, f'get_{self.action}'):
             return getattr(self, f'get_{self.action}')(request, context, *args, **kwargs)
+        
         context['objs'] = self.model.objects.order_by('id')
+        context['list_display'] = self.get_list_display()
         return render(request, self.template_list, context)
 
     def get_add(self, request, context, *args, **kwargs):
