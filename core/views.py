@@ -506,7 +506,7 @@ class ModelCRUDView(ViewAdministracionBase):
         if self.action and hasattr(self, f'get_{self.action}'):
             return getattr(self, f'get_{self.action}')(request, context, *args, **kwargs)
         
-        objs = self.modelo.objects.order_by('id')
+        objs = self.model.objects.order_by('id')
         context['objs'] = objs
 
         if not self.template_list:
