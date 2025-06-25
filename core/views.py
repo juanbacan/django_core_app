@@ -1,8 +1,9 @@
 import os
 from datetime import date
+from urllib.parse import urlencode
 
 from django.shortcuts import redirect, render
-from django.http import HttpResponseRedirect, JsonResponse
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.views.generic import View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.decorators.csrf import csrf_exempt
@@ -18,6 +19,7 @@ from django.db.models import Q
 from django.contrib.sites.models import Site
 from django.views.decorators.http import require_POST
 from django.forms import modelform_factory
+from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage, InvalidPage
 
 from allauth.account.adapter import get_adapter
 from allauth.socialaccount.models import SocialAccount, SocialApp
@@ -28,12 +30,13 @@ from dal import autocomplete
 
 from google.oauth2 import id_token
 from google.auth.transport import requests as g_requests
+import urllib
 
 from .mixins import SecureModuleMixin
 from .models import NotificacionUsuario, NotificacionUsuarioCount, CustomUser
 from .forms import ModelBaseForm
 
-from .utils import bad_json, success_json, get_query_params, \
+from .utils import bad_json, queryset_to_excel, success_json, get_query_params, \
     save_error, upload_image_to_firebase_storage, get_redirect_url, \
     error_json, get_header
 
@@ -419,6 +422,22 @@ class ViewAdministracionBase(LoginRequiredMixin, SecureModuleMixin, ViewClassBas
         return context
 
 
+def _get_field_from_path(model, path):
+    """
+    Devuelve el objeto Field final a partir de un path con '__'.
+    Ej.: subcategoria__categoria → Field de CategoriaProducto.nombre
+    """
+    parts = path.split('__')
+    field = model._meta.get_field(parts[0])
+    for part in parts[1:]:
+        # Avanza sólo si es relación
+        if field.is_relation:
+            model = field.related_model
+            field = model._meta.get_field(part)
+        else:
+            raise ValueError(f"{path} no es un lookup válido.")
+    return field, model  # field final y modelo en el que está
+
 class ModelCRUDView(ViewAdministracionBase):
     """
     Clase base para vistas CRUD de modelos en la administración.
@@ -427,6 +446,8 @@ class ModelCRUDView(ViewAdministracionBase):
     - `form_class`: La clase de formulario para crear/editar el modelo.
     - `template_list`: La plantilla para listar los objetos del modelo.
     - `template_form`: La plantilla para el formulario de creación/edición.
+    - `list_display`: Lista de campos a mostrar en la vista de lista (opcional).
+    - `search_fields`: Campos a buscar en la vista de lista (opcional).
     - `exclude_fields`: Campos a excluir del formulario (opcional, por defecto incluye campos de auditoría).
     """
     model = None
@@ -434,7 +455,92 @@ class ModelCRUDView(ViewAdministracionBase):
     template_form = 'core/forms/formAdmin.html'
     template_list = None
     list_display = None
+    list_filter = []
+    search_fields = None
     exclude_fields = ('created_at', 'updated_at', 'created_by', 'modified_by')
+    paginate_by = 25
+
+    # ATRIBUTOS PARA EXPORTACIÓN A EXCEL
+    export_headers = None  # ['Código', 'Descripción']
+    export_fields = None   # ['codigo', 'descripcion']
+    export_filename = 'reporte.xlsx'
+
+    # ACCIONES POR REGISTRO
+    row_actions = [
+        {
+            "name": "edit",
+            "label": "Editar",
+            "icon": "fa-pencil",
+            "url": lambda o: f"?action=edit&id={o.id}",
+        },
+        {
+            "name": "delete",
+            "label": "Eliminar",
+            "icon": "fa-trash",
+            "url": lambda o: f"?action=delete&id={o.id}",
+            "modal": True, # Indica que es un modal
+        },
+    ]
+
+    def get_row_actions(self, obj):
+        """
+        Devuelve la lista final de acciones que se mostrarán para `obj`.
+        Cada elemento es un dict con keys: label, icon, url, modal (opcional).
+        Puedes filtrar con 'visible_if'.
+        """
+        actions = []
+        for a in self.row_actions:
+            show = a.get("visible_if", lambda o: True)
+            if show(obj):
+                # Evaluar la URL (si es callable)
+                url = a["url"](obj) if callable(a["url"]) else a["url"]
+                actions.append({**a, "url": url})
+        return actions
+    
+    def _querystring(self, exclude=('page','pagina')):
+        """Devuelve la query-string actual sin los parámetros excluidos."""
+        params = self.request.GET.copy()
+        for p in exclude:
+            params.pop(p, None)
+        return urlencode(params, doseq=True)
+    
+    def paginate_queryset(self, queryset):
+        """
+        Devuelve (page_obj, is_paginated) aceptando ?page= o ?pagina=
+        y corrigiendo:
+        • valores no numéricos
+        • valores menores que 1
+        • páginas fuera de rango
+        """
+        paginator   = Paginator(queryset, self.paginate_by)
+
+        # acepta ?page= ó ?pagina= (en minúscula)
+        raw_page    = (
+            self.request.GET.get('page') or
+            self.request.GET.get('pagina') or
+            1
+        )
+
+        # ── 1) convertir a entero seguro ──────────────────
+        try:
+            page_number = int(raw_page)
+        except (TypeError, ValueError):
+            page_number = 1
+
+        # ── 2) evitar valores < 1 ──────────────────────────
+        if page_number < 1:
+            page_number = 1
+
+        # ── 3) obtener la página; si tuviera overflow va a última ──
+        try:
+            page_obj = paginator.page(page_number)
+        except (PageNotAnInteger, InvalidPage, EmptyPage):
+            # `InvalidPage` cubre “menor que 1” y “mayor que num_pages”,
+            # pero ya prevenimos <1; aquí solo nos importa overflow.
+            page_obj = paginator.page(paginator.num_pages)
+
+        return page_obj, paginator.num_pages > 1
+        
 
     def dispatch(self, request, *args, **kwargs):
         if not self.model:
@@ -454,7 +560,76 @@ class ModelCRUDView(ViewAdministracionBase):
 
         return super().dispatch(request, *args, **kwargs)
     
+    def get_export(self, request, context, *args, **kwargs):
+        queryset = self.get_queryset()
 
+        if not self.export_headers or not self.export_fields:
+            raise ValueError("Debes definir `export_headers` y `export_fields` para exportar")
+
+        excel_file = queryset_to_excel(queryset, self.export_headers, self.export_fields)
+        filename = urllib.parse.quote(self.export_filename)
+
+        response = HttpResponse(
+            excel_file,
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+
+    def get_queryset(self):
+        """
+        Retorna el queryset filtrado por búsqueda si se provee un término y 'search_fields' está definido.
+        Permite múltiples palabras separadas por espacios.
+        """
+        queryset = self.model.objects.all()
+        search = self.request.GET.get("search")
+
+        # --- Búsqueda ---
+        if search and self.search_fields:
+            for word in search.strip().split():
+                q = Q()
+                for field in self.search_fields:
+                    q |= Q(**{f"{field}__icontains": word})
+                queryset = queryset.filter(q)
+
+        # --- Filtros ---
+        for field in self.list_filter:
+            value = self.request.GET.get(field)
+            if value not in [None, ""]:
+                queryset = queryset.filter(**{field: value})
+        
+        return queryset
+    
+    def get_filter_options(self):
+        options = []
+        for path in self.list_filter:
+            header = get_header(self.model, path)
+            field, final_model = _get_field_from_path(self.model, path)
+
+            # 1) Field con choices
+            if field.choices:
+                choices = list(field.choices)
+
+            # 2) BooleanField
+            elif field.get_internal_type() in ("BooleanField", "NullBooleanField"):
+                choices = [("1", "Sí"), ("0", "No")]
+
+            # 3) Relación   -> lista objetos relacionados
+            elif field.is_relation:
+                rel_qs  = final_model.objects.all()
+                choices = [(obj.pk, str(obj)) for obj in rel_qs]
+
+            # 4) Otros      -> valores distintos
+            else:
+                vals = (self.model.objects
+                                .values_list(path, flat=True)
+                                .distinct()
+                                .order_by())
+                choices = [(v, v) for v in vals if v is not None]
+
+            options.append((header, choices))
+        return options 
+    
     def build_display(self):
         """
         Devuelve (headers, specs) a partir de list_display
@@ -507,8 +682,16 @@ class ModelCRUDView(ViewAdministracionBase):
         if self.action and hasattr(self, f'get_{self.action}'):
             return getattr(self, f'get_{self.action}')(request, context, *args, **kwargs)
         
-        objs = self.model.objects.order_by('id')
-        context['objs'] = objs
+        qs = self.get_queryset().order_by('id')
+        page_obj, is_paginated = self.paginate_queryset(qs)
+
+        context.update({
+            "page_obj":      page_obj,
+            "objs":          page_obj,                # para tu for ... in objs
+            "is_paginated":  is_paginated,
+            "url_params":    self._querystring(),     # para reutilizar en links
+            "view":          self,                    # sigues necesitando esto
+        })
 
         if self.template_list == 'core/layout/list.html':
             headers, specs = self.build_display()
@@ -516,6 +699,9 @@ class ModelCRUDView(ViewAdministracionBase):
                 'display_headers': headers,
                 'display_specs': specs,
             })
+
+        if len(self.list_filter) > 0:
+            context['filter_options'] = self.get_filter_options()
         
         return render(request, self.template_list, context)
 

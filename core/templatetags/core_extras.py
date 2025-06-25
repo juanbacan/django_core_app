@@ -5,6 +5,7 @@ from django import template
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.utils.html import escape
+from urllib.parse import urlencode
 
 from core.utils import resolve_attr
 
@@ -344,13 +345,42 @@ def wrap_images(html):
 def attr(obj, attr_name):
     return resolve_attr(obj, attr_name)
 
-
 @register.filter
 def replace(value, args):
     """Uso: {{ string|replace:"_,-" }} → reemplaza "_" por "-" """
     old, new = args.split(',')
     return value.replace(old, new)
 
+@register.filter
+def get_item(d, key):
+    """request.GET|get_item:'campo'  →  valor o None"""
+    return d.get(key)
+
+@register.simple_tag
+def querystring(request, key, value):
+    """Construye la query manteniendo los parámetros actuales y cambiando uno."""
+    params = request.GET.copy()
+    params[key] = value
+    return '?' + urlencode(params, doseq=True)
+
+@register.simple_tag
+def querystring_remove(request, key):
+    """Quita <key> de la query y devuelve la url ?a=1&b=2..."""
+    params = request.GET.copy()
+    params.pop(key, None)
+    q = urlencode(params, doseq=True)
+    return '?' + q if q else request.path
+
+@register.filter
+def row_actions(obj, view):
+    """
+    Uso en plantillas:
+        {% for a in obj|row_actions:view %}
+            ...
+        {% endfor %}
+    Llama a view.get_row_actions(obj) y devuelve la lista de acciones.
+    """
+    return view.get_row_actions(obj)
 
 register.filter("call", callmethod)
 register.filter("args", args)
