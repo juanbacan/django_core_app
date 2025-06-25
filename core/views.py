@@ -603,7 +603,7 @@ class ModelCRUDView(ViewAdministracionBase):
     def get_filter_options(self):
         options = []
         for path in self.list_filter:
-            header = get_header(self.model, path)
+            header = get_header(self.model, path).lower()
             field, final_model = _get_field_from_path(self.model, path)
 
             # 1) Field con choices
