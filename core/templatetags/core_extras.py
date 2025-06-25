@@ -6,6 +6,7 @@ from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.utils.html import escape
 
+from core.utils import resolve_attr
 
 register = template.Library()
 
@@ -341,7 +342,14 @@ def wrap_images(html):
 
 @register.filter
 def attr(obj, attr_name):
-    return getattr(obj, attr_name, '')
+    return resolve_attr(obj, attr_name)
+
+
+@register.filter
+def replace(value, args):
+    """Uso: {{ string|replace:"_,-" }} → reemplaza "_" por "-" """
+    old, new = args.split(',')
+    return value.replace(old, new)
 
 
 register.filter("call", callmethod)

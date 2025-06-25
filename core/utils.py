@@ -5,7 +5,10 @@ from bs4 import BeautifulSoup
 from PIL import Image
 from io import BytesIO
 from typing import Iterable, List, Union, Sequence, Callable
+from decimal import Decimal
+from django.utils.functional import Promise  # para lazy strings i18n
 
+from django.db.models.query import QuerySet
 from django.http import JsonResponse, Http404
 from django.utils import timezone
 from django.core.management.color import no_style
@@ -13,6 +16,8 @@ from django.db import connection, transaction
 from django.views.debug import ExceptionReporter
 from django.conf import settings
 from django.contrib.auth.models import Group
+from django.db import models
+
 from firebase_admin import storage
 
 
@@ -552,19 +557,53 @@ def get_redirect_url(request, object=None, action='edit'):
         return request.path
 
 
-def _resolve_attr(instance, attr_path: str):
+
+def resolve_attr(instance, attr_path: str, *,
+                 sep="__",                    # separador de niveles
+                 callables=True,              # ¿ejecutar métodos/properties?
+                 m2m_join=", ",               # cómo unir relaciones M2M
+                 none_as_empty=True) -> str:  # '' en lugar de 'None'
     """
-    Recorre un objeto siguiendo 'campo' o 'relacion__subrelacion__campo'.
-    Devuelve '' si encuentra None en el camino.
-    Convierte fechas/datetimes a ISO para que Excel las reconozca.
+    Navega un objeto siguiendo un path al estilo Django ORM: 
+    'relacion__subrelacion__campo' o 'metodo'.
+    
+    >>> resolve_attr(user, 'profile__company__name')
+    >>> resolve_attr(order, 'total_con_impuestos')     # property o método
     """
     value = instance
-    for part in attr_path.split('__'):
+    for part in attr_path.split(sep):
+        # Para evitar AttributeError y no romper la ejecución
         value = getattr(value, part, None)
         if value is None:
-            return ""
+            return "" if none_as_empty else "None"
+
+    # Ejecutar callables (p.ej. properties o métodos sin args)
+    if callables and callable(value):
+        try:
+            value = value()
+        except TypeError:
+            # El método necesita argumentos – lo ignoramos
+            value = str(value)
+
+    # NORMALIZACIÓN DE TIPOS COMUNES ----------------------------
     if isinstance(value, (datetime.date, datetime.datetime)):
+        # ISO 8601 sirve tanto para humanos como para Excel
         return value.isoformat()
+
+    if isinstance(value, Decimal):
+        # Evita notación científica en exportaciones CSV
+        return format(value, "f")
+
+    if isinstance(value, bool):
+        return "✅" if value else "❌"
+
+    if isinstance(value, Promise):  # lazy strings i18n
+        value = str(value)
+
+    # Many-to-Many o QuerySet ⇒ lista de cadenas unidas
+    if isinstance(value, (QuerySet, list, tuple, set)):
+        return m2m_join.join(map(str, value))
+
     return str(value)
 
 
@@ -581,9 +620,9 @@ def _get_value(instance, spec: FieldSpec) -> str:
         return str(spec(instance) if spec else "")
     if isinstance(spec, (list, tuple)):
         # Concatena los atributos con un espacio intermedio
-        return " ".join(_resolve_attr(instance, p) for p in spec).strip()
+        return " ".join(resolve_attr(instance, p) for p in spec).strip()
     # spec es str
-    return _resolve_attr(instance, spec)
+    return resolve_attr(instance, spec)
 
 
 def queryset_to_excel(
@@ -617,3 +656,33 @@ def queryset_to_excel(
 
     buffer.seek(0)
     return buffer
+
+
+def humanize(text: str) -> str:
+    """'created_at' → 'Created at'."""
+    return re.sub(r"_+", " ", text).strip().capitalize()
+
+def get_header(model: models.Model, spec):
+    """
+    Devuelve un encabezado legible para una columna.
+    • Si spec es str y es campo directo → verbose_name.
+    • Si spec es str con '__' → toma la última parte y la humaniza.
+    • Si spec es callable → busca .verbose_name o __doc__ o nombre.
+    """
+    if callable(spec):
+        return getattr(spec, "verbose_name", None) \
+               or (spec.__doc__ or "").strip() \
+               or humanize(spec.__name__)
+
+    if isinstance(spec, str):
+        if "__" not in spec:
+            # Campo directo: intenta verbose_name
+            try:
+                field = model._meta.get_field(spec)
+                return field.verbose_name.title()
+            except Exception:
+                pass
+        return humanize(spec.split("__")[-1])
+
+    # Tupla (label, spec) — el label llegará ya seteado arriba
+    return ""

@@ -35,7 +35,7 @@ from .forms import ModelBaseForm
 
 from .utils import bad_json, success_json, get_query_params, \
     save_error, upload_image_to_firebase_storage, get_redirect_url, \
-    error_json
+    error_json, get_header
 
 
 def obtener_extra_data(data):
@@ -455,8 +455,25 @@ class ModelCRUDView(ViewAdministracionBase):
         return super().dispatch(request, *args, **kwargs)
     
 
-    def get_list_display(self):
-        return self.list_display or [field.name for field in self.model._meta.fields]
+    def build_display(self):
+        """
+        Devuelve (headers, specs) a partir de list_display
+        """
+        headers, specs = [], []
+
+        for item in self.list_display:
+            # 1) Tupla (label, spec)
+            if isinstance(item, (list, tuple)) and len(item) == 2:
+                label, spec = item
+                headers.append(label)
+                specs.append(spec)
+                continue
+
+            # 2) str o callable
+            headers.append(get_header(self.model, item))
+            specs.append(item)
+
+        return headers, specs
 
     def post(self, request, *args, **kwargs):
         context = self.get_context_data(**kwargs)
@@ -489,8 +506,14 @@ class ModelCRUDView(ViewAdministracionBase):
         if self.action and hasattr(self, f'get_{self.action}'):
             return getattr(self, f'get_{self.action}')(request, context, *args, **kwargs)
         
-        context['objs'] = self.model.objects.order_by('id')
-        context['list_display'] = self.get_list_display()
+        objs = self.model.objects.order_by('id')
+        headers, specs = self.build_display()
+        context.update({
+            "objects": objs,
+            "display_headers": headers,
+            "display_specs":  specs,
+        })
+        
         return render(request, self.template_list, context)
 
     def get_add(self, request, context, *args, **kwargs):
