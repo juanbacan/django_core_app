@@ -515,7 +515,6 @@ class ModelCRUDView(ViewAdministracionBase):
                 'display_headers': headers,
                 'display_specs': specs,
             })
-            self.template_list = 'core/generico/lista.html'
         
         return render(request, self.template_list, context)
 
