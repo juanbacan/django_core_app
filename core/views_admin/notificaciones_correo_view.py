@@ -146,7 +146,6 @@ class NotificacionesCorreoView(ViewAdministracionBase):
         context['message'] = 'Se enviará un email a todos los usuarios activos'
         context['form'] = CorreoMasivoForm()
         return render(request, 'core/modals/formModal.html', context)
-    0
     def get_notificaciones_correo_template_editar(self, request, context, *args, **kwargs):
         template = CorreoTemplate.objects.get(id=self.data.get('id'))
         context['title'] = 'Editar Template'
