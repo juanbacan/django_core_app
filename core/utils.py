@@ -577,6 +577,10 @@ def resolve_attr(instance, attr_path: str, *,
         if value is None:
             return "" if none_as_empty else "None"
 
+    # Managers de relaciones M2M (ManyRelatedManager) → QuerySet real
+    if hasattr(value, "all") and not isinstance(value, QuerySet):
+        value = value.all()
+
     # Ejecutar callables (p.ej. properties o métodos sin args)
     if callables and callable(value):
         try:

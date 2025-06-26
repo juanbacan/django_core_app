@@ -423,20 +423,21 @@ class ViewAdministracionBase(LoginRequiredMixin, SecureModuleMixin, ViewClassBas
 
 
 def _get_field_from_path(model, path):
-    """
-    Devuelve el objeto Field final a partir de un path con '__'.
-    Ej.: subcategoria__categoria → Field de CategoriaProducto.nombre
-    """
     parts = path.split('__')
     field = model._meta.get_field(parts[0])
     for part in parts[1:]:
-        # Avanza sólo si es relación
         if field.is_relation:
             model = field.related_model
             field = model._meta.get_field(part)
         else:
             raise ValueError(f"{path} no es un lookup válido.")
-    return field, model  # field final y modelo en el que está
+
+    # Si el campo final es relacional y no hubo más partes, usar su related_model
+    if field.is_relation:
+        model = field.related_model
+
+    return field, model
+
 
 class ModelCRUDView(ViewAdministracionBase):
     """
@@ -598,7 +599,7 @@ class ModelCRUDView(ViewAdministracionBase):
             if value not in [None, ""]:
                 queryset = queryset.filter(**{field: value})
         
-        return queryset
+        return queryset.distinct()  # Elimina duplicados si hay joins
     
     def get_filter_options(self):
         options = []
@@ -687,10 +688,10 @@ class ModelCRUDView(ViewAdministracionBase):
 
         context.update({
             "page_obj":      page_obj,
-            "objs":          page_obj,                # para tu for ... in objs
+            "objs":          page_obj,                
             "is_paginated":  is_paginated,
-            "url_params":    self._querystring(),     # para reutilizar en links
-            "view":          self,                    # sigues necesitando esto
+            "url_params":    self._querystring(),
+            "view":          self,                    
         })
 
         if self.template_list == 'core/layout/list.html':

@@ -1,0 +1,12 @@
+<div class="input-group">
+    <input type="text" class="form-control" id="display-{{ field_name }}"
+           value="{{ display_value }}" readonly placeholder="Seleccionar...">
+    <input type="hidden" name="{{ field_name }}" id="id_{{ field_name }}" value="{{ value }}">
+    <button type="button"
+            class="btn btn-outline-secondary open-modal-selector"
+            data-bs-toggle="modal"
+            data-bs-target="#{{ modal_id }}"
+            data-field-name="{{ field_name }}">
+        Buscar
+    </button>
+</div>
