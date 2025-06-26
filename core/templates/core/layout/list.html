@@ -37,7 +37,7 @@
                                 {% for obj in objs %}
                                     <tr>
                                         {% for spec in display_specs %}
-                                            <td>{{ obj|attr:spec }}</td>
+                                            <td>{{ obj|attr:spec|safe }}</td>
                                         {% endfor %}
                                         <td>
                                             <div class="dropdown">

@@ -450,11 +450,12 @@ class ModelCRUDView(ViewAdministracionBase):
     - `list_display`: Lista de campos a mostrar en la vista de lista (opcional).
     - `search_fields`: Campos a buscar en la vista de lista (opcional).
     - `exclude_fields`: Campos a excluir del formulario (opcional, por defecto incluye campos de auditoría).
+    - `paginate_by`: Número de objetos por página en la vista de lista (opcional, por defecto 25).
     """
     model = None
     form_class = None
     template_form = 'core/forms/formAdmin.html'
-    template_list = None
+    template_list = 'core/layout/list.html'
     list_display = None
     list_filter = []
     search_fields = None

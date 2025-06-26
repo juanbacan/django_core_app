@@ -137,6 +137,13 @@ class ModelBaseForm(BootstrapFieldsMixin, forms.ModelForm):
                 formset.instance = instance
                 formset.save()
         return instance
+    
+    @property
+    def media(self):
+        media = super().media
+        for formset in getattr(self, 'inline_formsets', []):
+            media += formset.media
+        return media
 
 
 
@@ -145,9 +152,12 @@ class BaseInline:
     Clase base para definir un inline.
     Debe definirse:
       - model: el modelo relacionado (por ejemplo, Comment)
-      - form: el ModelForm a utilizar para el inline
+      - form: el ModelForm a utilizar para el inline. Si no se proporciona, se generará uno automáticamente.
       - extra: número de formularios extra (por defecto 1)
       - can_delete: si se permite marcar para eliminar (por defecto True)
+      - prefix: prefijo para el formset (opcional)
+      - verbose_name: nombre singular del inline (opcional)
+      - verbose_name_plural: nombre plural del inline (opcional)
     """
     model = None
     form = None
@@ -168,7 +178,6 @@ class BaseInline:
         }
         
         if self.form is not None:
-            # Asegurarse que el formulario tenga un Meta y un modelo asociado
             if not hasattr(self.form, 'Meta') or not hasattr(self.form.Meta, 'model'):
                 raise ValueError("El formulario proporcionado debe tener un 'Meta' con 'model' especificado.")
             
