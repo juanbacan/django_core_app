@@ -1,0 +1,37 @@
+<div class="card shadow-sm">
+    <div class="card-header py-2 bg-primary text-white fw-semibold">
+        FILTROS
+    </div>
+    <div class="card-body p-2">
+        {% for field_name, choices in filter_options %}
+            <details class="mb-2" {% if request.GET|get_item:field_name %}open{% endif %}>
+                <summary class="fw-semibold small">
+                    Por {{ field_name|replace:"_, "|lower }}
+                </summary>
+
+                <ul class="list-unstyled ms-2 small mb-0">
+                    {# Opción 'Todo' #}
+                    <li>
+                        <a href="{% querystring_remove request field_name %}"
+                            class="{% if not request.GET|get_item:field_name %}fw-bold text-primary{% endif %}">
+                            Todo
+                        </a>
+                    </li>
+                    {# Demás opciones #}
+                    {% with current=request.GET|get_item:field_name %}
+                        {% for val, label in choices %}
+                            {% with valstr=val|stringformat:"s" %}
+                            <li>
+                                <a href="{% querystring request field_name valstr %}"
+                                class="{% if current == valstr %}fw-bold text-primary{% endif %}">
+                                {{ label }}
+                                </a>
+                            </li>
+                            {% endwith %}
+                        {% endfor %}
+                    {% endwith %}
+                </ul>
+            </details>
+        {% endfor %}
+    </div>
+</div>

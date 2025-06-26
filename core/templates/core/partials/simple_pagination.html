@@ -1,0 +1,56 @@
+<div class="d-flex flex-wrap align-items-center justify-content-start gap-2">
+    {# ---------- Paginador ------------- #}
+    <nav aria-label="Paginación" class="flex-grow-1">
+        <ul class="pagination pagination-sm mb-0">
+
+        {# Anterior #}
+        <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}">
+            {% if page_obj.has_previous %}
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}&{{ url_params }}">&laquo;</a>
+            {% else %}
+            <span class="page-link">&laquo;</span>
+            {% endif %}
+        </li>
+
+        {# 1 … #}
+        {% if page_obj.number > 3 %}
+            <li class="page-item"><a class="page-link" href="?page=1&{{ url_params }}">1</a></li>
+            <li class="page-item disabled"><span class="page-link">…</span></li>
+        {% endif %}
+
+        {# ventana [-2,+2] #}
+        {% for num in page_obj.paginator.page_range %}
+            {% if num >= page_obj.number|add:'-2' and num <= page_obj.number|add:'2' %}
+            <li class="page-item {% if num == page_obj.number %}active{% endif %}">
+                <a class="page-link" href="?page={{ num }}&{{ url_params }}">{{ num }}</a>
+            </li>
+            {% endif %}
+        {% endfor %}
+
+        {# … última #}
+        {% if page_obj.number < page_obj.paginator.num_pages|add:'-2' %}
+            <li class="page-item disabled"><span class="page-link">…</span></li>
+            <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}&{{ url_params }}">
+                {{ page_obj.paginator.num_pages }}
+            </a>
+            </li>
+        {% endif %}
+
+        {# Siguiente #}
+        <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}">
+            {% if page_obj.has_next %}
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}&{{ url_params }}">&raquo;</a>
+            {% else %}
+            <span class="page-link">&raquo;</span>
+            {% endif %}
+        </li>
+
+        </ul>
+    </nav>
+
+    {# ---------- Total a la derecha del paginador ---------- #}
+    <span class="small text-muted">
+        {{ page_obj.paginator.count }} {{ modulo_activo.nombre|lower }}
+    </span>
+</div>
