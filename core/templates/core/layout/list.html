@@ -5,171 +5,180 @@
 {% block content %}
 	<div class="row">
 		<section class="mb-4 {% if filter_options %}col-xl-10 col-lg-9 col-md-8 col-sm-12{% else %}co--12{% endif %}">
-            <div class="d-flex flex-wrap gap-3 justify-content-between align-items-center mb-4">
-                <div class="ms-auto">
-                    <a class="btn btn-sm btn-dark" href="{{ path }}?action=add"><i class="fa-solid fa-circle-plus"></i> Agregar {{ modulo_activo }}</a>
+            {% block buttons %}
+                <div class="d-flex flex-wrap gap-3 justify-content-between align-items-center mb-4">
+                    <div class="ms-auto">
+                        <a class="btn btn-sm btn-dark" href="{{ path }}?action=add"><i class="fa-solid fa-circle-plus"></i> Agregar {{ modulo_activo }}</a>
+                    </div>
                 </div>
-            </div>
-
-			<div style="max-width: 500px">
-				<form method="GET" role="form" action=".">
-					<div class="input-group mb-3">
-					<input type="text" id="search" name="search" value="{{ request.GET.search }}" class="form-control" placeholder="Buscar {{ modulo_activo.nombre }} ...">
-					<button type="submit" class="btn btn-dark btn-sm">Buscar <i class="fa-solid fa-magnifying-glass"></i></button>
-					</div>
-				</form>
-			</div>
+            {% endblock %}
+            {% block search_filters %}
+                <div style="max-width: 500px">
+                    <form method="GET" role="form" action=".">
+                        <div class="input-group mb-3">
+                        <input type="text" id="search" name="search" value="{{ request.GET.search }}" class="form-control" placeholder="Buscar {{ modulo_activo.nombre }} ...">
+                        <button type="submit" class="btn btn-dark btn-sm">Buscar <i class="fa-solid fa-magnifying-glass"></i></button>
+                        </div>
+                    </form>
+                </div>
+            {% endblock %}
 
             <div class="card border-0">
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table small table-hover table-striped">
-                            <thead>
-                                <tr>
-                                    {% for h in display_headers %}
-                                        <th>{{ h }}</th>
-                                    {% endfor %}
-                                    <th>Acciones</th>
-                                </tr>
-                            </thead>
-
-                            <tbody>
-                                {% for obj in objs %}
+                        {% block table %}
+                            <table class="table small table-hover table-striped">
+                                <thead>
                                     <tr>
-                                        {% for spec in display_specs %}
-                                            <td>{{ obj|attr:spec|safe }}</td>
+                                        {% for h in display_headers %}
+                                            <th>{{ h }}</th>
                                         {% endfor %}
-                                        <td>
-                                            <div class="dropdown">
-                                                <button class="btn btn-info btn-xs dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                                    Acciones
-                                                </button>
-                                                <ul class="dropdown-menu">
-                                                    {% for act in obj|row_actions:view %}
-                                                        <li>
-                                                            <a class="dropdown-item {% if act.modal %}formmodal{% endif %}"
-                                                                {% if act.modal %}
-                                                                    nhref="{{ path }}{{ act.url }}" href="javascript:void(0);"
-                                                                {% else %}
-                                                                    href="{{ path }}{{ act.url }}"
-                                                                {% endif %}>
-                                                                {% if act.icon %}<i class="fa-solid {{ act.icon }}"></i>{% endif %}
-                                                                {{ act.label }}
-                                                            </a>
-                                                        </li>
-                                                    {% endfor %}
-                                                </ul>
-                                            </div>
-                                        </td>
+                                        <th>Acciones</th>
                                     </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+                                </thead>
 
-                    <div class="mt-1">
-                        {% if is_paginated %}
-                            <div class="d-flex flex-wrap align-items-center justify-content-start gap-2">
-                                {# ---------- Paginador ------------- #}
-                                <nav aria-label="Paginación" class="flex-grow-1">
-                                    <ul class="pagination pagination-sm mb-0">
-
-                                    {# Anterior #}
-                                    <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}">
-                                        {% if page_obj.has_previous %}
-                                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}&{{ url_params }}">&laquo;</a>
-                                        {% else %}
-                                        <span class="page-link">&laquo;</span>
-                                        {% endif %}
-                                    </li>
-
-                                    {# 1 … #}
-                                    {% if page_obj.number > 3 %}
-                                        <li class="page-item"><a class="page-link" href="?page=1&{{ url_params }}">1</a></li>
-                                        <li class="page-item disabled"><span class="page-link">…</span></li>
-                                    {% endif %}
-
-                                    {# ventana [-2,+2] #}
-                                    {% for num in page_obj.paginator.page_range %}
-                                        {% if num >= page_obj.number|add:'-2' and num <= page_obj.number|add:'2' %}
-                                        <li class="page-item {% if num == page_obj.number %}active{% endif %}">
-                                            <a class="page-link" href="?page={{ num }}&{{ url_params }}">{{ num }}</a>
-                                        </li>
-                                        {% endif %}
+                                <tbody>
+                                    {% for obj in objs %}
+                                        <tr>
+                                            {% for spec in display_specs %}
+                                                <td>{{ obj|attr:spec|safe }}</td>
+                                            {% endfor %}
+                                            <td>
+                                                <div class="dropdown">
+                                                    <button class="btn btn-info btn-xs dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                        Acciones
+                                                    </button>
+                                                    <ul class="dropdown-menu">
+                                                        {% for act in obj|row_actions:view %}
+                                                            <li>
+                                                                <a class="dropdown-item {% if act.modal %}formmodal{% endif %}"
+                                                                    {% if act.modal %}
+                                                                        nhref="{{ path }}{{ act.url }}" href="javascript:void(0);"
+                                                                    {% else %}
+                                                                        href="{{ path }}{{ act.url }}"
+                                                                    {% endif %}>
+                                                                    {% if act.icon %}<i class="fa-solid {{ act.icon }}"></i>{% endif %}
+                                                                    {{ act.label }}
+                                                                </a>
+                                                            </li>
+                                                        {% endfor %}
+                                                    </ul>
+                                                </div>
+                                            </td>
+                                        </tr>
                                     {% endfor %}
-
-                                    {# … última #}
-                                    {% if page_obj.number < page_obj.paginator.num_pages|add:'-2' %}
-                                        <li class="page-item disabled"><span class="page-link">…</span></li>
-                                        <li class="page-item">
-                                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}&{{ url_params }}">
-                                            {{ page_obj.paginator.num_pages }}
-                                        </a>
-                                        </li>
-                                    {% endif %}
-
-                                    {# Siguiente #}
-                                    <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}">
-                                        {% if page_obj.has_next %}
-                                        <a class="page-link" href="?page={{ page_obj.next_page_number }}&{{ url_params }}">&raquo;</a>
-                                        {% else %}
-                                        <span class="page-link">&raquo;</span>
-                                        {% endif %}
-                                    </li>
-
-                                    </ul>
-                                </nav>
-
-                                {# ---------- Total a la derecha del paginador ---------- #}
-                                <span class="small text-muted">
-                                    {{ page_obj.paginator.count }} {{ modulo_activo.nombre|lower }}
-                                </span>
-                            </div>
-                        {% endif %}
+                                </tbody>
+                            </table>
+                        {% endblock %}
                     </div>
+
+                    {% block paginator %}
+                        <div class="mt-1">
+                            {% if is_paginated %}
+                                <div class="d-flex flex-wrap align-items-center justify-content-start gap-2">
+                                    {# ---------- Paginador ------------- #}
+                                    <nav aria-label="Paginación" class="flex-grow-1">
+                                        <ul class="pagination pagination-sm mb-0">
+
+                                        {# Anterior #}
+                                        <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}">
+                                            {% if page_obj.has_previous %}
+                                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}&{{ url_params }}">&laquo;</a>
+                                            {% else %}
+                                            <span class="page-link">&laquo;</span>
+                                            {% endif %}
+                                        </li>
+
+                                        {# 1 … #}
+                                        {% if page_obj.number > 3 %}
+                                            <li class="page-item"><a class="page-link" href="?page=1&{{ url_params }}">1</a></li>
+                                            <li class="page-item disabled"><span class="page-link">…</span></li>
+                                        {% endif %}
+
+                                        {# ventana [-2,+2] #}
+                                        {% for num in page_obj.paginator.page_range %}
+                                            {% if num >= page_obj.number|add:'-2' and num <= page_obj.number|add:'2' %}
+                                            <li class="page-item {% if num == page_obj.number %}active{% endif %}">
+                                                <a class="page-link" href="?page={{ num }}&{{ url_params }}">{{ num }}</a>
+                                            </li>
+                                            {% endif %}
+                                        {% endfor %}
+
+                                        {# … última #}
+                                        {% if page_obj.number < page_obj.paginator.num_pages|add:'-2' %}
+                                            <li class="page-item disabled"><span class="page-link">…</span></li>
+                                            <li class="page-item">
+                                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}&{{ url_params }}">
+                                                {{ page_obj.paginator.num_pages }}
+                                            </a>
+                                            </li>
+                                        {% endif %}
+
+                                        {# Siguiente #}
+                                        <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}">
+                                            {% if page_obj.has_next %}
+                                            <a class="page-link" href="?page={{ page_obj.next_page_number }}&{{ url_params }}">&raquo;</a>
+                                            {% else %}
+                                            <span class="page-link">&raquo;</span>
+                                            {% endif %}
+                                        </li>
+
+                                        </ul>
+                                    </nav>
+
+                                    {# ---------- Total a la derecha del paginador ---------- #}
+                                    <span class="small text-muted">
+                                        {{ page_obj.paginator.count }} {{ modulo_activo.nombre|lower }}
+                                    </span>
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endblock %}
                 </div>
             </div>
 		</section>
         {% if filter_options %}
-            <aside class="col-xl-2 col-lg-3 col-md-4 col-sm-12 mb-4">
-                <div class="card shadow-sm">
-                    <div class="card-header py-2 bg-primary text-white fw-semibold">
-                        FILTROS
-                    </div>
-                    <div class="card-body p-2">
-                        {% for field_name, choices in filter_options %}
-                            <details class="mb-2" {% if request.GET|get_item:field_name %}open{% endif %}>
-                                <summary class="fw-semibold small">
-                                    Por {{ field_name|replace:"_, "|lower }}
-                                </summary>
+            {% block filter_options %}
+                <aside class="col-xl-2 col-lg-3 col-md-4 col-sm-12 mb-4">
+                    <div class="card shadow-sm">
+                        <div class="card-header py-2 bg-primary text-white fw-semibold">
+                            FILTROS
+                        </div>
+                        <div class="card-body p-2">
+                            {% for field_name, choices in filter_options %}
+                                <details class="mb-2" {% if request.GET|get_item:field_name %}open{% endif %}>
+                                    <summary class="fw-semibold small">
+                                        Por {{ field_name|replace:"_, "|lower }}
+                                    </summary>
 
-                                <ul class="list-unstyled ms-2 small mb-0">
-                                    {# Opción 'Todo' #}
-                                    <li>
-                                        <a href="{% querystring_remove request field_name %}"
-                                            class="{% if not request.GET|get_item:field_name %}fw-bold text-primary{% endif %}">
-                                            Todo
-                                        </a>
-                                    </li>
-                                    {# Demás opciones #}
-                                    {% with current=request.GET|get_item:field_name %}
-                                        {% for val, label in choices %}
-                                            {% with valstr=val|stringformat:"s" %}
-                                            <li>
-                                                <a href="{% querystring request field_name valstr %}"
-                                                class="{% if current == valstr %}fw-bold text-primary{% endif %}">
-                                                {{ label }}
-                                                </a>
-                                            </li>
-                                            {% endwith %}
-                                        {% endfor %}
-                                    {% endwith %}
-                                </ul>
-                            </details>
-                        {% endfor %}
+                                    <ul class="list-unstyled ms-2 small mb-0">
+                                        {# Opción 'Todo' #}
+                                        <li>
+                                            <a href="{% querystring_remove request field_name %}"
+                                                class="{% if not request.GET|get_item:field_name %}fw-bold text-primary{% endif %}">
+                                                Todo
+                                            </a>
+                                        </li>
+                                        {# Demás opciones #}
+                                        {% with current=request.GET|get_item:field_name %}
+                                            {% for val, label in choices %}
+                                                {% with valstr=val|stringformat:"s" %}
+                                                <li>
+                                                    <a href="{% querystring request field_name valstr %}"
+                                                    class="{% if current == valstr %}fw-bold text-primary{% endif %}">
+                                                    {{ label }}
+                                                    </a>
+                                                </li>
+                                                {% endwith %}
+                                            {% endfor %}
+                                        {% endwith %}
+                                    </ul>
+                                </details>
+                            {% endfor %}
+                        </div>
                     </div>
-                </div>
-            </aside>
+                </aside>
+            {% endblock %}
         {% endif %}
 	</div>
 {% endblock %}
