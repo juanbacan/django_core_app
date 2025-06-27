@@ -17,6 +17,7 @@ from django.views.debug import ExceptionReporter
 from django.conf import settings
 from django.contrib.auth.models import Group
 from django.db import models
+from django.utils.html import strip_tags
 
 from firebase_admin import storage
 
@@ -150,40 +151,51 @@ def bad_json(mensaje=None, error=None, form=None, extradata=None):
     
 def error_json(mensaje=None, error=None, forms=[], extradata=None):
     data = {'result': 'error'}
+    mensajes_error = []
+
     if mensaje:
-        data['mensaje'] = mensaje
+        mensajes_error.append(str(mensaje))
+
     try:
-        if error and error >= 0:
+        if error is not None and error >= 0:
             if error == 0:
-                data['mensaje'] = "Solicitud incorrecta"
+                mensajes_error.append("Solicitud incorrecta")
             elif error == 1:
-                data['mensaje'] = "Error al guardar los datos"
+                mensajes_error.append("Error al guardar los datos")
             elif error == 2:
-                data['mensaje'] = "Error al eliminar los datos"
+                mensajes_error.append("Error al eliminar los datos")
+
         if extradata:
             data.update(extradata)
 
         if forms:
             errors = {}
             for form in forms:
-                # Procesa los errores del formulario principal
+                # Errores del formulario principal
                 if form.errors:
                     for field, error_list in form.errors.items():
                         errors[field] = list(error_list)
-                # Procesa los errores de los formsets inline
+                        mensajes_error.extend([f"{field}: {strip_tags(str(e))}" for e in error_list])
+
+                # Errores de los formsets inline (si hay)
                 for formset in getattr(form, 'inline_formsets', []):
                     for index, inline_form in enumerate(formset):
                         if inline_form.errors:
                             for field, error_list in inline_form.errors.items():
                                 key = f"{formset.prefix}-{index}-{field}"
                                 errors[key] = list(error_list)
+                                mensajes_error.extend([f"{key}: {strip_tags(str(e))}" for e in error_list])
+
             if errors:
                 data['forms'] = errors
-                if data['mensaje'] is None:
-                    data['mensaje'] = "Hay errores en el formulario"
+
+        if mensajes_error:
+            data['mensaje'] = " | ".join(mensajes_error)
 
         return JsonResponse(data, status=400)
+
     except Exception as ex:
+        data['mensaje'] = data.get('mensaje') or 'Ha ocurrido un error inesperado'
         return JsonResponse(data, status=400)
     
 

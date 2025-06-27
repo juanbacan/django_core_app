@@ -506,7 +506,7 @@ class ModelCRUDView(ViewAdministracionBase):
             params.pop(p, None)
         return urlencode(params, doseq=True)
     
-    def paginate_queryset(self, queryset):
+    def paginate_queryset(self, queryset, raw_page=None, paginate_by=None):
         """
         Devuelve (page_obj, is_paginated) aceptando ?page= o ?pagina=
         y corrigiendo:
@@ -514,14 +514,17 @@ class ModelCRUDView(ViewAdministracionBase):
         • valores menores que 1
         • páginas fuera de rango
         """
+        if paginate_by is None:
+            paginate_by = self.paginate_by
         paginator   = Paginator(queryset, self.paginate_by)
 
-        # acepta ?page= ó ?pagina= (en minúscula)
-        raw_page    = (
-            self.request.GET.get('page') or
-            self.request.GET.get('pagina') or
-            1
-        )
+        if raw_page is None:
+            # acepta ?page= ó ?pagina= (en minúscula)
+            raw_page    = (
+                self.request.GET.get('page') or
+                self.request.GET.get('pagina') or
+                1
+            )
 
         # ── 1) convertir a entero seguro ──────────────────
         try:
@@ -584,7 +587,7 @@ class ModelCRUDView(ViewAdministracionBase):
         Permite múltiples palabras separadas por espacios.
         """
         queryset = self.model.objects.all()
-        search = self.request.GET.get("search")
+        search = self.data.get("search")
 
         # --- Búsqueda ---
         if search and self.search_fields:
@@ -702,7 +705,7 @@ class ModelCRUDView(ViewAdministracionBase):
                 'display_specs': specs,
             })
 
-        if len(self.list_filter) > 0:
+        if self.list_filter:
             context['filter_options'] = self.get_filter_options()
         
         return render(request, self.template_list, context)

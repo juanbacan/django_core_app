@@ -22,10 +22,12 @@
 
                     {% block form_preffix %}{% endblock %}
                     
-                    {% include 'core/forms/form.html' %}
+                    {% block form %}{% include 'core/forms/form.html' %}{% endblock %}
 
                     {% block form_suffix %}{% endblock %}
 
+
+                    {% block form_buttons %}
                     <div class="card bg-light mt-4">
                         <div class="card-body">
                             <div class="d-flex flex-column flex-md-row justify-content-between gap-3">
@@ -42,6 +44,7 @@
                             </div>
                         </div>
                     </div>
+                    {% endblock %}
                 </form>
             </div>
         </div>
