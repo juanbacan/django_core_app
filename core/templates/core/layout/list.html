@@ -5,50 +5,56 @@
 {% block content %}
 	<div class="row">
 		<section class="mb-4 {% if filter_options %}col-xl-10 col-lg-9 col-md-8 col-sm-12{% else %}co--12{% endif %}">
-            {% block buttons %}
-                <div class="d-flex flex-wrap gap-3 justify-content-between align-items-center mb-4">
-                    <div class="ms-auto">
+            <div class="d-flex flex-wrap gap-3 justify-content-between align-items-center mb-4">
+                <div class="ms-auto">
+                    {% block buttons %}
                         <a class="btn btn-sm btn-dark" href="{{ path }}?action=add"><i class="fa-solid fa-circle-plus"></i> Agregar {{ modulo_activo }}</a>
-                    </div>
+                    {% endblock %}
                 </div>
-            {% endblock %}
-            {% block search_filters %}
-                <div style="max-width: 500px">
-                    <form method="GET" role="form" action=".">
-                        <div class="input-group mb-3">
-                        <input type="text" id="search" name="search" value="{{ request.GET.search }}" class="form-control" placeholder="Buscar {{ modulo_activo.nombre }} ...">
-                        <button type="submit" class="btn btn-dark btn-sm">Buscar <i class="fa-solid fa-magnifying-glass"></i></button>
-                        </div>
-                    </form>
-                </div>
-            {% endblock %}
+            </div>
+
+			<div style="max-width: 500px">
+                {% block search_filters %}
+                    {% if view.search_fields %}
+                        <form method="GET" role="form" action=".">
+                            <div class="input-group mb-3">
+                            <input type="text" id="search" name="search" value="{{ request.GET.search }}" class="form-control" placeholder="Buscar {{ modulo_activo.nombre }} ...">
+                            <button type="submit" class="btn btn-dark btn-sm">Buscar <i class="fa-solid fa-magnifying-glass"></i></button>
+                            </div>
+                        </form>
+                    {% endif %}
+                {% endblock %}
+			</div>
 
             <div class="card border-0">
                 <div class="card-body">
                     <div class="table-responsive">
                         {% block table %}
-                            <table class="table small table-hover table-striped">
-                                <thead>
-                                    <tr>
-                                        {% for h in display_headers %}
-                                            <th>{{ h }}</th>
-                                        {% endfor %}
-                                        <th>Acciones</th>
-                                    </tr>
-                                </thead>
+                        <table class="table small table-hover table-striped">
+                            <thead>
+                                <tr>
+                                    {% for h in display_headers %}
+                                        <th>{{ h }}</th>
+                                    {% endfor %}
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
 
-                                <tbody>
-                                    {% for obj in objs %}
-                                        <tr>
+                            <tbody>
+                                {% for obj in objs %}
+                                    <tr>
+                                        {% block row %}
                                             {% for spec in display_specs %}
                                                 <td>{{ obj|attr:spec|safe }}</td>
                                             {% endfor %}
-                                            <td>
-                                                <div class="dropdown">
-                                                    <button class="btn btn-info btn-xs dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                                        Acciones
-                                                    </button>
-                                                    <ul class="dropdown-menu">
+                                        {% endblock %}
+                                        <td>
+                                            <div class="dropdown">
+                                                <button class="btn btn-info btn-xs dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                    Acciones
+                                                </button>
+                                                <ul class="dropdown-menu">
+                                                    {% block row_action %}
                                                         {% for act in obj|row_actions:view %}
                                                             <li>
                                                                 <a class="dropdown-item {% if act.modal %}formmodal{% endif %}"
@@ -62,31 +68,68 @@
                                                                 </a>
                                                             </li>
                                                         {% endfor %}
-                                                    </ul>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
+                                                    {% endblock %}
+                                                </ul>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                         {% endblock %}
                     </div>
-
+                    
                     {% block paginator %}
-                        <div class="mt-1">
-                            {% if is_paginated %}
-                                {% include 'core/partials/simple_pagination.html' %}
-                            {% endif %}
-                        </div>
+                    <div class="mt-1">
+                        {% if is_paginated %}
+                            {% include 'core/partials/simple_pagination.html' %}
+                        {% endif %}
+                    </div>
                     {% endblock %}
                 </div>
             </div>
 		</section>
         {% if filter_options %}
             {% block filter_options %}
-                <aside class="col-xl-2 col-lg-3 col-md-4 col-sm-12 mb-4">
-                    {% include 'core/partials/list_filters.html' %}
-                </aside>
+            <aside class="col-xl-2 col-lg-3 col-md-4 col-sm-12 mb-4">
+                <div class="card shadow-sm">
+                    <div class="card-header py-2 bg-primary text-white fw-semibold">
+                        FILTROS
+                    </div>
+                    <div class="card-body p-2">
+                        {% for field_name, choices in filter_options %}
+                            <details class="mb-2" {% if request.GET|get_item:field_name %}open{% endif %}>
+                                <summary class="fw-semibold small">
+                                    Por {{ field_name|replace:"_, "|lower }}
+                                </summary>
+
+                                <ul class="list-unstyled ms-2 small mb-0">
+                                    {# Opción 'Todo' #}
+                                    <li>
+                                        <a href="{% querystring_remove request field_name %}"
+                                            class="{% if not request.GET|get_item:field_name %}fw-bold text-primary{% endif %}">
+                                            Todo
+                                        </a>
+                                    </li>
+                                    {# Demás opciones #}
+                                    {% with current=request.GET|get_item:field_name %}
+                                        {% for val, label in choices %}
+                                            {% with valstr=val|stringformat:"s" %}
+                                            <li>
+                                                <a href="{% querystring request field_name valstr %}"
+                                                class="{% if current == valstr %}fw-bold text-primary{% endif %}">
+                                                {{ label }}
+                                                </a>
+                                            </li>
+                                            {% endwith %}
+                                        {% endfor %}
+                                    {% endwith %}
+                                </ul>
+                            </details>
+                        {% endfor %}
+                    </div>
+                </div>
+            </aside>
             {% endblock %}
         {% endif %}
 	</div>
