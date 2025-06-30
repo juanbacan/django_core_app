@@ -698,7 +698,7 @@ class ModelCRUDView(ViewAdministracionBase):
             "view":          self,                    
         })
 
-        if self.template_list == 'core/layout/list.html':
+        if self.list_display:
             headers, specs = self.build_display()
             context.update({
                 'display_headers': headers,
