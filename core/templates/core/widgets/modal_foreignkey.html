@@ -1,12 +1,97 @@
+{# contenedor visible #}
 <div class="input-group">
-    <input type="text" class="form-control" id="display-{{ field_name }}"
-           value="{{ display_value }}" readonly placeholder="Seleccionar...">
-    <input type="hidden" name="{{ field_name }}" id="id_{{ field_name }}" value="{{ value }}">
-    <button type="button"
-            class="btn btn-outline-secondary open-modal-selector"
-            data-bs-toggle="modal"
-            data-bs-target="#{{ modal_id }}"
-            data-field-name="{{ field_name }}">
-        Buscar
-    </button>
+  <input id="id_{{ widget.name }}_display"
+         type="text" class="form-control"
+         value="{{ widget.display }}" readonly>
+
+  <input id="id_{{ widget.name }}"
+         type="hidden" name="{{ widget.name }}"
+         value="{{ widget.raw_id }}">
+
+  {# botón que abre el modal #}
+  <button type="button" class="btn btn-outline-secondary"
+          data-bs-toggle="modal"
+          data-bs-target="#modal-{{ widget.name }}">
+    <i class="fa fa-search"></i>
+  </button>
+
+  {# nuevo: botón limpiar #}
+  <button type="button" class="btn btn-outline-danger"
+          data-fk-clear
+          {% if not widget.raw_id %}style="display:none"{% endif %}>
+    <i class="fa fa-times"></i>
+  </button>
 </div>
+{# modal #}
+<div class="modal fade" id="modal-{{ widget.name }}" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <input type="search" class="form-control" placeholder="Buscar…" data-fk-search>
+            </div>
+            <div class="modal-body">
+                <div data-fk-results>Loading…</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (() => {
+        const modal   = document.getElementById("modal-{{ widget.name }}");
+        const results = modal.querySelector("[data-fk-results]");
+        const search  = modal.querySelector("[data-fk-search]");
+        const display = document.getElementById("id_{{ widget.name }}_display");
+        const hidden  = document.getElementById("id_{{ widget.name }}");
+        const btnClear = document.querySelector("[data-fk-clear]");
+
+        const LIST_DISPLAY  = "{{ widget.list_display|escapejs }}";
+        const SEARCH_FIELDS = "{{ widget.search_fields|escapejs }}";
+        const LIST_FILTER   = "{{ widget.list_filter|escapejs }}";
+
+        const fetchPage = (q = '', page = 1) => {
+            const url = new URL("{{ widget.lookup_url }}", window.location.origin);
+            url.searchParams.set("q", q);
+            url.searchParams.set("page", page);
+            url.searchParams.set("list_display", LIST_DISPLAY);
+            url.searchParams.set("search_fields", SEARCH_FIELDS);
+            url.searchParams.set("list_filter", LIST_FILTER);
+
+            fetch(url)
+            .then(r => r.text())
+            .then(html => { results.innerHTML = html; });
+        };
+
+        // ---------- debounce ----------
+        let typingTimer;
+        const DEBOUNCE_MS = 400;
+
+        const debouncedSearch = (q) => {
+            clearTimeout(typingTimer);
+            typingTimer = setTimeout(() => fetchPage(q), DEBOUNCE_MS);
+        };
+
+        // ---------- eventos ----------
+        modal.addEventListener("shown.bs.modal", () => fetchPage());
+
+        if (search) {
+            search.addEventListener("input", e => debouncedSearch(e.target.value));
+        }
+
+        results.addEventListener("click", e => {
+            const row = e.target.closest("[data-pk]");
+            if (!row) return;
+            hidden.value  = row.dataset.pk;
+            display.value = row.dataset.label;
+            btnClear.style.display = "";                              // ← mostrar
+            bootstrap.Modal.getInstance(modal).hide();
+        });
+
+        btnClear.addEventListener("click", () => {
+            hidden.value  = "";
+            display.value = "";
+            btnClear.style.display = "none";
+        });
+
+    })();
+</script>

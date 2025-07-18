@@ -3,8 +3,8 @@ from datetime import date
 from urllib.parse import urlencode
 
 from django.shortcuts import redirect, render
-from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
-from django.views.generic import View
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, Http404
+from django.views.generic import View, ListView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
@@ -261,6 +261,33 @@ class CustomUserAutocompleteView(autocomplete.Select2QuerySetView):
     
     def get_selected_result_label(self, item):
         return item.first_name + " " + item.last_name
+    
+
+class ModalForeignKeyLookupView(ListView):
+    template_name = "core/widgets/modal_foreignkey_results.html"
+    paginate_by = 10
+
+    def dispatch(self, request, model_label, *args, **kwargs):
+        self.model = apps.get_model(model_label)
+        if self.model is None:
+            raise Http404
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self):
+        qs = self.model.objects.all()
+        q  = self.request.GET.get("q", "").strip()
+        if q:
+            search_fields = self.request.GET.get("search_fields", "__str__").split(",")
+            query = Q()
+            for f in search_fields:
+                query |= Q(**{f"{f}__icontains": q})
+            qs = qs.filter(query)
+        return qs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["list_display"] = self.request.GET.get("list_display", "__str__").split(",")
+        return ctx
     
 
 @csrf_exempt

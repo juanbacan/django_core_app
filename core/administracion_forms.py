@@ -229,3 +229,21 @@ class GrupoForm(ModelBaseForm):
 class MensajeUsuarioForm(BaseForm):
     numero = forms.CharField(label="Número de teléfono", required=True)
     mensaje = forms.CharField(label="Mensaje", required=True, widget=forms.Textarea(attrs={'rows': 3}))
+
+
+
+from core.models import Libro, Autor
+from core.widgets import ModalForeignKeyWidget
+
+class LibroForm(ModelBaseForm):
+    autor = forms.ModelChoiceField(
+        queryset=Autor.objects.all(),
+        widget=ModalForeignKeyWidget(
+            model=Autor,
+            list_display=["nombre"],
+            search_fields=["nombre"]
+        )
+    )
+    class Meta:
+        model  = Libro
+        fields = ["titulo", "autor"]

@@ -117,3 +117,21 @@ class LlamadoAccionView(ModelCRUDView):
         'activo'
     ]
     ordering = ['id']
+
+
+
+from core.models import Libro, Autor
+from core.administracion_forms import LibroForm
+
+
+class AutorView(ModelCRUDView):
+    model = Autor
+    list_display = ['nombre']
+    ordering = ['id']
+    
+
+class LibroView(ModelCRUDView):
+    model = Libro
+    form_class = LibroForm
+    list_display = ['titulo', 'autor']
+    ordering = ['id']

@@ -10,6 +10,11 @@ urlpatterns = [
     path('api/', api, name='api_administracion'), 
     path('upload_image/', upload_image, name='upload_image'),
     path('custom_user_autocomplete/', CustomUserAutocompleteView.as_view(), name='custom_user_autocomplete'),
+    path(
+        "fk-lookup/<str:model_label>/",
+        ModalForeignKeyLookupView.as_view(),
+        name="modal-fk-lookup"
+    ),
 ]
 
 
@@ -67,6 +72,18 @@ sistema_urls = (
         "url": 'llamados-accion/',
         "vista": LlamadoAccionView.as_view(),
         "namespace": 'admin_llamados_accion',
+    },
+    {
+        "nombre": "Autores",
+        "url": 'autores/',
+        "vista": AutorView.as_view(),
+        "namespace": 'admin_autores',
+    },
+    {
+        "nombre": "Libros",
+        "url": 'libros/',
+        "vista": LibroView.as_view(),
+        "namespace": 'admin_libros',
     }
 )
 
