@@ -1,0 +1,23 @@
+{# Widget para campo de selección de icono, compatible con múltiples campos y un solo modal global #}
+<div class="d-flex flex-wrap align-items-center gap-2">
+    <input type="hidden"
+           name="{{ field_name }}"
+           id="id_{{ field_name }}"
+           value="{{ icon_value }}"
+           data-icon-input="{{ field_name }}"
+           class="iconpicker-input iconpicker">
+
+    <button type="button"
+            class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1 iconpicker-btn"
+            data-icon-input="{{ field_name }}">
+        <i class="fa fa-search"></i> <span>Seleccionar icono</span>
+    </button>
+
+    <span class="icon-preview fs-4" id="icon-preview-{{ field_name }}">
+        {% if icon_value %}
+            <i class="{{ icon_value }}"></i>
+        {% else %}
+            <i class="fa fa-question-circle text-muted"></i>
+        {% endif %}
+    </span>
+</div>

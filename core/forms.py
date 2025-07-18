@@ -3,6 +3,7 @@ from django.utils.safestring import mark_safe
 from tinymce.widgets import TinyMCE
 from dal_select2.widgets import ModelSelect2, Select2, Select2Multiple, ModelSelect2Multiple
 
+from core.widgets import IconPickerWidget
 
 class BootstrapFieldsMixin:
     """
@@ -68,8 +69,8 @@ class BootstrapFieldsMixin:
         if field.required and hasattr(field, 'label') and field.label:
             field.label = mark_safe(field.label + '<span class="text-danger">*</span> ')
 
-        # Si el campo tiene la clase 'iconpicker', establecer iconpicker en True
-        if "class" in field.widget.attrs and "iconpicker" in field.widget.attrs["class"]:
+        # Si el campo usa el widget IconPickerWidget, establecer iconpicker en True
+        if isinstance(field.widget, IconPickerWidget):
             self.iconpicker = True
 
 

@@ -1,9 +1,10 @@
-const jsonPath = '/static/core/icons/icons.json'; // Ruta del archivo JSON
-const iconsPerPage = 54; // Cantidad de iconos por página
-let allIcons = []; // Lista completa de iconos
-let filteredIcons = []; // Lista filtrada para búsqueda
-let currentPage = 1; // Página actual
-let iconsLoaded = false; // Indicador de si los iconos ya se cargaron
+const jsonPath = '/static/core/icons/icons.json';
+const iconsPerPage = 54;
+let allIcons = [];
+let filteredIcons = [];
+let currentPage = 1;
+let iconsLoaded = false;
+let currentInputName = null;
 
 const iconListContainer = document.getElementById('icon-list');
 const iconSearchInput = document.getElementById('iconSearch');
@@ -44,9 +45,10 @@ function renderIcons() {
         const iconDiv = document.createElement('div');
         iconDiv.className = 'col-2 text-center mb-3';
         iconDiv.innerHTML = `
-            <i class="${iconClass} fa-2x" style="cursor: pointer;" onclick="selectIcon('${iconClass}')"></i>
+            <i class="${iconClass} fa-2x" style="cursor: pointer;" data-icon-class="${iconClass}"></i>
             <div class="icon-name" style="font-size: 0.7rem; color: #555;">${iconName}</div>
         `;
+        iconDiv.querySelector('i').addEventListener('click', () => selectIcon(iconClass));
         iconListContainer.appendChild(iconDiv);
     });
 
@@ -58,14 +60,11 @@ function renderIcons() {
 
 // Seleccionar un icono
 function selectIcon(iconClass) {
-    // Actualiza el botón y el input relacionado
-    const currentInput = window.currentInput; // El input relacionado con el botón
-    const currentButton = currentInput.nextElementSibling;
-
-    currentInput.value = iconClass; // Actualiza el valor del input
-    currentButton.innerHTML = `<i class="${iconClass}"></i> Seleccionado`; // Muestra el icono en el botón
-
-    // Cierra el modal
+    if (!currentInputName) return;
+    const input = document.querySelector(`[data-icon-input='${currentInputName}']`);
+    const preview = document.getElementById(`icon-preview-${currentInputName}`);
+    if (input) input.value = iconClass;
+    if (preview) preview.innerHTML = `<i class="${iconClass}"></i>`;
     const modal = bootstrap.Modal.getInstance(document.getElementById('iconModal'));
     modal.hide();
 }
@@ -94,54 +93,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    document.querySelectorAll('.iconpicker').forEach(input => {
-        // Crear un contenedor para el icono y el botón
-        const wrapper = document.createElement('div');
-        wrapper.className = 'd-flex align-items-center'; // Contenedor con flexbox para alineación
-    
-        // Crear el elemento para mostrar el icono
-        const iconDisplay = document.createElement('span');
-        iconDisplay.className = 'me-2'; // Margen derecho para separar del botón
-    
-        // Si el input ya tiene un valor, mostrar el icono
-        if (input.value) {
-            iconDisplay.innerHTML = `<i class="${input.value} fa-2x"></i>`;
-        }
-    
-        // Crear el botón para seleccionar el icono
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'btn btn-xs btn-info iconpicker-btn';
-        button.innerHTML = '<i class="fa fa-search me-2"></i>Seleccionar icono';
-    
-        // Al hacer clic en el botón, abrir el modal
-        button.addEventListener('click', () => {
-            window.currentInput = input; // Guardar el input relacionado
-            window.currentIconDisplay = iconDisplay; // Guardar el icono relacionado
+    document.querySelectorAll('.iconpicker-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            currentInputName = this.getAttribute('data-icon-input');
             const modal = new bootstrap.Modal(document.getElementById('iconModal'));
             modal.show();
         });
-    
-        // Ocultar el input y agregar el icono y el botón al contenedor
-        input.style.display = 'none';
-        wrapper.appendChild(iconDisplay);
-        wrapper.appendChild(button);
-        input.parentNode.insertBefore(wrapper, input.nextSibling);
     });
-    
-    // Seleccionar un icono (expuesta globalmente)
-    window.selectIcon = function (iconClass) {
-        const currentInput = window.currentInput; // El input relacionado
-        const currentIconDisplay = window.currentIconDisplay; // El icono relacionado
-    
-        // Actualizar el valor del input y el icono mostrado
-        currentInput.value = iconClass;
-        currentIconDisplay.innerHTML = `<i class="${iconClass} fa-2x"></i>`;
-    
-        // Cierra el modal
-        const modal = bootstrap.Modal.getInstance(document.getElementById('iconModal'));
-        modal.hide();
-    };
 
     // Detectar cuando se abre el modal
     const iconModal = document.getElementById('iconModal');

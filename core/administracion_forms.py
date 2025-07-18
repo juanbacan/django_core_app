@@ -4,6 +4,7 @@ from tinymce.widgets import TinyMCE
 from django import forms
 from django.contrib.auth.models import Group
 
+from core.widgets import IconPickerWidget
 from core.forms import BaseForm, ModelBaseForm
 from core.models import CustomUser, CorreoTemplate, AplicacionWeb, Modulo, AgrupacionModulo, TipoNotificacion
 
@@ -200,20 +201,20 @@ class CorreoTemplateEnviarForm(BaseForm):
 # Sección Sistema
 # *****************************************************************************************************
 class ModuloForm(ModelBaseForm):
+    icon = forms.CharField(label="Icono", required=True, widget=IconPickerWidget())
     class Meta:
         model = Modulo
         fields = '__all__'
         widgets = {
-            'icon': forms.TextInput(attrs={'class': 'iconpicker'}),
             'url': forms.TextInput(attrs={'readonly': 'readonly'}),
         }
 
 class AgrupacionModuloForm(ModelBaseForm):
+    icono = forms.CharField(label="Icono", required=True, widget=IconPickerWidget())
     class Meta:
         model = AgrupacionModulo
         fields = '__all__'
         widgets = {
-            'icono': forms.TextInput(attrs={'class': 'iconpicker'}),
             'url': forms.TextInput(attrs={'readonly': 'readonly'}),
         }
 

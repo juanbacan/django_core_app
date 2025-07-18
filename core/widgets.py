@@ -1,4 +1,5 @@
 from django import forms
+from django.utils.safestring import mark_safe
 
 class ModalForeignKeyWidget(forms.Widget):
     """
@@ -38,3 +39,20 @@ class ModalForeignKeyWidget(forms.Widget):
             "field_name": name
         })
         return context
+
+class IconPickerWidget(forms.Widget):
+    template_name = "core/widgets/iconpicker.html"
+
+    def __init__(self, attrs=None):
+        default_attrs = {'class': 'iconpicker-input iconpicker', 'autocomplete': 'off'}
+        if attrs:
+            default_attrs.update(attrs)
+        super().__init__(default_attrs)
+
+    def get_context(self, name, value, attrs):
+        context = super().get_context(name, value, attrs)
+        context['icon_value'] = value or ''
+        context['field_name'] = name
+        return context
+
+
