@@ -9,7 +9,6 @@ from core.administracion_forms import AplicacionWebForm
 
 class ParametrosAppView(ViewAdministracionBase):
     def post(self, request, *args, **kwargs):
-        context = self.get_context_data(**kwargs)
         aplicacionweb = AplicacionWeb.objects.get_or_create(id=1)[0]
         form = AplicacionWebForm(request.POST, request.FILES, instance=aplicacionweb)
         if form.is_valid():

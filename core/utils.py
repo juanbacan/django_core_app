@@ -18,6 +18,7 @@ from django.conf import settings
 from django.contrib.auth.models import Group
 from django.db import models
 from django.utils.html import strip_tags
+from django.utils.safestring import mark_safe
 
 from firebase_admin import storage
 
@@ -569,12 +570,31 @@ def get_redirect_url(request, object=None, action='edit'):
         return request.path
 
 
+ICON_PREFIXES = ("fa-", "fa ", "fas ", "far ", "fal ",
+                 "bi-", "mdi-", "icon-")
+
+def looks_like_icon_class(s: str) -> bool:
+    """
+    Devuelve True si la cadena parece ser una clase CSS de icono.
+    """
+    if not s or not isinstance(s, str):
+        return False
+    # (1) Empieza por algún prefijo definido
+    if s.startswith(ICON_PREFIXES):
+        return True
+    # (2) Contiene ' fa-' (dos clases separadas) u otro prefijo en medio
+    for p in ICON_PREFIXES:
+        if f" {p}" in s:
+            return True
+    return False
+
 
 def resolve_attr(instance, attr_path: str, *,
                  sep="__",                    # separador de niveles
                  callables=True,              # ¿ejecutar métodos/properties?
                  m2m_join=", ",               # cómo unir relaciones M2M
-                 none_as_empty=True) -> str:  # '' en lugar de 'None'
+                 none_as_empty=True,
+                 ) -> str:  # '' en lugar de 'None'
     """
     Navega un objeto siguiendo un path al estilo Django ORM: 
     'relacion__subrelacion__campo' o 'metodo'.
@@ -619,6 +639,9 @@ def resolve_attr(instance, attr_path: str, *,
     # Many-to-Many o QuerySet ⇒ lista de cadenas unidas
     if isinstance(value, (QuerySet, list, tuple, set)):
         return m2m_join.join(map(str, value))
+    
+    if isinstance(value, str) and looks_like_icon_class(value):
+        return mark_safe(f'<i class="{value}"></i>')
 
     return str(value)
 

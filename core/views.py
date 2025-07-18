@@ -20,6 +20,8 @@ from django.contrib.sites.models import Site
 from django.views.decorators.http import require_POST
 from django.forms import modelform_factory
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage, InvalidPage
+from django.utils.safestring import mark_safe
+
 
 from allauth.account.adapter import get_adapter
 from allauth.socialaccount.models import SocialAccount, SocialApp
@@ -38,7 +40,7 @@ from .forms import ModelBaseForm
 
 from .utils import bad_json, queryset_to_excel, success_json, get_query_params, \
     save_error, upload_image_to_firebase_storage, get_redirect_url, \
-    error_json, get_header
+    error_json, get_header, resolve_attr
 
 
 def obtener_extra_data(data):
@@ -636,24 +638,30 @@ class ModelCRUDView(ViewAdministracionBase):
         return options 
     
     def build_display(self):
-        """
-        Devuelve (headers, specs) a partir de list_display
-        """
         headers, specs = [], []
-
         for item in self.list_display:
-            # 1) Tupla (label, spec)
             if isinstance(item, (list, tuple)) and len(item) == 2:
                 label, spec = item
-                headers.append(label)
-                specs.append(spec)
-                continue
-
-            # 2) str o callable
-            headers.append(get_header(self.model, item))
-            specs.append(item)
-
+            else:
+                label, spec = get_header(self.model, item), item
+            headers.append(label)
+            specs.append(spec)
         return headers, specs
+
+    def build_table_rows(self, objs, specs):
+        """
+        Devuelve [(obj, [celda1, celda2, …]), …]
+        para que el template tenga el objeto (para las acciones)
+        y las celdas ya renderizadas.
+        """
+        rows = []
+        for o in objs:
+            cells = []
+            for spec in specs:
+                value = spec(o) if callable(spec) else resolve_attr(o, spec)
+                cells.append(mark_safe(value))
+            rows.append((o, cells))
+        return rows
 
     def post(self, request, *args, **kwargs):
         context = self.get_context_data(**kwargs)
@@ -700,9 +708,10 @@ class ModelCRUDView(ViewAdministracionBase):
 
         if self.list_display:
             headers, specs = self.build_display()
+            table_rows = self.build_table_rows(page_obj, specs)
             context.update({
                 'display_headers': headers,
-                'display_specs': specs,
+                'table_rows': table_rows,
             })
 
         if self.list_filter:

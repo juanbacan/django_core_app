@@ -327,7 +327,7 @@ class Modulo(ModeloBase):
 
 
 class GrupoModulo(ModeloBase):
-    grupo = models.ForeignKey(Group, on_delete=models.CASCADE)
+    grupo = models.ForeignKey(Group, on_delete=models.CASCADE, unique=True)
     modulos = models.ManyToManyField(Modulo)
 
     def __str__(self):

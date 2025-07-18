@@ -32,7 +32,7 @@
                         {% block table %}
                         <table class="table small table-hover table-striped mb-5">
                             <thead>
-                                <tr>
+                                  <tr>
                                     {% for h in display_headers %}
                                         <th>{{ h }}</th>
                                     {% endfor %}
@@ -41,35 +41,37 @@
                             </thead>
 
                             <tbody>
-                                {% for obj in objs %}
+                                {% for obj, cells in table_rows %}
                                     <tr>
                                         {% block row %}
-                                            {% for spec in display_specs %}
-                                                <td>{{ obj|attr:spec|safe }}</td>
+                                            {% for cell in cells %}
+                                            <td>{{ cell }}</td>
                                             {% endfor %}
                                         {% endblock %}
+
                                         <td>
                                             <div class="dropdown">
-                                                <button class="btn btn-info btn-xs dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                                    Acciones
-                                                </button>
-                                                <ul class="dropdown-menu">
-                                                    {% block row_action %}
-                                                        {% for act in obj|row_actions:view %}
-                                                            <li>
-                                                                <a class="dropdown-item {% if act.modal %}formmodal{% endif %}"
-                                                                    {% if act.modal %}
-                                                                        nhref="{{ path }}{{ act.url }}" href="javascript:void(0);"
-                                                                    {% else %}
-                                                                        href="{{ path }}{{ act.url }}"
-                                                                    {% endif %}>
-                                                                    {% if act.icon %}<i class="fa-solid {{ act.icon }}"></i>{% endif %}
-                                                                    {{ act.label }}
-                                                                </a>
-                                                            </li>
-                                                        {% endfor %}
-                                                    {% endblock %}
-                                                </ul>
+                                            <button class="btn btn-info btn-xs dropdown-toggle"
+                                                    type="button" data-bs-toggle="dropdown">
+                                                Acciones
+                                            </button>
+                                            <ul class="dropdown-menu">
+                                                {% block row_action %}
+                                                {% for act in obj|row_actions:view %}
+                                                    <li>
+                                                        <a class="dropdown-item {% if act.modal %}formmodal{% endif %}"
+                                                            {% if act.modal %}
+                                                                nhref="{{ path }}{{ act.url }}" href="javascript:void(0);"
+                                                            {% else %}
+                                                                href="{{ path }}{{ act.url }}"
+                                                            {% endif %}>
+                                                            {% if act.icon %}<i class="fa-solid {{ act.icon }}"></i>{% endif %}
+                                                            {{ act.label }}
+                                                        </a>
+                                                    </li>
+                                                {% endfor %}
+                                                {% endblock %}
+                                            </ul>
                                             </div>
                                         </td>
                                     </tr>
