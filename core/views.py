@@ -670,7 +670,7 @@ class ModelCRUDView(ViewAdministracionBase):
         return error_json(mensaje="Acción no permitida")
 
     def post_add(self, request, context, *args, **kwargs):
-        form = self.form_class(request.POST)
+        form = self.form_class(request.POST, request.FILES or None)
         if form.is_valid():
             form.save()
             return success_json(url=get_redirect_url(request))
@@ -678,7 +678,7 @@ class ModelCRUDView(ViewAdministracionBase):
 
     def post_edit(self, request, context, *args, **kwargs):
         instance = self.model.objects.get(pk=self.data.get('id'))
-        form = self.form_class(request.POST, instance=instance)
+        form = self.form_class(request.POST, request.FILES or None, instance=instance)
         if form.is_valid():
             form.save()
             messages.success(request, "Objeto actualizado correctamente")

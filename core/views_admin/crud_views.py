@@ -2,7 +2,7 @@ from django.contrib.auth import login, logout
 
 from core.views import ModelCRUDView
 from core.models import AgrupacionModulo, Modulo, TipoNotificacion, NotificacionUsuario, \
-    CustomUser, GrupoModulo
+    CustomUser, GrupoModulo, EmailCredentials, Alerta, LlamadoAccion
 from core.administracion_forms import AgrupacionModuloForm, GrupoForm, ModuloForm, TipoNotificacionForm, CustomUserForm
 from django.contrib.auth.models import Group
 
@@ -95,3 +95,25 @@ class UsuariosView(ModelCRUDView):
         request.session['volver_usuario_url'] = request.META.get('HTTP_REFERER')
         return success_json(resp = {"sessionid": request.session.session_key})
 
+
+class EmailCredentialsView(ModelCRUDView):
+    model = EmailCredentials
+    list_display = ['username', 'host', 'port', 'use_tls', 'conteo', 'activo']
+    ordering = ['id']
+
+
+class AlertaView(ModelCRUDView):
+    model = Alerta
+    list_display = ['titulo', 'descripcion', 'url', 'activo']
+    ordering = ['id']
+
+
+class LlamadoAccionView(ModelCRUDView):
+    model = LlamadoAccion
+    list_display = [
+        ('Imagen', lambda o: f'<img src="{o.imagen.url}" height="40" style="object-fit:contain;">' if o.imagen else ''),
+        'url', 
+        'pagina', 
+        'activo'
+    ]
+    ordering = ['id']

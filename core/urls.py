@@ -49,6 +49,24 @@ sistema_urls = (
         "url": 'grupos/',
         "vista": GroupsView.as_view(),
         "namespace": 'admin_grupos',
+    }, 
+    {
+        "nombre": "Credenciales de Correo",
+        "url": 'correo-credentials/',
+        "vista": EmailCredentialsView.as_view(),
+        "namespace": 'admin_email_credentials',
+    },
+    {
+        "nombre": "Alertas",
+        "url": 'alertas/',
+        "vista": AlertaView.as_view(),
+        "namespace": 'admin_alertas',
+    },
+    {
+        "nombre": "Llamados a la Acción",
+        "url": 'llamados-accion/',
+        "vista": LlamadoAccionView.as_view(),
+        "namespace": 'admin_llamados_accion',
     }
 )
 
