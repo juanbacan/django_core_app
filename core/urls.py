@@ -73,18 +73,6 @@ sistema_urls = (
         "vista": LlamadoAccionView.as_view(),
         "namespace": 'admin_llamados_accion',
     },
-    {
-        "nombre": "Autores",
-        "url": 'autores/',
-        "vista": AutorView.as_view(),
-        "namespace": 'admin_autores',
-    },
-    {
-        "nombre": "Libros",
-        "url": 'libros/',
-        "vista": LibroView.as_view(),
-        "namespace": 'admin_libros',
-    }
 )
 
 

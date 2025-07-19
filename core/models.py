@@ -358,26 +358,3 @@ class AgrupacionModulo(ModeloBase):
     def modulos_activos(self):
         return self.modulos.filter(activo=True).order_by('orden')
     
-
-class Autor(ModeloBase):
-    nombre = models.CharField(max_length=255)
-
-    def __str__(self):
-        return self.nombre
-
-    class Meta:
-        verbose_name = "Autor"
-        verbose_name_plural = "Autores"
-
-
-class Libro(ModeloBase):
-    titulo = models.CharField(max_length=255)
-    autor = models.ForeignKey(Autor, on_delete=models.CASCADE)
-
-    def __str__(self):
-        return self.titulo
-
-    class Meta:
-        verbose_name = "Libro"
-        verbose_name_plural = "Libros"
-        ordering = ['titulo']

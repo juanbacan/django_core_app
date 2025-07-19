@@ -3,8 +3,8 @@
 {% load core_extras %}
 
 {% block content %}
-	<div class="row">
-		<section class="mb-4 {% if filter_options %}col-xl-10 col-lg-9 col-md-8 col-sm-12{% else %}co--12{% endif %}">
+    <div class="row">
+        <section class="mb-4 {% if filter_options %}col-xl-10 col-lg-9 col-md-8 col-sm-12{% else %}co--12{% endif %}">
             <div class="d-flex flex-wrap gap-3 justify-content-between align-items-center mb-4">
                 <div class="ms-auto">
                     {% block buttons %}
@@ -13,7 +13,7 @@
                 </div>
             </div>
 
-			<div style="max-width: 500px">
+            <div style="max-width: 500px">
                 {% block search_filters %}
                     {% if view.search_fields %}
                         <form method="GET" role="form" action=".">
@@ -24,7 +24,7 @@
                         </form>
                     {% endif %}
                 {% endblock %}
-			</div>
+            </div>
 
             <div class="card border-0">
                 <div class="card-body">
@@ -36,7 +36,7 @@
                                     {% for h in display_headers %}
                                         <th>{{ h }}</th>
                                     {% endfor %}
-                                    <th>Acciones</th>
+                                    <th style="width: 1%; white-space: nowrap;">Acciones</th>
                                 </tr>
                             </thead>
 
@@ -49,7 +49,7 @@
                                             {% endfor %}
                                         {% endblock %}
 
-                                        <td>
+                                        <td style="width: 1%; white-space: nowrap;">
                                             <div class="dropdown">
                                             <button class="btn btn-info btn-xs dropdown-toggle"
                                                     type="button" data-bs-toggle="dropdown">
@@ -90,7 +90,7 @@
                     {% endblock %}
                 </div>
             </div>
-		</section>
+        </section>
         {% if filter_options %}
             {% block filter_options %}
             <aside class="col-xl-2 col-lg-3 col-md-4 col-sm-12 mb-4">
@@ -134,5 +134,5 @@
             </aside>
             {% endblock %}
         {% endif %}
-	</div>
+    </div>
 {% endblock %}

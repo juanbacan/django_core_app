@@ -78,13 +78,25 @@
             search.addEventListener("input", e => debouncedSearch(e.target.value));
         }
 
+
+        // Delegación para seleccionar fila
         results.addEventListener("click", e => {
             const row = e.target.closest("[data-pk]");
-            if (!row) return;
-            hidden.value  = row.dataset.pk;
-            display.value = row.dataset.label;
-            btnClear.style.display = "";                              // ← mostrar
-            bootstrap.Modal.getInstance(modal).hide();
+            if (row) {
+                hidden.value  = row.dataset.pk;
+                display.value = row.dataset.label;
+                btnClear.style.display = "";
+                bootstrap.Modal.getInstance(modal).hide();
+                return;
+            }
+            // Delegación para paginación
+            const pageBtn = e.target.closest("[data-page]");
+            if (pageBtn) {
+                e.preventDefault();
+                const page = pageBtn.dataset.page;
+                const q = search ? search.value : "";
+                fetchPage(q, page);
+            }
         });
 
         btnClear.addEventListener("click", () => {

@@ -232,18 +232,19 @@ class MensajeUsuarioForm(BaseForm):
 
 
 
-from core.models import Libro, Autor
-from core.widgets import ModalForeignKeyWidget
+### Ejemplo de cómo usar ModalForeignKeyWidget en un formulario
+# from app.models import Libro, Autor
+# from core.widgets import ModalForeignKeyWidget
 
-class LibroForm(ModelBaseForm):
-    autor = forms.ModelChoiceField(
-        queryset=Autor.objects.all(),
-        widget=ModalForeignKeyWidget(
-            model=Autor,
-            list_display=["nombre"],
-            search_fields=["nombre"]
-        )
-    )
-    class Meta:
-        model  = Libro
-        fields = ["titulo", "autor"]
+# class LibroForm(ModelBaseForm):
+#     autor = forms.ModelChoiceField(
+#         queryset=Autor.objects.all(),
+#         widget=ModalForeignKeyWidget(
+#             model=Autor,
+#             list_display=["nombre"],
+#             search_fields=["nombre"]
+#         )
+#     )
+#     class Meta:
+#         model  = Libro
+#         fields = ["titulo", "autor"]

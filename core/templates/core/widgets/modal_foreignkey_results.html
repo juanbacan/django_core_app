@@ -38,12 +38,5 @@
 </nav>
 
 <script>
-  document.currentScript.parentNode.addEventListener("click", e => {
-    if (e.target.matches("[data-page]")) {
-      e.preventDefault();
-      const page = e.target.dataset.page;
-      const q = document.querySelector("[data-fk-search]").value;
-      window.fetchPage(q, page);   // función global definida en el <script> de arriba
-    }
-  });
+  // Ya no es necesario ningún script aquí, la paginación se maneja desde el script principal del widget
 </script>
