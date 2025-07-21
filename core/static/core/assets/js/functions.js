@@ -223,7 +223,6 @@ function resetFormModals() {
     }
 }
 
-
 resetFormModals();
 
 document.addEventListener("DOMContentLoaded", function() {
@@ -307,6 +306,16 @@ const submitModalForm1 = async (formid = 'modalForm1', showError = true) => {
         const data = await resp.json();
 
         if (data.result === "ok") {
+            if (data.popup) {
+                // Llama a la función en la ventana opener para actualizar el select
+                if (window.opener && typeof window.opener.dismissAddPopup === "function") {
+                    window.opener.dismissAddPopup(data.pk, data.repr, data.field_id);
+                }
+                // Cierra este popup
+                window.close();
+                return;
+            }
+
             if (data.redirected) {
                 try {
                     const currentUrl = window.location.href;

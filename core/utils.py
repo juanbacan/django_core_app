@@ -19,6 +19,9 @@ from django.contrib.auth.models import Group
 from django.db import models
 from django.utils.html import strip_tags
 from django.utils.safestring import mark_safe
+from django.urls import get_resolver, URLResolver, URLPattern
+
+from core.crud_registry import crud_registry
 
 from firebase_admin import storage
 
@@ -725,3 +728,37 @@ def get_header(model: models.Model, spec):
 
     # Tupla (label, spec) — el label llegará ya seteado arriba
     return ""
+
+
+def register_all_crud_views():
+    """
+    Busca todas las clases que heredan de ModelCRUDView y tienen 'model',
+    luego busca en las URLconfs si hay alguna URL que las registre.
+    """
+    from core.views import ModelCRUDView
+
+    def explore_patterns(patterns, base_url=""):
+        for pattern in patterns:
+            if isinstance(pattern, URLResolver):
+                nested_url = base_url + str(pattern.pattern)
+                explore_patterns(pattern.url_patterns, nested_url)
+            elif isinstance(pattern, URLPattern):
+                view = getattr(pattern.callback, 'view_class', None)
+                if view and issubclass(view, ModelCRUDView) and hasattr(view, 'model') and view.model:
+                    model = view.model
+                    crud_registry[model] = {
+                        "url": base_url + str(pattern.pattern),
+                        "view": view,
+                        "name": pattern.name,
+                    }
+
+    root_patterns = get_resolver().url_patterns
+    explore_patterns(root_patterns)
+
+    print(f"ModelCRUDView registradas: {len(crud_registry)}")
+    for model, info in crud_registry.items():
+        print(f"  {model.__name__}: {info['url']} ({info['name']})")
+
+    print(crud_registry)  # Para depuración, muestra todo el registro
+        
+

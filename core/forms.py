@@ -3,6 +3,7 @@ from django.utils.safestring import mark_safe
 from tinymce.widgets import TinyMCE
 from dal_select2.widgets import ModelSelect2, Select2, Select2Multiple, ModelSelect2Multiple
 
+from core.crud_registry import crud_registry
 from core.widgets import IconPickerWidget
 
 class BootstrapFieldsMixin:
@@ -72,6 +73,13 @@ class BootstrapFieldsMixin:
         # Si el campo usa el widget IconPickerWidget, establecer iconpicker en True
         if isinstance(field.widget, IconPickerWidget):
             self.iconpicker = True
+
+        # Detectar ForeignKey y agregar URL para "Agregar"
+        if hasattr(field, 'queryset') and getattr(field, 'queryset', None):
+            model = getattr(field.queryset, 'model', None)
+            if model and model in crud_registry:
+                fk_conf = crud_registry[model]
+                field.widget.attrs['fk_add_url'] = f"{fk_conf['url']}?action=add"
 
 
     def get_validation_attrs(self, validation_type):

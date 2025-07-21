@@ -699,7 +699,18 @@ class ModelCRUDView(ViewAdministracionBase):
     def post_add(self, request, context, *args, **kwargs):
         form = self.form_class(request.POST, request.FILES or None)
         if form.is_valid():
-            form.save()
+            obj = form.save()
+ 
+            # Si es popup se está agregando desde un modal
+            if request.GET.get("popup") == "1":
+                return JsonResponse({
+                    "result": "ok",
+                    "popup": True,
+                    "pk": obj.pk,
+                    "repr": str(obj),
+                    "field_id": request.GET.get("field_id", ""),
+                })
+        
             return success_json(url=get_redirect_url(request))
         return error_json(mensaje="Error al guardar el objeto", forms=[form])
 

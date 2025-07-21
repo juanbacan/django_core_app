@@ -27,6 +27,25 @@
         <span class="input-group-text">{{ field.field.widget.attrs.input_group }}</span>
         {{ field }}
     </div>
+{% elif field.field.widget.attrs.fk_add_url %}
+    <div class="d-flex flex-column fk-block">
+        {{ field }}
+
+        <div class="d-flex gap-1 mt-1">
+            <a  href="javascript:void(0)"
+                class="fk-btn"
+                onclick="openFKPopup('/{{ field.field.widget.attrs.fk_add_url }}', 'id_{{ field.name }}')"
+                title="Agregar nuevo">
+                <i class="fa fa-plus"></i>
+            </a>
+            <a  href="javascript:void(0)"
+                class="fk-btn"
+                onclick="clearFKField('id_{{ field.name }}')"
+                title="Borrar selección">
+                <i class="fa fa-times"></i>
+            </a>
+        </div>
+    </div>
 {% else %}
     {{ field }}
 {% endif %}

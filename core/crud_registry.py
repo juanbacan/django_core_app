@@ -1,0 +1,1 @@
+crud_registry = {}  # model → url

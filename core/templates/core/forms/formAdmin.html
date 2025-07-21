@@ -2,9 +2,13 @@
 {% load static %}
 
 {% block breadcrumb %}
-    <li class="breadcrumb-item" aria-current="page">{{ agrupacion_activa.nombre }}</li>
-    <li class="breadcrumb-item"><a href="{% url 'administracion' %}{{ modulo_activo.url }}">{{ modulo_activo.nombre }}</a></li>
-    <li class="breadcrumb-item active" aria-current="page">Crear {{ modulo_activo.nombre }}</li>
+    {% if not request.GET.popup %}
+        <li class="breadcrumb-item" aria-current="page">{{ agrupacion_activa.nombre }}</li>
+        <li class="breadcrumb-item"><a href="{% url 'administracion' %}{{ modulo_activo.url }}">{{ modulo_activo.nombre }}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Crear {{ modulo_activo.nombre }}</li>
+    {% else %}
+        <li class="breadcrumb-item active" aria-current="page">Crear {{ modulo_activo.nombre }}</li>
+    {% endif %}
 {% endblock %}
 
 {% block content %}
@@ -12,7 +16,7 @@
     <div class="col-md-12">
         <div class="card border-0">
             <div class="card-body">
-                <form method="POST" id="{% if not default_send_form  %}mainForm{% endif %}" action="{{ request.path }}" enctype="multipart/form-data">
+                <form method="POST" id="{% if not default_send_form  %}mainForm{% endif %}" action="{{ request.get_full_path }}" enctype="multipart/form-data">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="{% block action %}{{ action }}{% endblock %}" />
 
@@ -33,8 +37,11 @@
                             <div class="d-flex flex-column flex-md-row justify-content-between gap-3">
                                 <div class="d-grid d-md-flex gap-2">
                                     <input type="submit" class="btn btn-sm btn-primary" value="Guardar" name="_save" />
-                                    <input type="submit" class="btn btn-sm btn-primary" value="Guardar y Añadir Otro" name="_addanother" />
-                                    <input type="submit" class="btn btn-sm btn-primary" value="Guardar y Continuar Editando" name="_continue" />
+
+                                    {% if not request.GET.popup %}
+                                        <input type="submit" class="btn btn-sm btn-primary" value="Guardar y Añadir Otro" name="_addanother" />
+                                        <input type="submit" class="btn btn-sm btn-primary" value="Guardar y Continuar Editando" name="_continue" />
+                                    {% endif %}
                                 </div>
                                 {% if object and formdeleteaction %}
                                     <div class="d-grid d-md-flex gap-2">
@@ -82,9 +89,25 @@
 
 
 {% block extracss %}
-  <style>
+<style>
+    /* Ajusta ancho completo y separa la fila de botones */
+    .fk-block select { width:100%; }
 
-  </style>
+    .fk-btn{
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        width:26px; height:26px;
+        font-size:13px;
+        border:1px solid #bbb;
+        border-radius:3px;
+        background:#fafafa;
+        color:#444;
+        text-decoration:none;
+    }
+    .fk-btn:hover{ background:#e9e9e9; color:#000; }
+</style>
+
 {% endblock %}
 
 {% block extrajs %}
@@ -126,11 +149,84 @@
                 {% endfor %}
             {% endif %}
         });
-
     </script>
+
     {{ form.media }}
+
     {% if form.inline_formsets %}
         {% include 'core/forms/form_inline_js.html' %}
     {% endif %}
+
+
+    <script>
+        function openFKPopup(addUrl, fieldId) {
+            // Construimos la URL con popup=1 y el id del campo
+            const url = addUrl + (addUrl.includes('?') ? '&' : '?') + 'popup=1&field_id=' + encodeURIComponent(fieldId);
+
+            // Dimensiones y posición
+            const w = 800, h = 500;
+            const left = (screen.width  - w) / 2;
+            const top  = (screen.height - h) / 2;
+
+            // Usamos fieldId como nombre de la ventana; nos servirá para saber a cuál input volver
+            window.open(url, fieldId, `width=${w},height=${h},top=${top},left=${left},resizable=yes,scrollbars=yes`);
+        }
+
+        function dismissAddPopup(newId, newRepr, fieldId) {
+            let origin = document.getElementById(fieldId);  // hidden o select
+
+            if (!origin) {
+                console.warn("No se encontró el elemento", fieldId);
+                return;
+            }
+
+            // 1) Caso SELECT (FK sencillo o M2M)
+            if (origin.tagName === "SELECT") {
+                const select = origin;
+
+                // ¿Existe ya la opción?
+                let option = Array.from(select.options).find(o => o.value == newId);
+                if (!option) {
+                    option = new Option(newRepr, newId, true, true);
+                    select.add(option);
+                }
+
+                // Marcar como seleccionado
+                if (select.multiple) {
+                    option.selected = true;      // agrega a las existentes
+                } else {
+                    select.value = newId;        // reemplaza la selección
+                }
+
+                // Notificar cambio (útil para Select2, etc.)
+                select.dispatchEvent(new Event('change'));
+                return;
+            }
+
+            // 2) Caso hidden + display (ForeignKey “simple”)
+            const hiddenInput  = origin;
+            const displayInput = document.getElementById(`${fieldId}_display`);
+
+            hiddenInput.value = newId;
+            if (displayInput) displayInput.value = newRepr;
+            hiddenInput.dispatchEvent(new Event('change'));
+        }
+
+        function clearFKField(fieldId) {
+            const el = document.getElementById(fieldId);
+            if (!el) return;
+
+            if (el.tagName === 'SELECT') {
+                // simple o multiple
+                for (const opt of el.options) opt.selected = false;
+            } else {
+                // hidden + display
+                el.value = '';
+                const display = document.getElementById(`${fieldId}_display`);
+                if (display) display.value = '';
+            }
+            el.dispatchEvent(new Event('change'));
+        }
+    </script>
 {% endblock %}
 
