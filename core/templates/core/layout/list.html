@@ -7,19 +7,25 @@
         <section class="mb-4 {% if filter_options %}col-xl-10 col-lg-9 col-md-8 col-sm-12{% else %}co--12{% endif %}">
             <div class="d-flex flex-wrap gap-3 justify-content-between align-items-center mb-4">
                 <div class="ms-auto">
-                    {% block buttons %}
-                        <a class="btn btn-sm btn-dark" href="{{ path }}?action=add"><i class="fa-solid fa-circle-plus"></i> Agregar {{ modulo_activo }}</a>
-                    {% endblock %}
+                    {% if not request.GET.popup %}
+                        {% block buttons %}
+                            <a class="btn btn-sm btn-dark" href="{{ path }}?action=add"><i class="fa-solid fa-circle-plus"></i> Agregar {{ modulo_activo }}</a>
+                        {% endblock %}
+                    {% endif %}
                 </div>
             </div>
 
             <div style="max-width: 500px">
                 {% block search_filters %}
                     {% if view.search_fields %}
-                        <form method="GET" role="form" action=".">
+                        <form method="GET" role="form" action="{{ request.get_full_path }}">
                             <div class="input-group mb-3">
-                            <input type="text" id="search" name="search" value="{{ request.GET.search }}" class="form-control" placeholder="Buscar {{ modulo_activo.nombre }} ...">
-                            <button type="submit" class="btn btn-dark btn-sm">Buscar <i class="fa-solid fa-magnifying-glass"></i></button>
+                                <input type="text" id="search" name="search" value="{{ request.GET.search }}" class="form-control" placeholder="Buscar {{ modulo_activo.nombre }} ...">
+                                {% if request.GET.popup %}
+                                    <input type="hidden" name="popup" value="{{ request.GET.popup }}">
+                                    <input type="hidden" name="field_id" value="{{ request.GET.field_id }}">
+                                {% endif %}
+                                <button type="submit" class="btn btn-dark btn-sm">Buscar <i class="fa-solid fa-magnifying-glass"></i></button>
                             </div>
                         </form>
                     {% endif %}
@@ -36,7 +42,9 @@
                                     {% for h in display_headers %}
                                         <th>{{ h }}</th>
                                     {% endfor %}
-                                    <th style="width: 1%; white-space: nowrap;">Acciones</th>
+                                    {% if not request.GET.popup %}
+                                        <th style="width: 1%; white-space: nowrap;">Acciones</th>
+                                    {% endif %}
                                 </tr>
                             </thead>
 
@@ -49,31 +57,33 @@
                                             {% endfor %}
                                         {% endblock %}
 
-                                        <td style="width: 1%; white-space: nowrap;">
-                                            <div class="dropdown">
-                                            <button class="btn btn-info btn-xs dropdown-toggle"
-                                                    type="button" data-bs-toggle="dropdown">
-                                                Acciones
-                                            </button>
-                                            <ul class="dropdown-menu">
-                                                {% block row_action %}
-                                                {% for act in obj|row_actions:view %}
-                                                    <li>
-                                                        <a class="dropdown-item {% if act.modal %}formmodal{% endif %}"
-                                                            {% if act.modal %}
-                                                                nhref="{{ path }}{{ act.url }}" href="javascript:void(0);"
-                                                            {% else %}
-                                                                href="{{ path }}{{ act.url }}"
-                                                            {% endif %}>
-                                                            {% if act.icon %}<i class="fa-solid {{ act.icon }}"></i>{% endif %}
-                                                            {{ act.label }}
-                                                        </a>
-                                                    </li>
-                                                {% endfor %}
-                                                {% endblock %}
-                                            </ul>
-                                            </div>
-                                        </td>
+                                        {% if not request.GET.popup %}
+                                            <td style="width: 1%; white-space: nowrap;">
+                                                <div class="dropdown">
+                                                <button class="btn btn-info btn-xs dropdown-toggle"
+                                                        type="button" data-bs-toggle="dropdown">
+                                                    Acciones
+                                                </button>
+                                                <ul class="dropdown-menu">
+                                                    {% block row_action %}
+                                                    {% for act in obj|row_actions:view %}
+                                                        <li>
+                                                            <a class="dropdown-item {% if act.modal %}formmodal{% endif %}"
+                                                                {% if act.modal %}
+                                                                    nhref="{{ path }}{{ act.url }}" href="javascript:void(0);"
+                                                                {% else %}
+                                                                    href="{{ path }}{{ act.url }}"
+                                                                {% endif %}>
+                                                                {% if act.icon %}<i class="fa-solid {{ act.icon }}"></i>{% endif %}
+                                                                {{ act.label }}
+                                                            </a>
+                                                        </li>
+                                                    {% endfor %}
+                                                    {% endblock %}
+                                                </ul>
+                                                </div>
+                                            </td>
+                                        {% endif %}
                                     </tr>
                                 {% endfor %}
                             </tbody>

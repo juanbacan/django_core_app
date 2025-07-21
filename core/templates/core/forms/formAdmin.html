@@ -172,38 +172,81 @@
             window.open(url, fieldId, `width=${w},height=${h},top=${top},left=${left},resizable=yes,scrollbars=yes`);
         }
 
-        function dismissAddPopup(newId, newRepr, fieldId) {
-            let origin = document.getElementById(fieldId);  // hidden o select
+        function openFKEditPopup(btn){
+            const baseUrl = btn.getAttribute('data-edit-base');   // ….?action=edit
+            const fieldId = btn.getAttribute('data-field');
+            const el = document.getElementById(fieldId);
+            if(!el) return;
 
+            // Obtiene el ID seleccionado
+            let selectedId = null;
+            if(el.tagName === 'SELECT'){
+                if(el.multiple){
+                    selectedId = Array.from(el.selectedOptions).pop()?.value;
+                }else{
+                    selectedId = el.value;
+                }
+            }else{
+                selectedId = el.value;
+            }
+
+            if(!selectedId){
+                alert("Selecciona un registro para editar");
+                return;
+            }
+
+            openFKPopup(
+                `${baseUrl}&id=${selectedId}`,   // url completa
+                fieldId                          // para volver a este campo
+            );
+        }
+
+        function dismissAddPopup(newId, newRepr, fieldId) {
+            const origin = document.getElementById(fieldId);   // hidden o select
             if (!origin) {
                 console.warn("No se encontró el elemento", fieldId);
                 return;
             }
 
-            // 1) Caso SELECT (FK sencillo o M2M)
+            /* ───── 0) INPUT (simple) ──────────────────────────────────────── */
+            if (origin.tagName === "INPUT") {
+                origin.value = newId;
+                const label = document.getElementById(fieldId + "_label");
+                if (label) label.textContent = newRepr;
+                return;
+            }
+
+            /* ───── 1) SELECT (FK simple o múltiple) ───────────────────────── */
             if (origin.tagName === "SELECT") {
                 const select = origin;
 
-                // ¿Existe ya la opción?
+                // ¿Existe la opción?
                 let option = Array.from(select.options).find(o => o.value == newId);
                 if (!option) {
-                    option = new Option(newRepr, newId, true, true);
+                    option = new Option(newRepr, newId, true, true);   // nueva
                     select.add(option);
+                } else {
+                    option.textContent = newRepr;                     // ← actualiza texto
                 }
 
                 // Marcar como seleccionado
                 if (select.multiple) {
-                    option.selected = true;      // agrega a las existentes
+                    option.selected = true;           // suma al resto
                 } else {
-                    select.value = newId;        // reemplaza la selección
+                    select.value = newId;             // reemplaza la selección
                 }
 
-                // Notificar cambio (útil para Select2, etc.)
+                // Notificar cambio (Select2 u otros)
                 select.dispatchEvent(new Event('change'));
+
+                // Si el select usa Select2, refrescar su UI
+                if (window.jQuery && $(select).hasClass('select2-hidden-accessible')) {
+                    $(select).trigger('change.select2');
+                }
                 return;
             }
 
-            // 2) Caso hidden + display (ForeignKey “simple”)
+            /* ───── 2) hidden + display ───────────────────────────────────── */
             const hiddenInput  = origin;
             const displayInput = document.getElementById(`${fieldId}_display`);
 
@@ -226,6 +269,13 @@
                 if (display) display.value = '';
             }
             el.dispatchEvent(new Event('change'));
+        }
+
+        function openFKRawPopup(baseUrl, fieldId) {
+            const input = document.getElementById(fieldId);
+            const currentId = input.value.trim();
+            const url = baseUrl + '?popup=1&field_id=' + fieldId + (currentId ? ('&id=' + currentId) : '');
+            window.open(url, fieldId, 'width=800,height=600,resizable=yes,scrollbars=yes');
         }
     </script>
 {% endblock %}

@@ -27,17 +27,43 @@
         <span class="input-group-text">{{ field.field.widget.attrs.input_group }}</span>
         {{ field }}
     </div>
+{% elif field.field.widget.attrs.fk_raw_url %}
+    <div class="fk-raw d-flex flex-column">
+        <div class="d-flex align-items-start gap-1">
+            {{ field }}
+            <button type="button"
+                    class="fk-btn"
+                    onclick="openFKRawPopup('/{{ field.field.widget.attrs.fk_raw_url }}', 'id_{{ field.name }}')"
+                    title="Buscar">
+                <i class="fa fa-search"></i>
+            </button>
+        </div>
+        <small id="id_{{ field.name }}_label" class="text-muted">
+            {{ field.field.widget.attrs.fk_repr }}
+        </small>
+    </div>
 {% elif field.field.widget.attrs.fk_add_url %}
     <div class="fk-block">
         {{ field }}
 
-        <div class="d-flex gap-1 mt-1">
+        <div class="d-flex justify-content-end gap-1 mt-2">
             <a  href="javascript:void(0)"
                 class="fk-btn"
                 onclick="openFKPopup('/{{ field.field.widget.attrs.fk_add_url }}', 'id_{{ field.name }}')"
                 title="Agregar nuevo">
                 <i class="fa fa-plus"></i>
             </a>
+            {% if field.value and field.field.widget.attrs.fk_edit_url %}
+                <a href="javascript:void(0)"
+                    class="fk-btn"
+                    data-edit-base="/{{ field.field.widget.attrs.fk_edit_url }}"
+                    data-field="id_{{ field.name }}"
+                    onclick="openFKEditPopup(this)"
+                    title="Editar seleccionado">
+                    <i class="fa fa-pencil-alt"></i>
+                </a>
+            {% endif %}
+
             <a  href="javascript:void(0)"
                 class="fk-btn"
                 onclick="clearFKField('id_{{ field.name }}')"

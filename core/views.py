@@ -1,4 +1,4 @@
-import os
+import os, json
 from datetime import date
 from urllib.parse import urlencode
 
@@ -21,7 +21,7 @@ from django.views.decorators.http import require_POST
 from django.forms import modelform_factory
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage, InvalidPage
 from django.utils.safestring import mark_safe
-
+from django.utils.html import format_html
 
 from allauth.account.adapter import get_adapter
 from allauth.socialaccount.models import SocialAccount, SocialApp
@@ -477,9 +477,11 @@ class ModelCRUDView(ViewAdministracionBase):
     - `template_list`: La plantilla para listar los objetos del modelo.
     - `template_form`: La plantilla para el formulario de creación/edición.
     - `list_display`: Lista de campos a mostrar en la vista de lista (opcional).
+    - `list_filter`: Lista de filtros a aplicar en la vista de lista (opcional).
     - `search_fields`: Campos a buscar en la vista de lista (opcional).
     - `exclude_fields`: Campos a excluir del formulario (opcional, por defecto incluye campos de auditoría).
     - `paginate_by`: Número de objetos por página en la vista de lista (opcional, por defecto 25).
+    - `raw_id_fields`: Campos que se mostrarán como campos de búsqueda (opcional).
     """
     model = None
     form_class = None
@@ -490,6 +492,7 @@ class ModelCRUDView(ViewAdministracionBase):
     search_fields = None
     exclude_fields = ('created_at', 'updated_at', 'created_by', 'modified_by')
     paginate_by = 25
+    raw_id_fields = []
 
     # ATRIBUTOS PARA EXPORTACIÓN A EXCEL
     export_headers = None  # ['Código', 'Descripción']
@@ -587,6 +590,9 @@ class ModelCRUDView(ViewAdministracionBase):
                 form=ModelBaseForm
             )
 
+        if self.raw_id_fields:
+            setattr(self.form_class, "raw_id_fields", self.raw_id_fields)
+
         if not self.template_list:
             if not self.list_display:
                 raise ValueError("Si no defines 'template_list', debes definir 'list_display'")
@@ -666,6 +672,19 @@ class ModelCRUDView(ViewAdministracionBase):
     
     def build_display(self):
         headers, specs = [], []
+        # si es popup, añadimos el campo ID como primera columna
+        if self.request.GET.get("popup") == "1":
+            headers.append("ID")
+            specs.append(
+                lambda o: format_html(
+                    '<a href="#" onclick="window.opener.dismissAddPopup({}, {}, {}); window.close(); return false;">{}</a>',
+                    json.dumps(o.pk),
+                    json.dumps(str(o)),
+                    json.dumps(self.request.GET.get("field_id", "")),
+                    o.pk
+                )
+            )
+
         for item in self.list_display:
             if isinstance(item, (list, tuple)) and len(item) == 2:
                 label, spec = item
@@ -701,7 +720,7 @@ class ModelCRUDView(ViewAdministracionBase):
         if form.is_valid():
             obj = form.save()
  
-            # Si es popup se está agregando desde un modal
+            # Si es popup se está agregando desde un popup
             if request.GET.get("popup") == "1":
                 return JsonResponse({
                     "result": "ok",
@@ -718,7 +737,16 @@ class ModelCRUDView(ViewAdministracionBase):
         instance = self.model.objects.get(pk=self.data.get('id'))
         form = self.form_class(request.POST, request.FILES or None, instance=instance)
         if form.is_valid():
-            form.save()
+            obj = form.save()
+
+            if request.GET.get("popup") == "1":
+                return JsonResponse({
+                    "result": "ok",
+                    "popup": True,
+                    "pk": obj.pk,
+                    "repr": str(obj),
+                    "field_id": request.GET.get("field_id", ""),
+                })
             messages.success(request, "Objeto actualizado correctamente")
             return success_json(url=get_redirect_url(request, object=instance))
         return error_json(mensaje="Error al guardar el objeto", forms=[form])

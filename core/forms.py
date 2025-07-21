@@ -21,7 +21,7 @@ class BootstrapFieldsMixin:
             self.prepopulated_fields = self.__class__.prepopulated_fields
 
         for field_name, field in self.fields.items():
-            self.configure_field(field)
+            self.configure_field(field, field_name)
 
         for field_name in self.fields:
             if field_name == 'DELETE':
@@ -40,7 +40,16 @@ class BootstrapFieldsMixin:
                 bound_fields = [self[field_name] for field_name in field_names if field_name in self.fields]
                 self.fieldset_bound.append((title, bound_fields))
 
-    def configure_field(self, field):
+    def configure_field(self, field, field_name):
+        # Si el campo es un campo de búsqueda (raw_id_fields), se configura como input de texto
+        if field_name in getattr(self, "raw_id_fields", []):
+            # se mostrará como input de texto, no select
+            field.widget = forms.TextInput(attrs={
+                "class": "form-control form-control-sm",
+                "fk_raw_url": "",   
+                "fk_repr": "",      
+            })
+
         # Aplica automáticamente DateInput en los DateField
         if isinstance(field, forms.DateField):
             field.widget = forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d')
@@ -74,12 +83,25 @@ class BootstrapFieldsMixin:
         if isinstance(field.widget, IconPickerWidget):
             self.iconpicker = True
 
-        # Detectar ForeignKey y agregar URL para "Agregar"
-        if hasattr(field, 'queryset') and getattr(field, 'queryset', None):
-            model = getattr(field.queryset, 'model', None)
-            if model and model in crud_registry:
+        if hasattr(field, 'queryset') and field.queryset is not None:
+            model = field.queryset.model
+            if model in crud_registry:
                 fk_conf = crud_registry[model]
-                field.widget.attrs['fk_add_url'] = f"{fk_conf['url']}?action=add"
+                url_base = fk_conf['url']  # sin ?action=...
+                add = f"{url_base}?action=add"
+                edit = f"{url_base}?action=edit"
+
+                # Para SELECT clásico o ModelSelect2
+                field.widget.attrs['fk_add_url']  = add
+                field.widget.attrs['fk_edit_url'] = edit
+
+                # Para RAW-ID
+                if field_name in getattr(self, "raw_id_fields", []):
+                    field.widget.attrs['fk_raw_url'] = url_base
+                    if self.initial.get(field_name):
+                        obj = model.objects.filter(pk=self.initial[field_name]).first()
+                        if obj:
+                            field.widget.attrs['fk_repr'] = str(obj)
 
 
     def get_validation_attrs(self, validation_type):
