@@ -131,6 +131,12 @@ async function handleResponse(resp, data, modalName = 'modalEdicion') {
     const myModal = new bootstrap.Modal(modalEdicion);
     myModal.show();
 
+    if (window.initDalSelect2InModal) {
+        modalEdicion.addEventListener('shown.bs.modal', () => {
+            window.initDalSelect2InModal(modalEdicion);
+        }, { once: true });
+    }
+
     function agregarScript(src, container, esExterno = true, contenido = '') {
         if (esExterno && document.querySelector(`script[src="${src}"]`)) return;
         const newScript = document.createElement('script');
@@ -160,6 +166,14 @@ async function handleResponse(resp, data, modalName = 'modalEdicion') {
     });
 
     modalEdicion.addEventListener('hidden.bs.modal', () => {
+        // 1) Destruir Select2 si hay jQuery y el plugin está disponible
+        var $ = (window.django && django.jQuery) ? django.jQuery : window.jQuery;
+        if ($ && $.fn && $.fn.select2) {
+            try {   
+                $(modalEdicion).find('.select2-hidden-accessible').select2('destroy');
+            } catch (e) { /* no-op */ }
+        }
+        // 2) Limpiar scripts/estilos dinámicos
         const dynamicScripts = document.querySelectorAll('.dynamic-script');
         dynamicScripts.forEach(script => script.remove());
         const dynamicStyles = document.querySelectorAll('.dynamic-style');
@@ -338,6 +352,12 @@ const submitModalForm1 = async (formid = 'modalForm1', showError = true) => {
                 try {
                     const contentModalForm = document.getElementById('form-render-modal');
                     contentModalForm.innerHTML = data.form;
+                    // Vuelve a inicializar los select2 de DAL dentro del modal abierto
+                    if (window.initDalSelect2InModal) {
+                        const modal = document.getElementById('modalEdicion');
+                        window.initDalSelect2InModal(modal);
+                    }
+
                     form.classList.remove('was-validated');
                 } catch {
                     console.log('No se pudo actualizar el formulario');
@@ -359,6 +379,71 @@ const submitModalForm1 = async (formid = 'modalForm1', showError = true) => {
     }
 };
 
+// Inicializar Select2 en modales
+// Esta función se llama automáticamente al cargar el modal o al abrir un modal existente
+window.initDalSelect2InModal = function (modalElOrSelector) {
+  // 1) No jQuery => no hacer nada
+  var hasDjQuery = (window.django && django.jQuery);
+  var $ = hasDjQuery ? django.jQuery : window.jQuery;
+  if (!$) return;
+
+  // 2) Scope: el modal que pasas; si no pasas, usa el modal visible
+  var $scope = modalElOrSelector ? $(modalElOrSelector) :
+               ($('.modal.show').length ? $('.modal.show') : $(document.body));
+
+    $scope.find('[data-autocomplete-light-function="select2"]').each(function () {
+        var $el = $(this);
+
+        // Evitar re‑inicializar
+        if ($el.hasClass('select2-hidden-accessible')) return;
+
+        // Placeholder: data-placeholder > separator > placeholder > default
+        var ph = $el.attr('data-placeholder') ||
+                $el.attr('separator') ||
+                $el.attr('placeholder') ||
+                'Seleccione una opción';
+
+        // dropdownParent: modal más cercano; si no hay, body
+        var $modal = $el.closest('.modal.show');
+        var $dp = $modal.length ? $modal : $scope.closest('.modal.show');
+        if ($modal.length && $modal.attr('id')) {
+            $el.attr('data-dropdown-parent', '#' + $modal.attr('id'));
+        }
+
+        // Asegurar opciones vía data-* para DAL
+        if (!$el.attr('data-placeholder')) $el.attr('data-placeholder', ph);
+        if (!$el.attr('data-allow-clear')) $el.attr('data-allow-clear', 'true');
+
+        // 3) Inicializar con DAL si está disponible
+        var initialized = false;
+        if (typeof window.__dal__initialize === 'function') {
+            window.__dal__initialize(this);
+            initialized = $el.hasClass('select2-hidden-accessible');
+        } else if (window.yl && yl.functions && typeof yl.functions.select2 === 'function') {
+            yl.functions.select2($, this); // fallback DAL
+            initialized = $el.hasClass('select2-hidden-accessible');
+        }
+
+        // 4) Si DAL no lo dejó inicializado, se realiza manualmente (si existe Select2)
+        if (!initialized && $.fn && $.fn.select2) {
+            $el.select2({
+                placeholder: ph,
+                allowClear: true,
+                language: 'es',
+                dropdownParent: $dp.length ? $dp : $(document.body)
+            });
+        }
+        // 5) Asegurar que el input de búsqueda tenga el foco al abrir
+        $el.off('select2:open.autofocus')
+        .on('select2:open.autofocus', function () {
+            setTimeout(function () {
+            var input = document.querySelector('.select2-container--open .select2-search__field');
+            if (input) input.focus();
+            }, 0);
+        });
+    });
+};
+
 // Bloquear la interfaz al enviar un formulario
 // Get all form
 const forms = document.getElementsByTagName('form');
@@ -367,7 +452,6 @@ for (let i = 0; i < forms.length; i++) {
         bloqueoInterfaz();
     })
 }
-
 
 
 

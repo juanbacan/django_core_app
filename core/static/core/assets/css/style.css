@@ -68,9 +68,9 @@ body {
     border-radius: 0.2rem;
 }
 
-.select2-container {
+/* .select2-container {
     z-index: 1056!important;
-}
+} */
 
 .wrs_tickContainer {
     display: none;
@@ -100,3 +100,14 @@ body {
     margin: 0!important;
     text-align: center!important;
 }
+
+/* El control ocupa todo el ancho disponible dentro del modal */
+/* 1) El control ocupa todo el ancho disponible */
+.modal .select2-container,
+.modal .select2-container .select2-selection {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+
+

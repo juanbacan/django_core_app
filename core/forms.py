@@ -83,6 +83,7 @@ class BootstrapFieldsMixin:
         if isinstance(field.widget, IconPickerWidget):
             self.iconpicker = True
 
+
         if hasattr(field, 'queryset') and field.queryset is not None:
             model = field.queryset.model
             if model in crud_registry:
@@ -91,9 +92,12 @@ class BootstrapFieldsMixin:
                 add = f"{url_base}?action=add"
                 edit = f"{url_base}?action=edit"
 
-                # Para SELECT clásico o ModelSelect2
-                field.widget.attrs['fk_add_url']  = add
-                field.widget.attrs['fk_edit_url'] = edit
+                from django.forms.widgets import SelectMultiple
+
+                # Solo agregar fk_edit_url si NO es widget múltiple
+                field.widget.attrs['fk_add_url'] = add
+                if not isinstance(field.widget, SelectMultiple):
+                    field.widget.attrs['fk_edit_url'] = edit
 
                 # Para RAW-ID
                 if field_name in getattr(self, "raw_id_fields", []):
@@ -121,7 +125,49 @@ class BootstrapFieldsMixin:
         return validation_attrs
 
 
+class FilterFieldsMixin:
+    """
+    Mixin para formularios de filtro que solo aplica estilos básicos
+    sin agregar botones de CRUD automáticamente.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if self.is_bound:
+            return
+
+        for field_name, field in self.fields.items():
+            self.configure_filter_field(field, field_name)
+
+    def configure_filter_field(self, field, field_name):
+        # Aplica automáticamente DateInput en los DateField
+        if isinstance(field, forms.DateField):
+            field.widget = forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d')
+            if field.initial and isinstance(field.initial, (str, int, float)) == False:
+                field.initial = field.initial.strftime('%Y-%m-%d')
+                
+        excluded_widgets = (TinyMCE, Select2, Select2Multiple, ModelSelect2, ModelSelect2Multiple)
+        if not isinstance(field.widget, excluded_widgets):
+            if "class" in field.widget.attrs:
+                field.widget.attrs["class"] += " form-control"
+            else:
+                field.widget.attrs["class"] = "form-control"
+
+            # Check if field.widget has input_type attribute
+            if hasattr(field.widget, "input_type"):
+                if field.widget.input_type == "checkbox":
+                    field.widget.attrs["class"] = field.widget.attrs["class"].replace("form-control", "form-check-input")
+                elif field.widget.input_type == "select":
+                    field.widget.attrs["class"] += " form-select"
+                elif field.widget.input_type == "radio":
+                    field.widget.attrs["class"] = field.widget.attrs["class"].replace("form-control", "form-check-input")
+
+
 class BaseForm(BootstrapFieldsMixin, forms.Form):
+    pass
+
+
+class FilterForm(FilterFieldsMixin, forms.Form):
     pass
 
 
