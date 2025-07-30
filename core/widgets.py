@@ -55,3 +55,45 @@ class IconPickerWidget(forms.Widget):
         return context
 
 
+class DropifyWidget(forms.ClearableFileInput):
+    template_name = "core/widgets/dropify_simple.html"
+
+    def __init__(self, attrs=None, allowed_extensions=None, messages=None, height=200):
+        default_attrs = {'class': 'dropify dropify-widget'}
+        if attrs:
+            default_attrs.update(attrs)
+        super().__init__(default_attrs)
+        
+        # Extensiones permitidas por defecto para imágenes
+        self.allowed_extensions = allowed_extensions or ['webp', 'png', 'jpg', 'jpeg']
+        
+        # Altura del widget
+        self.height = height
+        
+        # Mensajes personalizables
+        self.messages = messages or {
+            'default': 'Arrastra aquí el archivo o haz clic para seleccionarlo',
+            'replace': 'Arrastra aquí el archivo o haz clic para reemplazarlo',
+            'remove': 'Eliminar',
+            'error': '¡Uy! Algo salió mal.'
+        }
+
+
+    def get_context(self, name, value, attrs):
+        context = super().get_context(name, value, attrs)
+        context['widget'].update({
+            'allowed_extensions': self.allowed_extensions,
+            'messages': self.messages,
+            'current_file': value if value else None,
+            'field_name': name,
+            'height': self.height
+        })
+        return context
+
+    class Media:
+        css = {
+            'all': ('dropify/dropify.min.css', 'core/widgets/dropify/dropify-widget.css')
+        }
+        js = ('dropify/dropify.min.js', 'core/widgets/dropify/dropify-widget.js')
+
+

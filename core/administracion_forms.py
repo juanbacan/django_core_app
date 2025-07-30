@@ -4,7 +4,7 @@ from tinymce.widgets import TinyMCE
 from django import forms
 from django.contrib.auth.models import Group
 
-from core.widgets import IconPickerWidget
+from core.widgets import IconPickerWidget, DropifyWidget
 from core.forms import BaseForm, ModelBaseForm
 from core.models import CustomUser, CorreoTemplate, AplicacionWeb, Modulo, AgrupacionModulo, TipoNotificacion
 
@@ -59,6 +59,16 @@ class CustomUserForm(ModelBaseForm):
             'password': 'Contraseña',
         }
         widgets = {
+            'imagen': DropifyWidget(
+                height=200,
+                allowed_extensions=['webp', 'png', 'jpg', 'jpeg'],
+                messages={
+                    'default': 'Arrastra aquí tu imagen o haz clic para seleccionarla',
+                    'replace': 'Arrastra aquí tu imagen o haz clic para reemplazarla',
+                    'remove': 'Eliminar imagen',
+                    'error': '¡Error! Formato de imagen no válido.'
+                }
+            ),
             'groups': autocomplete.ModelSelect2Multiple(),
             'user_permissions': forms.SelectMultiple(attrs={'size': 10}),
         }

@@ -1,0 +1,27 @@
+{% load static %}
+
+<!-- File Input with data attributes for configuration -->
+<input type="file" 
+       name="{{ widget.name }}" 
+       {% if widget.value.url %}data-default-file="{{ widget.value.url }}"{% endif %}
+       data-msg-default="{{ widget.messages.default }}"
+       data-msg-replace="{{ widget.messages.replace }}"
+       data-msg-remove="{{ widget.messages.remove }}"
+       data-msg-error="{{ widget.messages.error }}"
+       data-allowed-extensions="{% for ext in widget.allowed_extensions %}{{ ext }}{% if not forloop.last %},{% endif %}{% endfor %}"
+       data-height="{{ widget.height }}"
+       {% include "django/forms/widgets/attrs.html" %}
+       id="{{ widget.attrs.id }}"
+       class="{{ widget.attrs.class }}">
+
+<!-- Checkbox de eliminación de Django (visible) -->
+{% if widget.value and widget.value.url %}
+<div style="margin-top: 10px;">
+    <label for="{{ widget.attrs.id }}-clear">
+        <input type="checkbox" name="{{ widget.name }}-clear" id="{{ widget.attrs.id }}-clear">
+        Eliminar archivo actual
+    </label>
+</div>
+{% endif %}
+
+<!-- Los estilos y JavaScript se cargan automáticamente via Media class -->

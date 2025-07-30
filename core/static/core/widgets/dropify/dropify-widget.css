@@ -1,0 +1,185 @@
+@charset "UTF-8";
+
+/* ===========================================
+   Dropify + Font Awesome 6 Free (CDN 6.2.1)
+   Asegúrate de cargar all.min.css ANTES de este bloque
+   =========================================== */
+
+/* Mensaje legible */
+.dropify-wrapper .dropify-message p {
+  font-size: 14px;
+  color: #555;
+  text-align: center;
+}
+
+/* Limpieza y base del icono tanto en el mensaje como en el preview */
+.dropify-wrapper .dropify-message .file-icon,
+.dropify-wrapper .dropify-preview .dropify-filename .file-icon {
+  background: none !important;
+  border: 0 !important;
+  display: block;
+  margin: 0 auto 6px;
+  line-height: 1;
+  width: auto;
+  height: auto;
+
+  /* Evitar que se herede una fuente de íconos distinta a FA */
+  font-family: "Font Awesome 6 Free" !important;
+  font-style: normal !important;
+  font-weight: 900 !important;    /* Solid */
+  font-variant: normal !important;
+  text-rendering: auto;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Evita que otras hojas pongan contenido o lo borren */
+.dropify-wrapper .dropify-message .file-icon::after,
+.dropify-wrapper .dropify-preview .dropify-filename .file-icon::after {
+  content: none !important;
+}
+
+/* --- Ícono principal en el área de carga (mensaje) ---
+   fa-image (Free Solid) => \f574  */
+.dropify-wrapper .dropify-message .file-icon::before {
+  font-family: "Font Awesome 6 Free" !important;
+  font-weight: 900 !important;     /* Solid */
+  content: "\f574" !important;     /* fa-image */
+  font-size: 34px;
+  color: #838383;
+  display: block;
+  margin: 0 auto 6px;
+}
+
+/* --- Ícono junto al nombre de archivo en el preview ---
+   fa-file (Free Solid) => \f15b  */
+.dropify-wrapper .dropify-preview .dropify-filename .file-icon::before {
+  font-family: "Font Awesome 6 Free" !important;
+  font-weight: 900 !important;     /* Solid */
+  content: "\f15b" !important;     /* fa-file */
+  font-size: 12px;
+  color: #6b7280;
+  display: inline-block;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+/* Errores */
+.dropify-wrapper .dropify-error,
+.dropify-wrapper .dropify-errors-container li {
+  color: #b71c1c;
+  font-size: 12px;
+}
+
+/* ===========================================
+   Estilos de contorno y fondo elegantes
+   =========================================== */
+
+/* Wrapper principal con diseño moderno */
+.dropify-wrapper {
+    border: 2px dashed #e5e7eb;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Estado hover - más elegante */
+.dropify-wrapper:hover {
+    border-color: #3b82f6;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.1);
+    transform: translateY(-1px);
+}
+
+/* Cuando tiene archivo - estado success */
+.dropify-wrapper.has-preview {
+    border: 2px solid #10b981;
+    background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+    box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.1);
+}
+
+/* Hover cuando tiene archivo */
+.dropify-wrapper.has-preview:hover {
+    border-color: #059669;
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+    box-shadow: 0 6px 8px -1px rgba(16, 185, 129, 0.15);
+}
+
+/* Área del mensaje con mejor presentación */
+.dropify-wrapper .dropify-message {
+    padding: 40px 20px;
+    text-align: center;
+    position: relative;
+}
+
+/* Preview area mejorada */
+.dropify-wrapper .dropify-preview {
+    padding: 0;
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(10px);
+    border-radius: 8px;
+    margin: 0;
+}
+
+/* Imagen preview con esquinas redondeadas */
+.dropify-wrapper .dropify-preview .dropify-render img {
+    border-radius: 8px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    max-height: 150px;
+    object-fit: cover;
+}
+
+/* Información del archivo con mejor diseño */
+.dropify-wrapper .dropify-infos {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 6px;
+    padding: 12px;
+    backdrop-filter: blur(5px);
+}
+
+/* Botón de eliminar moderno */
+.dropify-wrapper .dropify-clear {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
+}
+
+.dropify-wrapper .dropify-clear:hover {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    box-shadow: 0 4px 6px rgba(239, 68, 68, 0.3);
+    transform: translateY(-1px);
+}
+
+/* (Opcional) Ajustes para tema oscuro del sistema */
+@media (prefers-color-scheme: dark) {
+  .dropify-wrapper {
+    background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+    border-color: #374151;
+  }
+  
+  .dropify-wrapper:hover {
+    background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+    border-color: #3b82f6;
+  }
+  
+  .dropify-wrapper .dropify-message .file-icon::before { color: #a3a3a3; }
+  .dropify-wrapper .dropify-message p { color: #d1d5db; }
+  .dropify-wrapper .dropify-preview .dropify-filename .file-icon::before { color: #9ca3af; }
+  
+  .dropify-wrapper .dropify-preview {
+    background: rgba(31, 41, 55, 0.8);
+  }
+  
+  .dropify-wrapper .dropify-infos {
+    background: rgba(31, 41, 55, 0.9);
+  }
+}
