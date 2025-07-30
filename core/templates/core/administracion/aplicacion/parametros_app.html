@@ -133,3 +133,8 @@
         </div>
     </div>
 {% endblock content %}
+
+{% block extrajs %}
+    {{ block.super }}
+    {{ form.media }}
+{% endblock %}

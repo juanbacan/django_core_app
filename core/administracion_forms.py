@@ -37,6 +37,31 @@ class AplicacionWebForm(ModelBaseForm):
         }
         widgets = {
             'meta_description': forms.Textarea(attrs={'rows': 2}),
+            'logo': DropifyWidget(
+                height=100,
+                allowed_extensions=['webp', 'png', 'jpg', 'jpeg'],
+            ),
+            'meta_keywords': forms.Textarea(attrs={'rows': 2}),
+            'favicon': DropifyWidget(
+                height=100,
+                allowed_extensions=['webp', 'png', 'jpg', 'jpeg', 'ico'],
+            ),
+            'logo_horizontal': DropifyWidget(
+                height=100,
+                allowed_extensions=['webp', 'png', 'jpg', 'jpeg'],
+            ),
+            'logo_horizontal_negativo': DropifyWidget(
+                height=100,
+                allowed_extensions=['webp', 'png', 'jpg', 'jpeg'],
+            ),
+            'social_images': DropifyWidget(
+                height=100,
+                allowed_extensions=['webp', 'png', 'jpg', 'jpeg'],
+            ), 
+            'logo_webpush': DropifyWidget(
+                height=100,
+                allowed_extensions=['webp', 'png', 'jpg', 'jpeg'],
+            ),
         }
     
 # *****************************************************************************************************
