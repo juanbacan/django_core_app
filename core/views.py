@@ -3,7 +3,7 @@ from datetime import date
 from urllib.parse import urlencode
 
 from django.shortcuts import redirect, render
-from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, Http404
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, Http404, HttpResponseBadRequest
 from django.views.generic import View, ListView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.decorators.csrf import csrf_exempt
@@ -329,6 +329,35 @@ def upload_image(request, series: str=None, article: str=None):
             'message': 'Image uploaded successfully',
             'location': url
         })
+
+ALLOWED_PREFIXES = (
+    settings.URL_BASE,
+    "https://storage.googleapis.com/",
+    "https://firebasestorage.googleapis.com/",
+)
+
+@csrf_exempt
+def tinymce_proxy(request):
+    url = request.GET.get("url", "")
+    if not url or not any(url.startswith(p) for p in ALLOWED_PREFIXES):
+        return HttpResponseBadRequest("Invalid source")
+
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "TinyMCE-Proxy"})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = resp.read()
+            content_type = resp.headers.get("Content-Type", "image/jpeg")
+    except Exception as e:
+        return HttpResponse(f"Proxy error: {e}", status=502)
+
+    r = HttpResponse(data, content_type=content_type)
+    # Permite al editor dibujar en canvas el recurso proxied
+    origin = request.headers.get("Origin", "*")
+    r["Access-Control-Allow-Origin"] = origin
+    r["Vary"] = "Origin"
+    r["Cache-Control"] = "private, max-age=300"
+    r["X-Content-Type-Options"] = "nosniff"
+    return r
 
 class SuperuserRequiredMixin(LoginRequiredMixin):
     def dispatch(self, request, *args, **kwargs):
