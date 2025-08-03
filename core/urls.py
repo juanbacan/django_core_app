@@ -9,6 +9,7 @@ urlpatterns = [
     path('model_autocomplete/', ModelAutocompleteView.as_view(), name='model_autocomplete'),
     path('api/', api, name='api_administracion'), 
     path('upload_image/', upload_image, name='upload_image'),
+    path("tinymce/proxy/", tinymce_proxy, name="tinymce_proxy"),
     path('custom_user_autocomplete/', CustomUserAutocompleteView.as_view(), name='custom_user_autocomplete'),
     path(
         "fk-lookup/<str:model_label>/",
