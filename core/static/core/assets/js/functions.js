@@ -382,33 +382,39 @@ const submitModalForm1 = async (formid = 'modalForm1', showError = true) => {
 // Inicializar Select2 en modales
 // Esta función se llama automáticamente al cargar el modal o al abrir un modal existente
 window.initDalSelect2InModal = function (modalElOrSelector) {
-  // 1) No jQuery => no hacer nada
-  var hasDjQuery = (window.django && django.jQuery);
-  var $ = hasDjQuery ? django.jQuery : window.jQuery;
-  if (!$) return;
+    // 1) No jQuery => no hacer nada
+    var hasDjQuery = (window.django && django.jQuery);
+    var $ = hasDjQuery ? django.jQuery : window.jQuery;
+    if (!$) return;
 
-  // 2) Scope: el modal que pasas; si no pasas, usa el modal visible
-  var $scope = modalElOrSelector ? $(modalElOrSelector) :
+    // 2) Scope: el modal que pasas; si no pasas, usa el modal visible
+    var $scope = modalElOrSelector ? $(modalElOrSelector) :
                ($('.modal.show').length ? $('.modal.show') : $(document.body));
+
+    var $modal = $scope.hasClass('modal') ? $scope : $scope.closest('.modal');
+    var $dp = $modal.length ? $modal : $(document.body);
 
     $scope.find('[data-autocomplete-light-function="select2"]').each(function () {
         var $el = $(this);
 
+        // dropdownParent: modal más cercano; si no hay, body
+        if ($modal.length && $modal.attr('id') && !$el.attr('data-dropdown-parent')) {
+            $el.attr('data-dropdown-parent', '#' + $modal.attr('id'));
+        }
+
+        if ($el.hasClass('select2-hidden-accessible')) {
+            try { $el.select2('close'); } catch(e) {}
+            try { $el.select2('destroy'); } catch(e) {}
+        }
+
         // Evitar re‑inicializar
-        if ($el.hasClass('select2-hidden-accessible')) return;
+        //if ($el.hasClass('select2-hidden-accessible')) return;
 
         // Placeholder: data-placeholder > separator > placeholder > default
         var ph = $el.attr('data-placeholder') ||
                 $el.attr('separator') ||
                 $el.attr('placeholder') ||
                 'Seleccione una opción';
-
-        // dropdownParent: modal más cercano; si no hay, body
-        var $modal = $el.closest('.modal.show');
-        var $dp = $modal.length ? $modal : $scope.closest('.modal.show');
-        if ($modal.length && $modal.attr('id')) {
-            $el.attr('data-dropdown-parent', '#' + $modal.attr('id'));
-        }
 
         // Asegurar opciones vía data-* para DAL
         if (!$el.attr('data-placeholder')) $el.attr('data-placeholder', ph);
