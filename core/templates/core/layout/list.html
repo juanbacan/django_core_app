@@ -1,3 +1,4 @@
+
 {% extends 'layout/base_admin.html' %}
 
 {% load core_extras %}
@@ -10,6 +11,7 @@
                     {% if not request.GET.popup %}
                         {% block buttons %}
                             <a class="btn btn-sm btn-dark" href="{{ path }}?action=add"><i class="fa-solid fa-circle-plus"></i> Agregar {{ modulo_activo }}</a>
+                            {% block extra_buttons %}{% endblock %}
                         {% endblock %}
                     {% endif %}
                 </div>
