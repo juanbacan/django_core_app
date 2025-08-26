@@ -28,7 +28,8 @@ from allauth.socialaccount.models import SocialAccount, SocialApp
 from allauth.account.models import EmailAddress
 import allauth.account.forms as forms_allauth
 
-from dal import autocomplete
+from dal import autocomplete, forward
+from core.crud_registry import crud_registry
 
 from google.oauth2 import id_token
 from google.auth.transport import requests as g_requests
@@ -37,6 +38,7 @@ import urllib
 from .mixins import SecureModuleMixin
 from .models import NotificacionUsuario, NotificacionUsuarioCount, CustomUser
 from .forms import ModelBaseForm
+from .forms import configure_auto_complete_widgets
 
 from .utils import bad_json, queryset_to_excel, success_json, get_query_params, \
     save_error, upload_image_to_firebase_storage, get_redirect_url, \
@@ -221,23 +223,56 @@ def api(request):
 
 class ModelAutocompleteView(autocomplete.Select2QuerySetView):
     def get_queryset(self):
-        model = self.forwarded.get('model', None)
-        list_applications = settings.AUTO_COMPLETE_APPS
+        model_name = self.forwarded.get('model', None)
+        if not model_name:
+            return
+
+        model = None
+        # Si el forward viene como 'app_label.ModelName', usarlo directamente
+        if isinstance(model_name, str) and '.' in model_name:
+            try:
+                app_label, model_cls = model_name.split('.', 1)
+                model = apps.get_model(app_label, model_cls)
+            except Exception:
+                model = None
+
+        # Intentar buscar en AUTO_COMPLETE_APPS (mantener compatibilidad)
+        if model is None:
+            list_applications = getattr(settings, 'AUTO_COMPLETE_APPS', [])
+            for app in list_applications:
+                try:
+                    model = apps.get_model(app, model_name)
+                    break
+                except Exception:
+                    continue
+
+        # Último recurso: buscar en todas las apps por nombre de clase
+        if model is None:
+            for m in apps.get_models():
+                if m.__name__ == model_name or f"{m._meta.app_label}.{m.__name__}" == model_name:
+                    model = m
+                    break
 
         if not model:
             return
-        
-        for app in list_applications:
-            try:
-                model = apps.get_model(app, model)
-                break
-            except:
-                pass
-        
-        if model and self.q:
-            qs = model.flexbox_query(self.q)
-        elif model:
-            qs = model.objects.all()
+
+        # Buscar la vista CRUD registrada para este modelo
+        info = crud_registry.get(model)
+        if not info:
+            raise ValueError(f"No hay una ModelCRUDView registrada para el modelo {model.__name__}")
+
+        view_cls = info.get('view')
+        search_fields = getattr(view_cls, 'search_fields', None)
+        if not search_fields:
+            raise ValueError(f"La vista CRUD de {model.__name__} no define 'search_fields'")
+
+        qs = model.objects.all()
+        if self.q:
+            for word in self.q.strip().split():
+                q = Q()
+                for field in search_fields:
+                    q |= Q(**{f"{field}__icontains": word})
+                qs = qs.filter(q)
 
         return qs
     
@@ -511,6 +546,7 @@ class ModelCRUDView(ViewAdministracionBase):
     - `exclude_fields`: Campos a excluir del formulario (opcional, por defecto incluye campos de auditoría).
     - `paginate_by`: Número de objetos por página en la vista de lista (opcional, por defecto 25).
     - `raw_id_fields`: Campos que se mostrarán como campos de búsqueda (opcional).
+    - `auto_complete_fields`: Campos que se beneficiarán de la búsqueda automática (opcional).
     """
     model = None
     form_class = None
@@ -522,6 +558,7 @@ class ModelCRUDView(ViewAdministracionBase):
     exclude_fields = ('created_at', 'updated_at', 'created_by', 'modified_by')
     paginate_by = 25
     raw_id_fields = []
+    auto_complete_fields = []
 
     # ATRIBUTOS PARA EXPORTACIÓN A EXCEL
     export_headers = None  # ['Código', 'Descripción']
@@ -621,6 +658,10 @@ class ModelCRUDView(ViewAdministracionBase):
 
         if self.raw_id_fields:
             setattr(self.form_class, "raw_id_fields", self.raw_id_fields)
+
+        if self.auto_complete_fields:
+            configure_auto_complete_widgets(self.form_class, self.model, getattr(self, 'auto_complete_fields', None))
+
 
         if not self.template_list:
             if not self.list_display:

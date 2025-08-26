@@ -2,6 +2,10 @@ from django import forms
 from django.utils.safestring import mark_safe
 from tinymce.widgets import TinyMCE
 from dal_select2.widgets import ModelSelect2, Select2, Select2Multiple, ModelSelect2Multiple
+from dal import autocomplete as dal_autocomplete, forward as dal_forward
+from django.apps import apps
+from django.conf import settings
+from core.crud_registry import crud_registry
 
 from core.crud_registry import crud_registry
 from core.widgets import IconPickerWidget
@@ -221,6 +225,76 @@ class ModelBaseForm(BootstrapFieldsMixin, forms.ModelForm):
         for formset in getattr(self, 'inline_formsets', []):
             media += formset.media
         return media
+
+
+def configure_auto_complete_widgets(form_class, model, auto_complete_fields=None):
+    """
+    Configura widgets de autocomplete (dal) en `form_class` para los campos listados
+    en `auto_complete_fields`. No lanza excepciones, solo imprime advertencias para
+    no romper la ejecución en runtime.
+
+    - form_class: clase de formulario (ModelForm class)
+    - model: modelo padre donde se buscan los fields
+    - auto_complete_fields: lista de nombres de campos relacionales
+    """
+    if not auto_complete_fields:
+        return
+
+    for field_name in auto_complete_fields:
+        try:
+            field_obj = model._meta.get_field(field_name)
+        except Exception as e:
+            print(f"[configure_auto_complete_widgets] {field_name} no es un campo válido de {model.__name__}: {e}")
+            continue
+
+        if not getattr(field_obj, 'is_relation', False):
+            print(f"[configure_auto_complete_widgets] {field_name} no es una relación en {model.__name__}")
+            continue
+
+        related_model = getattr(field_obj, 'related_model', None) or (
+            getattr(field_obj, 'remote_field', None) and getattr(field_obj.remote_field, 'model', None)
+        )
+        if related_model is None:
+            print(f"[configure_auto_complete_widgets] No se pudo determinar el modelo relacionado para {field_name}")
+            continue
+
+        if related_model not in crud_registry:
+            print(f"[configure_auto_complete_widgets] No hay una ModelCRUDView registrada para {related_model.__name__}")
+            continue
+
+        related_view = crud_registry[related_model].get('view')
+        if not getattr(related_view, 'search_fields', None):
+            print(f"[configure_auto_complete_widgets] La vista CRUD de {related_model.__name__} no define 'search_fields'")
+            continue
+
+        is_m2m = getattr(field_obj, 'many_to_many', False)
+        widget_cls = dal_autocomplete.ModelSelect2Multiple if is_m2m else dal_autocomplete.ModelSelect2
+
+        forward_value = f"{related_model._meta.app_label}.{related_model.__name__}"
+        try:
+            widget = widget_cls(
+                url='core:model_autocomplete',
+                forward=(dal_forward.Const(forward_value, 'model'),),
+                attrs={'data-html': True}
+            )
+        except Exception as e:
+            print(f"[configure_auto_complete_widgets] Error creando widget para {field_name}: {e}")
+            continue
+
+        try:
+            if hasattr(form_class, 'base_fields') and field_name in form_class.base_fields:
+                form_class.base_fields[field_name].widget = widget
+            elif hasattr(form_class, 'declared_fields') and field_name in form_class.declared_fields:
+                form_class.declared_fields[field_name].widget = widget
+            else:
+                # Intentar asignar en attrs de Meta.widgets si existe y es dict
+                meta = getattr(form_class, 'Meta', None)
+                if meta and hasattr(meta, 'widgets') and isinstance(meta.widgets, dict) and field_name in meta.widgets:
+                    meta.widgets[field_name] = widget
+                else:
+                    print(f"[configure_auto_complete_widgets] No se pudo asignar widget para {field_name} en {form_class}")
+        except Exception as e:
+            print(f"[configure_auto_complete_widgets] Error asignando widget para {field_name}: {e}")
 
 
 
