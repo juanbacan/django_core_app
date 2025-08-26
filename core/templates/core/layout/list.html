@@ -39,16 +39,18 @@
                     <div class="table-responsive">
                         {% block table %}
                         <table class="table small table-hover table-striped mb-5">
-                            <thead>
-                                  <tr>
-                                    {% for h in display_headers %}
-                                        <th>{{ h }}</th>
-                                    {% endfor %}
-                                    {% if not request.GET.popup %}
-                                        <th style="width: 1%; white-space: nowrap;">Acciones</th>
-                                    {% endif %}
-                                </tr>
-                            </thead>
+                                                        <thead>
+                                                                    <tr>
+                                                                        {% block headers %}
+                                                                            {% for h in display_headers %}
+                                                                                    <th>{{ h }}</th>
+                                                                            {% endfor %}
+                                                                        {% endblock %}
+                                                                        {% if not request.GET.popup %}
+                                                                                <th style="width: 1%; white-space: nowrap;">Acciones</th>
+                                                                        {% endif %}
+                                                                </tr>
+                                                        </thead>
 
                             <tbody>
                                 {% for obj, cells in table_rows %}

@@ -1,7 +1,7 @@
 <hr class="my-4">
 {% for formset in form.inline_formsets %}
     <div class="card mb-4" id="inline-container-{{ formset.prefix }}">
-        <div class="card-header bg-primary bg-soft">
+        <div class="card-header text-white bg-primary bg-soft">
             {{ formset.verbose_name_plural }}
         </div>
         {{ formset.management_form }}

@@ -842,13 +842,28 @@ class ModelCRUDView(ViewAdministracionBase):
             "view":          self,                    
         })
 
+        # Build display data for templates. If `list_display` is not defined
+        # we still provide a sensible fallback so custom `template_list`
+        # can render data without forcing every view to declare list_display.
         if self.list_display:
             headers, specs = self.build_display()
             table_rows = self.build_table_rows(page_obj, specs)
-            context.update({
-                'display_headers': headers,
-                'table_rows': table_rows,
-            })
+        else:
+            # Fallback: single column with str(obj)
+            headers = ["Objeto"]
+            # specs is a list with a single callable that returns the object's string repr
+            specs = [lambda o: str(o)]
+            # build_table_rows expects callables or attribute names; reuse the method for markup
+            # but build_table_rows will call mark_safe on the returned value, so use it safely.
+            table_rows = []
+            for o in page_obj:
+                cells = [mark_safe(str(o))]
+                table_rows.append((o, cells))
+
+        context.update({
+            'display_headers': headers,
+            'table_rows': table_rows,
+        })
 
         if self.list_filter:
             context['filter_options'] = self.get_filter_options()
