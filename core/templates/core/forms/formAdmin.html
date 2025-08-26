@@ -238,9 +238,43 @@
                 // Notificar cambio (Select2 u otros)
                 select.dispatchEvent(new Event('change'));
 
-                // Si el select usa Select2, refrescar su UI
+                // Si el select usa Select2, refrescar su UI usando la API de jQuery
                 if (window.jQuery && $(select).hasClass('select2-hidden-accessible')) {
-                    $(select).trigger('change.select2');
+                    try {
+                        const $sel = $(select);
+                        // Si la opción no existía, la añadimos con jQuery para que Select2 la reconozca
+                        if (!option) {
+                            $sel.append(new Option(newRepr, newId, true, true));
+                        } else {
+                            // Actualizar el texto de la opción existente
+                            $(option).text(newRepr);
+                        }
+
+                        // Forzar la selección y notificar a Select2
+                        if (select.multiple) {
+                            // añadir al valor actual
+                            const vals = ($sel.val() || []).map(String);
+                            if (!vals.includes(String(newId))) vals.push(String(newId));
+                            $sel.val(vals).trigger('change.select2');
+                        } else {
+                            $sel.val(String(newId)).trigger('change.select2');
+                        }
+
+                        // Actualizar manualmente el contenedor visible de Select2 por si el plugin no refresca
+                        try {
+                            const container = document.getElementById('select2-' + select.id + '-container');
+                            if (container) {
+                                container.textContent = newRepr;
+                                container.title = newRepr;
+                            }
+                        } catch (e2) {
+                            // ignore
+                        }
+
+                    } catch (e) {
+                        // Fallback al trigger genérico si algo falla
+                        $(select).trigger('change.select2');
+                    }
                 }
                 return;
             }
