@@ -36,21 +36,21 @@
 
             <div class="card border-0">
                 <div class="card-body">
-                    <div class="table-responsive">
+                    <div class="table-responsive pb-5">
                         {% block table %}
                         <table class="table small table-hover table-striped mb-5">
-                                                        <thead>
-                                                                    <tr>
-                                                                        {% block headers %}
-                                                                            {% for h in display_headers %}
-                                                                                    <th>{{ h }}</th>
-                                                                            {% endfor %}
-                                                                        {% endblock %}
-                                                                        {% if not request.GET.popup %}
-                                                                                <th style="width: 1%; white-space: nowrap;">Acciones</th>
-                                                                        {% endif %}
-                                                                </tr>
-                                                        </thead>
+                            <thead>
+                                <tr>
+                                    {% block headers %}
+                                    {% for h in display_headers %}
+                                        <th>{{ h }}</th>
+                                    {% endfor %}
+                                    {% endblock %}
+                                    {% if not request.GET.popup %}
+                                        <th style="width: 1%; white-space: nowrap;">Acciones</th>
+                                    {% endif %}
+                                </tr>
+                            </thead>
 
                             <tbody>
                                 {% for obj, cells in table_rows %}
@@ -77,6 +77,11 @@
                                                                     nhref="{{ path }}{{ act.url }}" href="javascript:void(0);"
                                                                 {% else %}
                                                                     href="{{ path }}{{ act.url }}"
+                                                                {% endif %}
+                                                                {% if act.attrs %}
+                                                                    {% for attr_name, attr_value in act.attrs.items %}
+                                                                        {{ attr_name }}="{{ attr_value }}"
+                                                                    {% endfor %}
                                                                 {% endif %}>
                                                                 {% if act.icon %}<i class="fa-solid {{ act.icon }}"></i>{% endif %}
                                                                 {{ act.label }}

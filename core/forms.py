@@ -6,8 +6,6 @@ from dal import autocomplete as dal_autocomplete, forward as dal_forward
 from django.apps import apps
 from django.conf import settings
 from core.crud_registry import crud_registry
-
-from core.crud_registry import crud_registry
 from core.widgets import IconPickerWidget
 
 class BootstrapFieldsMixin:
