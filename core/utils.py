@@ -44,12 +44,41 @@ def reset_model(model):
 def db_table_exists(table_name):
     """
     Verifica si una tabla existe en la base de datos
+    Compatible con PostgreSQL, SQLite, MySQL y otros motores
     :param table_name: Nombre de la tabla
     :return: True si la tabla existe, False en caso contrario
     """
     with connection.cursor() as cursor:
-        cursor.execute(f"SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = '{table_name}');")
-        return cursor.fetchone()[0]
+        # Detectar el tipo de base de datos
+        db_vendor = connection.vendor
+        
+        if db_vendor == 'postgresql':
+            cursor.execute(
+                "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = %s);",
+                [table_name]
+            )
+            return cursor.fetchone()[0]
+        elif db_vendor == 'sqlite':
+            cursor.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name = ?;",
+                [table_name]
+            )
+            result = cursor.fetchone()
+            return result is not None
+        elif db_vendor == 'mysql':
+            cursor.execute(
+                "SELECT TABLE_NAME FROM information_schema.tables WHERE table_name = %s AND table_schema = DATABASE();",
+                [table_name]
+            )
+            result = cursor.fetchone()
+            return result is not None
+        else:
+            # Fallback genérico: intentar hacer una consulta simple a la tabla
+            try:
+                cursor.execute(f"SELECT 1 FROM {table_name} LIMIT 1;")
+                return True
+            except Exception:
+                return False
 
 def gestionar_modulos(urls_sistema):
     """
