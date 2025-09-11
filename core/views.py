@@ -831,7 +831,7 @@ class ModelCRUDView(ViewAdministracionBase):
         if self.action and hasattr(self, f'get_{self.action}'):
             return getattr(self, f'get_{self.action}')(request, context, *args, **kwargs)
         
-        qs = self.get_queryset().order_by('id')
+        qs = self.get_queryset().order_by('-id')
         page_obj, is_paginated = self.paginate_queryset(qs)
 
         context.update({
