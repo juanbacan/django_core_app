@@ -5,34 +5,42 @@
 
 {% block content %}
     <div class="row">
-        <section class="mb-4 {% if filter_options %}col-xl-10 col-lg-9 col-md-8 col-sm-12{% else %}co--12{% endif %}">
-            <div class="d-flex flex-wrap gap-3 justify-content-between align-items-center mb-4">
-                <div class="ms-auto">
-                    {% if not request.GET.popup %}
-                        {% block buttons %}
-                            <a class="btn btn-sm btn-dark" href="{{ path }}?action=add"><i class="fa-solid fa-circle-plus"></i> Agregar {{ modulo_activo }}</a>
-                            {% block extra_buttons %}{% endblock %}
-                        {% endblock %}
-                    {% endif %}
+        <section class="mb-4 {% if filter_options %}col-xl-10 col-lg-9 col-md-8 col-sm-12{% else %}col-12{% endif %}">
+            <div class="row">
+                <div class="col-md-6">
+                    <div style="max-width: 500px">
+                    {% block search_filters %}
+                        {% if view.search_fields %}
+                            <form method="GET" role="form" action="{{ request.get_full_path }}">
+                                <div class="input-group mb-3">
+                                    <input type="text" id="search" name="search" value="{{ request.GET.search }}" class="form-control" placeholder="Buscar {{ modulo_activo.nombre }} ...">
+                                    {% if request.GET.popup %}
+                                        <input type="hidden" name="popup" value="{{ request.GET.popup }}">
+                                        <input type="hidden" name="field_id" value="{{ request.GET.field_id }}">
+                                    {% endif %}
+                                    <button type="submit" class="btn btn-dark btn-sm">Buscar <i class="fa-solid fa-magnifying-glass"></i></button>
+                                </div>
+                            </form>
+                        {% endif %}
+                    {% endblock %}
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="d-flex flex-wrap gap-3 justify-content-between align-items-center mb-4">
+                        <div class="ms-auto">
+                            {% if not request.GET.popup %}
+                                {% block buttons %}
+                                    <a class="btn btn-sm btn-dark" href="{{ path }}?action=add"><i class="fa-solid fa-circle-plus"></i> Agregar {{ modulo_activo }}</a>
+                                    {% block extra_buttons %}{% endblock %}
+                                {% endblock %}
+                            {% endif %}
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div style="max-width: 500px">
-                {% block search_filters %}
-                    {% if view.search_fields %}
-                        <form method="GET" role="form" action="{{ request.get_full_path }}">
-                            <div class="input-group mb-3">
-                                <input type="text" id="search" name="search" value="{{ request.GET.search }}" class="form-control" placeholder="Buscar {{ modulo_activo.nombre }} ...">
-                                {% if request.GET.popup %}
-                                    <input type="hidden" name="popup" value="{{ request.GET.popup }}">
-                                    <input type="hidden" name="field_id" value="{{ request.GET.field_id }}">
-                                {% endif %}
-                                <button type="submit" class="btn btn-dark btn-sm">Buscar <i class="fa-solid fa-magnifying-glass"></i></button>
-                            </div>
-                        </form>
-                    {% endif %}
-                {% endblock %}
-            </div>
+            {% block extra_headers %}{% endblock %}
 
             <div class="card border-0">
                 <div class="card-body">
@@ -61,6 +69,7 @@
                                             {% endfor %}
                                         {% endblock %}
 
+                                        {% block col_action %}
                                         {% if not request.GET.popup %}
                                             <td style="width: 1%; white-space: nowrap;">
                                                 <div class="dropdown">
@@ -93,6 +102,7 @@
                                                 </div>
                                             </td>
                                         {% endif %}
+                                        {% endblock %}
                                     </tr>
                                 {% endfor %}
                             </tbody>
