@@ -1,8 +1,3 @@
-var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-    return new bootstrap.Tooltip(tooltipTriggerEl)
-});
-
 async function fetchRequest(url, params, csrftoken=csrf_token) {
     const resp = await fetch(url, {
         method: 'POST',
@@ -460,5 +455,12 @@ for (let i = 0; i < forms.length; i++) {
 }
 
 
+ready(function(){
+    // Inicializar tooltips de Bootstrap 5
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    });
+});
 
 

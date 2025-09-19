@@ -39,9 +39,6 @@ class GrupoModulosView(ModelCRUDView):
     list_display = ['grupo', 'modulos']
     ordering = ['id']
 
-    def get_queryset(self):
-        return super().get_queryset().filter(grupo__id=self.kwargs.get('grupo_id'))
-
 
 class NotificacionesAppView(ModelCRUDView):
     """

@@ -547,6 +547,7 @@ class ModelCRUDView(ViewAdministracionBase):
     - `paginate_by`: Número de objetos por página en la vista de lista (opcional, por defecto 25).
     - `raw_id_fields`: Campos que se mostrarán como campos de búsqueda (opcional).
     - `auto_complete_fields`: Campos que se beneficiarán de la búsqueda automática (opcional).
+    - `ordering`: Lista de campos para ordenar el queryset (opcional, por defecto ['-id']).
     """
     model = None
     form_class = None
@@ -559,6 +560,7 @@ class ModelCRUDView(ViewAdministracionBase):
     paginate_by = 25
     raw_id_fields = []
     auto_complete_fields = []
+    ordering = ['-id']  # Ordenamiento por defecto
 
     # ATRIBUTOS PARA EXPORTACIÓN A EXCEL
     export_headers = None  # ['Código', 'Descripción']
@@ -572,6 +574,10 @@ class ModelCRUDView(ViewAdministracionBase):
             "label": "Editar",
             "icon": "fa-pencil",
             "url": lambda o: f"?action=edit&id={o.id}",
+            'attrs': {
+                'data-bs-toggle': 'tooltip',
+                'title': 'Editar',
+            },
         },
         {
             "name": "delete",
@@ -579,6 +585,10 @@ class ModelCRUDView(ViewAdministracionBase):
             "icon": "fa-trash",
             "url": lambda o: f"?action=delete&id={o.id}",
             "modal": True, # Indica que es un modal
+            'attrs': {
+                'data-bs-toggle': 'tooltip',
+                'title': 'Eliminar',
+            },
         },
     ]
 
@@ -740,6 +750,13 @@ class ModelCRUDView(ViewAdministracionBase):
             options.append((header, choices))
         return options 
     
+    def get_ordering(self):
+        """
+        Retorna la lista de campos para ordenar el queryset.
+        Puede ser sobrescrito en subclases para lógica personalizada.
+        """
+        return self.ordering
+    
     def build_display(self):
         headers, specs = [], []
         # si es popup, añadimos el campo ID como primera columna
@@ -831,7 +848,10 @@ class ModelCRUDView(ViewAdministracionBase):
         if self.action and hasattr(self, f'get_{self.action}'):
             return getattr(self, f'get_{self.action}')(request, context, *args, **kwargs)
         
-        qs = self.get_queryset().order_by('-id')
+        qs = self.get_queryset()
+        ordering = self.get_ordering()
+        if ordering:
+            qs = qs.order_by(*ordering)
         page_obj, is_paginated = self.paginate_queryset(qs)
 
         context.update({
