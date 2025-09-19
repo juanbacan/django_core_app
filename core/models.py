@@ -46,17 +46,75 @@ class CustomUser(AbstractUser):
         correo_no_verificado = EmailAddress.objects.filter(user=self).first()
         return correo_no_verificado.email if correo_no_verificado else None
          
-    def mis_agrupaciones_modulos(self):
+    @cached_property
+    def mis_modulos_y_agrupaciones(self):
+        """
+        Método optimizado que retorna en una sola consulta:
+        - Agrupaciones con sus módulos filtrados por permisos del usuario
+        - Lista de IDs de módulos a los que tiene acceso
+        """
         if self.is_superuser:
-            return AgrupacionModulo.objects.all()
-        return AgrupacionModulo.objects.filter(modulos__grupomodulo__grupo__in=self.groups.all()).distinct()
-
-    def mi_lista_modulos_id(self):
-        if self.is_superuser:
-            return list(Modulo.objects.values_list('id', flat=True))
+            # Para superusuario: todas las agrupaciones con todos sus módulos activos
+            agrupaciones = (
+                AgrupacionModulo.objects
+                .prefetch_related('modulos')
+                .order_by('orden', 'nombre')
+            )
+            modulos_ids = set(Modulo.objects.values_list('id', flat=True))
+            
+            # Filtrar agrupaciones que tienen módulos activos
+            agrupaciones_con_modulos = []
+            for agrupacion in agrupaciones:
+                modulos_activos = agrupacion.modulos_activos
+                if modulos_activos:
+                    agrupaciones_con_modulos.append(agrupacion)
+            
+            return {
+                'agrupaciones': agrupaciones_con_modulos,
+                'modulos_ids': modulos_ids
+            }
         
-        modulos_ids = Modulo.objects.filter(grupomodulo__grupo__in=self.groups.all()).distinct().values_list('id', flat=True)
-        return list(modulos_ids)   
+        else:
+            # Para usuario normal: una sola consulta optimizada
+            user_groups = self.groups.all()
+            
+            # Obtener agrupaciones con módulos filtrados en una consulta
+            agrupaciones = (
+                AgrupacionModulo.objects
+                .filter(modulos__grupomodulo__grupo__in=user_groups)
+                .prefetch_related(
+                    models.Prefetch(
+                        'modulos',
+                        queryset=Modulo.objects.filter(
+                            activo=True,
+                            grupomodulo__grupo__in=user_groups
+                        ).distinct().order_by('orden'),
+                        to_attr='modulos_permitidos'
+                    )
+                )
+                .distinct()
+                .order_by('orden', 'nombre')
+            )
+            
+            # Obtener IDs de módulos permitidos
+            modulos_ids = set(
+                Modulo.objects
+                .filter(grupomodulo__grupo__in=user_groups, activo=True)
+                .distinct()
+                .values_list('id', flat=True)
+            )
+            
+            # Filtrar agrupaciones que tienen al menos un módulo permitido
+            agrupaciones_con_modulos = []
+            for agrupacion in agrupaciones:
+                modulos_permitidos = getattr(agrupacion, 'modulos_permitidos', [])
+                if modulos_permitidos:
+                    agrupaciones_con_modulos.append(agrupacion)
+            
+            return {
+                'agrupaciones': agrupaciones_con_modulos,
+                'modulos_ids': modulos_ids
+            }   
                 
     @staticmethod
     def flexbox_query(query):

@@ -16,6 +16,7 @@ from django.conf import settings
 from django.views.generic.base import ContextMixin
 from django.db import transaction
 from django.db.models import Q
+from django.db import models
 from django.contrib.sites.models import Site
 from django.views.decorators.http import require_POST
 from django.forms import modelform_factory
@@ -36,7 +37,7 @@ from google.auth.transport import requests as g_requests
 import urllib
 
 from .mixins import SecureModuleMixin
-from .models import NotificacionUsuario, NotificacionUsuarioCount, CustomUser
+from .models import NotificacionUsuario, NotificacionUsuarioCount, CustomUser, AgrupacionModulo, Modulo
 from .forms import ModelBaseForm
 from .forms import configure_auto_complete_widgets
 
@@ -499,19 +500,36 @@ class ViewAdministracionBase(LoginRequiredMixin, SecureModuleMixin, ViewClassBas
 
         context['agrupacion_modulos'] = []
         if self.request.user.is_authenticated:
-            # Lista de ids a los que el usuario tiene acceso
-            context["lista_modulos_id"] = self.request.user.mi_lista_modulos_id()
-            agrupacion_modulos = self.request.user.mis_agrupaciones_modulos()
-            # Ver cual agrupacion de modulos esta activa dependiendo de la url del modulo y la url actual
+            # Una sola llamada que obtiene todo lo necesario
+            datos_modulos = self.request.user.mis_modulos_y_agrupaciones
+            
+            # Asignar datos al contexto
+            context["lista_modulos_id"] = list(datos_modulos['modulos_ids'])
+            agrupaciones = datos_modulos['agrupaciones']
+            
+            # Detectar agrupación y módulo activo basado en la URL actual
             url_actual = self.request.path
-            for agrupacion in agrupacion_modulos:
-                for modulo in agrupacion.modulos_activos:
+            
+            for agrupacion in agrupaciones:
+                # Obtener módulos según el tipo de usuario
+                if self.request.user.is_superuser:
+                    modulos = agrupacion.modulos_activos
+                else:
+                    modulos = getattr(agrupacion, 'modulos_permitidos', [])
+                
+                # Verificar si algún módulo está activo (su URL coincide con la actual)
+                for modulo in modulos:
                     if modulo.url in url_actual:
                         setattr(agrupacion, 'activo', True)
                         context['modulo_activo'] = modulo
                         context['agrupacion_activa'] = agrupacion
                         break
-            context['agrupacion_modulos'] = agrupacion_modulos
+                
+                # Asegurar que tenemos la propiedad correcta para el template
+                if not self.request.user.is_superuser:
+                    agrupacion.modulos_activos_filtrados = modulos
+            
+            context['agrupacion_modulos'] = agrupaciones
         return context
 
 
