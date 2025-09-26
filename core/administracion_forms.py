@@ -70,7 +70,7 @@ class AplicacionWebForm(ModelBaseForm):
 class CustomUserForm(ModelBaseForm):
     class Meta:
         model = CustomUser
-        fields = '__all__'
+        fields = ['username', 'first_name', 'last_name', 'email', 'is_active', 'is_staff', 'is_superuser', 'groups', 'password']
         labels = {
             'username': 'Nombre de Usuario',
             'first_name': 'Nombres',
@@ -99,25 +99,45 @@ class CustomUserForm(ModelBaseForm):
         }
 
     def clean_username(self):
+        username = self.cleaned_data.get('username')
         if self.instance and self.instance.pk:
-            return self.cleaned_data['username']
-        if CustomUser.objects.filter(username=self.cleaned_data['username']).exists():
+            return username
+        if CustomUser.objects.filter(username=username).exists():
             raise forms.ValidationError('El nombre de usuario ya existe')
-        
+        return username  # <- importante
+
     def clean_email(self):
+        email = self.cleaned_data.get('email')
         if self.instance and self.instance.pk:
-            return self.cleaned_data['email']
-        if CustomUser.objects.filter(email=self.cleaned_data['email']).exists():
+            return email
+        if CustomUser.objects.filter(email=email).exists():
             raise forms.ValidationError('El correo electrónico ya existe')
-        return self.cleaned_data['email']
-    
+        return email
+
     def clean_password(self):
+        # OBLIGATORIO devolver algo siempre
+        pwd = self.cleaned_data.get('password')
         if self.instance and self.instance.pk:
-            return self.cleaned_data['password']
-        if not self.cleaned_data['password']:
+            # en edición puedes permitir dejarlo vacío para no cambiarlo
+            return pwd
+        if not pwd:
             raise forms.ValidationError('Este campo es requerido')
-        return self.cleaned_data['password']
+        return pwd
     
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        pwd = self.cleaned_data.get('password')
+
+        if pwd:
+            if not str(pwd).startswith(('pbkdf2_', 'argon2$', 'bcrypt$', 'scrypt$')):
+                user.set_password(pwd)
+            else:
+                user.password = pwd  # asumes que pegaste un hash válido
+
+        if commit:
+            user.save()
+            self.save_m2m()
+        return user
 
 # *****************************************************************************************************
 # Sección Notificaciones
