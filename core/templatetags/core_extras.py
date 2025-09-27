@@ -1,5 +1,6 @@
 import random, math, datetime
 from bs4 import BeautifulSoup
+from urllib.parse import urlparse, parse_qs
 
 from django import template
 from django.utils import timezone
@@ -381,6 +382,40 @@ def row_actions(obj, view):
     Llama a view.get_row_actions(obj) y devuelve la lista de acciones.
     """
     return view.get_row_actions(obj)
+
+@register.filter
+def youtube_embed_id(url):
+    """Extract YouTube video id from various URL formats.
+
+    Supports:
+    - https://www.youtube.com/watch?v=VIDEOID
+    - https://youtu.be/VIDEOID
+    - https://www.youtube.com/embed/VIDEOID
+    - urls with extra params
+    Returns empty string if no id could be found.
+    """
+    if not url:
+        return ''
+    try:
+        parsed = urlparse(url)
+        host = parsed.netloc.lower()
+        # youtu.be short link
+        if 'youtu.be' in host:
+            vid = parsed.path.lstrip('/')
+            return vid.split('?')[0]
+
+        # youtube.com variations
+        if 'youtube.com' in host:
+            # /embed/VIDEOID
+            if parsed.path.startswith('/embed/'):
+                return parsed.path.split('/embed/')[-1].split('/')[0]
+            qs = parse_qs(parsed.query)
+            if 'v' in qs:
+                return qs['v'][0]
+
+        return ''
+    except Exception:
+        return ''
 
 register.filter("call", callmethod)
 register.filter("args", args)
