@@ -1,4 +1,4 @@
-import os, json
+import os, json, urllib.parse
 from datetime import date
 from urllib.parse import urlencode
 
@@ -720,7 +720,8 @@ class ModelCRUDView(ViewAdministracionBase):
         Permite múltiples palabras separadas por espacios.
         """
         queryset = self.model.objects.all()
-        search = self.data.get("search")
+        # Fix: usar request.GET para búsqueda en lugar de self.data que puede no estar inicializado
+        search = self.request.GET.get("q", "").strip() if hasattr(self, 'request') else self.data.get("search", "") if hasattr(self, 'data') else ""
 
         # --- Búsqueda ---
         if search and self.search_fields:
@@ -731,17 +732,31 @@ class ModelCRUDView(ViewAdministracionBase):
                 queryset = queryset.filter(q)
 
         # --- Filtros ---
-        for field in self.list_filter:
-            value = self.request.GET.get(field)
+        for filter_item in self.list_filter:
+            # Manejar tuplas personalizadas: ("Nombre Custom", "campo")
+            if isinstance(filter_item, tuple):
+                _, field_name = filter_item
+            else:
+                field_name = filter_item
+                
+            value = self.request.GET.get(field_name)
             if value not in [None, ""]:
-                queryset = queryset.filter(**{field: value})
+                queryset = queryset.filter(**{field_name: value})
         
         return queryset.distinct()  # Elimina duplicados si hay joins
     
     def get_filter_options(self):
         options = []
-        for path in self.list_filter:
-            header = get_header(self.model, path).lower()
+        for filter_item in self.list_filter:
+            # Soporte para tuplas personalizadas: ("Nombre Custom", "campo")
+            if isinstance(filter_item, tuple):
+                custom_header, path = filter_item
+                header = custom_header.lower()
+            else:
+                path = filter_item
+                # Obtener header base solo si no es tupla personalizada
+                header = get_header(self.model, path).lower()
+            
             field, final_model = _get_field_from_path(self.model, path)
 
             # 1) Field con choices
@@ -754,6 +769,12 @@ class ModelCRUDView(ViewAdministracionBase):
 
             # 3) Relación   -> lista objetos relacionados
             elif field.is_relation:
+                # Usar verbose_name_plural del modelo relacionado si existe y no hay header personalizado
+                if (not isinstance(filter_item, tuple) and 
+                    hasattr(final_model._meta, 'verbose_name_plural') and 
+                    final_model._meta.verbose_name_plural):
+                    header = final_model._meta.verbose_name_plural.lower()
+                
                 rel_qs  = final_model.objects.all()
                 choices = [(obj.pk, str(obj)) for obj in rel_qs]
 
@@ -765,7 +786,12 @@ class ModelCRUDView(ViewAdministracionBase):
                                 .order_by())
                 choices = [(v, v) for v in vals if v is not None]
 
-            options.append((header, choices))
+            # Devolver diccionario con header y nombre real del campo
+            options.append({
+                'header': header,
+                'field_name': path,  # Nombre real del campo para usar en el formulario
+                'choices': choices
+            })
         return options 
     
     def get_ordering(self):
@@ -905,6 +931,11 @@ class ModelCRUDView(ViewAdministracionBase):
 
         if self.list_filter:
             context['filter_options'] = self.get_filter_options()
+        
+        # Agregar información sobre exportación Excel
+        context['can_export'] = bool(self.export_headers and self.export_fields)
+        if context['can_export']:
+            context['export_url'] = f"{request.path}?action=export"
         
         return render(request, self.template_list, context)
 

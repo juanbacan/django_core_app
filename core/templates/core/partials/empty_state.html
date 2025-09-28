@@ -1,0 +1,72 @@
+{% comment %}
+Template para mostrar estado vacío en listas
+Parámetros disponibles:
+- modulo_activo: objeto del módulo actual
+- request: objeto request de Django
+- path: ruta actual
+- filter_options: opciones de filtros disponibles
+- display_headers: headers de la tabla
+{% endcomment %}
+
+<tr>
+    <td colspan="{% if request.GET.popup %}{{ display_headers|length }}{% else %}{{ display_headers|length|add:1 }}{% endif %}" class="text-center py-5">
+        <div class="py-4">
+            <div class="mb-3">
+                {% if request.GET.search %}
+                    <i class="fas fa-search fa-2x text-warning"></i>
+                {% elif filter_options and request.GET|length > 1 %}
+                    <i class="fas fa-filter fa-2x text-info"></i>
+                {% else %}
+                    <i class="fas fa-folder-open fa-2x text-muted"></i>
+                {% endif %}
+            </div>
+            
+            <h5 class="text-muted mb-3">
+                {% if request.GET.search %}
+                    Sin resultados de búsqueda
+                {% elif filter_options and request.GET|length > 1 %}
+                    Sin resultados con filtros
+                {% else %}
+                    No hay {{ modulo_activo.nombre|lower }} disponibles
+                {% endif %}
+            </h5>
+            
+            <p class="text-muted mb-4">
+                {% if request.GET.search %}
+                    No se encontraron resultados para "<strong>{{ request.GET.search }}</strong>".
+                {% elif filter_options and request.GET|length > 1 %}
+                    Los filtros aplicados no devolvieron ningún resultado.
+                {% else %}
+                    Aún no has creado ningún {{ modulo_activo.nombre|lower }}.
+                {% endif %}
+            </p>
+            
+            {% if not request.GET.popup %}
+                {% if request.GET.search %}
+                    <a href="{{ path }}" class="btn btn-outline-primary me-2">
+                        <i class="fas fa-arrow-left me-1"></i>
+                        Ver todos
+                    </a>
+                    <a href="{{ path }}?action=add" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i>
+                        Crear nuevo
+                    </a>
+                {% elif filter_options and request.GET|length > 1 %}
+                    <a href="{{ path }}" class="btn btn-outline-primary me-2">
+                        <i class="fas fa-times me-1"></i>
+                        Quitar filtros
+                    </a>
+                    <a href="{{ path }}?action=add" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i>
+                        Crear nuevo
+                    </a>
+                {% else %}
+                    <a href="{{ path }}?action=add" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>
+                        Crear {{ modulo_activo.nombre|capfirst }}
+                    </a>
+                {% endif %}
+            {% endif %}
+        </div>
+    </td>
+</tr>

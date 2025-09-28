@@ -32,6 +32,11 @@
                             {% if not request.GET.popup %}
                                 {% block buttons %}
                                     <a class="btn btn-sm btn-dark" href="{{ path }}?action=add"><i class="fa-solid fa-circle-plus"></i> Agregar {{ modulo_activo }}</a>
+                                    {% if can_export %}
+                                        <a class="btn btn-sm btn-success" href="{{ export_url }}" target="_blank">
+                                            <i class="fa-solid fa-file-excel"></i> Exportar Excel
+                                        </a>
+                                    {% endif %}
                                     {% block extra_buttons %}{% endblock %}
                                 {% endblock %}
                             {% endif %}
@@ -104,6 +109,8 @@
                                         {% endif %}
                                         {% endblock %}
                                     </tr>
+                                {% empty %}
+                                    {% include 'core/partials/empty_state.html' %}
                                 {% endfor %}
                             </tbody>
                         </table>
@@ -128,26 +135,26 @@
                         FILTROS
                     </div>
                     <div class="card-body p-2">
-                        {% for field_name, choices in filter_options %}
-                            <details class="mb-2" {% if request.GET|get_item:field_name %}open{% endif %}>
+                        {% for filter_option in filter_options %}
+                            <details class="mb-2" {% if request.GET|get_item:filter_option.field_name %}open{% endif %}>
                                 <summary class="fw-semibold small">
-                                    Por {{ field_name|replace:"_, "|lower }}
+                                    Por {{ filter_option.header }}
                                 </summary>
 
                                 <ul class="list-unstyled ms-2 small mb-0">
                                     {# Opción 'Todo' #}
                                     <li>
-                                        <a href="{% querystring_remove request field_name %}"
-                                            class="{% if not request.GET|get_item:field_name %}fw-bold text-primary{% endif %}">
+                                        <a href="{% querystring_remove request filter_option.field_name %}"
+                                            class="{% if not request.GET|get_item:filter_option.field_name %}fw-bold text-primary{% endif %}">
                                             Todo
                                         </a>
                                     </li>
                                     {# Demás opciones #}
-                                    {% with current=request.GET|get_item:field_name %}
-                                        {% for val, label in choices %}
+                                    {% with current=request.GET|get_item:filter_option.field_name %}
+                                        {% for val, label in filter_option.choices %}
                                             {% with valstr=val|stringformat:"s" %}
                                             <li>
-                                                <a href="{% querystring request field_name valstr %}"
+                                                <a href="{% querystring request filter_option.field_name valstr %}"
                                                 class="{% if current == valstr %}fw-bold text-primary{% endif %}">
                                                 {{ label }}
                                                 </a>
