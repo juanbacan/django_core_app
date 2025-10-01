@@ -404,45 +404,48 @@ def upload_url_image_to_firebase_storage(url, bucket_name=settings.FIREBASE_BUCK
 DATA_URI_RE = re.compile(r'^data:(image/[\w.+-]+);base64,')
 
 def replace_images(html: str, bucket_name=settings.FIREBASE_BUCKET_NAME, folder=settings.FIREBASE_IMAGES_FOLDER) -> str:
-    bucket = storage.bucket(bucket_name)
-    soup = BeautifulSoup(html, "html.parser")
+    try:
+        bucket = storage.bucket(bucket_name)
+        soup = BeautifulSoup(html, "html.parser")
 
-    for img in soup.find_all("img"):
-        src = img.get("src", "")
+        for img in soup.find_all("img"):
+            src = img.get("src", "")
 
-        # --- 1) data:image/… ---------------------------------------------
-        m = DATA_URI_RE.match(src)
-        if m:
-            mime = m.group(1)                     # p.ej. image/png
-            ext  = mime.split("/")[-1]            # png
-            raw  = base64.b64decode(src.split(",", 1)[1])
+            # --- 1) data:image/… ---------------------------------------------
+            m = DATA_URI_RE.match(src)
+            if m:
+                mime = m.group(1)                     # p.ej. image/png
+                ext  = mime.split("/")[-1]            # png
+                raw  = base64.b64decode(src.split(",", 1)[1])
 
-        # --- 2) URL remota -----------------------------------------------
-        else:
+            # --- 2) URL remota -----------------------------------------------
+            else:
+                try:
+                    r = requests.get(src, timeout=10, headers={"User-Agent": "Mozilla/5.0"})
+                    r.raise_for_status()
+                except Exception as e:
+                    print(f"[replace_images] no se pudo descargar {src}: {e}")
+                    continue
+
+                raw  = r.content
+                mime = r.headers.get("content-type") or f"image/{get_image_type(io.BytesIO(r.content)) or 'png'}"
+                ext  = mime.split("/")[-1]
+
+            # --- 3) subir a Firebase -----------------------------------------
+            blob_name = os.path.join(folder, f"{uuid.uuid4().hex}.{ext}")
+            blob      = bucket.blob(blob_name)
+            blob.upload_from_string(raw, content_type=mime)
             try:
-                r = requests.get(src, timeout=10, headers={"User-Agent": "Mozilla/5.0"})
-                r.raise_for_status()
-            except Exception as e:
-                print(f"[replace_images] no se pudo descargar {src}: {e}")
-                continue
+                blob.make_public()
+            except Exception:
+                pass
 
-            raw  = r.content
-            mime = r.headers.get("content-type") or f"image/{get_image_type(io.BytesIO(r.content)) or 'png'}"
-            ext  = mime.split("/")[-1]
+            img["src"] = blob.public_url
+            img["alt"] = "Banco de preguntas"
 
-        # --- 3) subir a Firebase -----------------------------------------
-        blob_name = os.path.join(folder, f"{uuid.uuid4().hex}.{ext}")
-        blob      = bucket.blob(blob_name)
-        blob.upload_from_string(raw, content_type=mime)
-        try:
-            blob.make_public()
-        except Exception:
-            pass
-
-        img["src"] = blob.public_url
-        img["alt"] = "Banco de preguntas"
-
-    return str(soup)
+        return str(soup)
+    except Exception as ex:
+        return html
 
 # *********************************************************************************
 # Guardar errores de la aplicación
