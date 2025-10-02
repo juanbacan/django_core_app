@@ -410,6 +410,37 @@ def replace_images(html: str, bucket_name=settings.FIREBASE_BUCKET_NAME, folder=
 
         for img in soup.find_all("img"):
             src = img.get("src", "")
+            srcset = img.get("srcset", "")
+            
+            # Si hay srcset, obtener la imagen de mayor resolución
+            if srcset:
+                # Parsear srcset para encontrar la imagen de mayor resolución
+                srcset_urls = []
+                for entry in srcset.split(','):
+                    parts = entry.strip().split()
+                    if len(parts) >= 1:
+                        url = parts[0]
+                        # Extraer el número de píxeles si existe (ej: "2x", "300w")
+                        width = 0
+                        if len(parts) > 1:
+                            descriptor = parts[1]
+                            if descriptor.endswith('w'):
+                                try:
+                                    width = int(descriptor[:-1])
+                                except ValueError:
+                                    width = 0
+                            elif descriptor.endswith('x'):
+                                try:
+                                    # Convertir multiplicador a ancho aproximado (asumiendo base 300px)
+                                    multiplier = float(descriptor[:-1])
+                                    width = int(300 * multiplier)
+                                except ValueError:
+                                    width = 0
+                        srcset_urls.append((url, width))
+                
+                # Seleccionar la URL con mayor resolución
+                if srcset_urls:
+                    src = max(srcset_urls, key=lambda x: x[1])[0]
 
             # --- 1) data:image/… ---------------------------------------------
             m = DATA_URI_RE.match(src)
@@ -440,8 +471,11 @@ def replace_images(html: str, bucket_name=settings.FIREBASE_BUCKET_NAME, folder=
             except Exception:
                 pass
 
+            # Actualizar src y eliminar srcset
             img["src"] = blob.public_url
             img["alt"] = "Banco de preguntas"
+            if "srcset" in img.attrs:
+                del img["srcset"]
 
         return str(soup)
     except Exception as ex:
