@@ -26,8 +26,11 @@ def has_access_module(request):
         grupo_id__in=group_ids
     ).values_list('modulos__url', flat=True)
 
-    if path == '/administracion/' and modulos_urls:
-        return True
+    permitidas = ['/administracion/', '/usuario/']
+    # Las rutas en `permitidas` siempre deben permitirse
+    for p in permitidas:
+        if path.startswith(p):
+            return True
  
     for modulo_url in modulos_urls:
         # if modulo_url and path.startswith(modulo_url):
@@ -56,6 +59,6 @@ class SecureModuleMixin(AccessMixin):
         if not has_access:
             messages.error(request, trans("No tienes acceso"))
             error_message and messages.error(request, f'Método: {request.method}, Error: {error_message}')
-            return self.handle_no_permission(request)
+            return self.handle_no_permission()
 
         return super().dispatch(request, *args, **kwargs)

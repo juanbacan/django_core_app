@@ -20,8 +20,12 @@
                     {% csrf_token %}
                     <input type="hidden" name="action" value="{% block action %}{{ action }}{% endblock %}" />
 
+                    {% if formevent %}
+                        <input type="hidden" name="event" value="{{ formevent }}">
+                    {% endif %}
+                    
                     {% if object %}
-                        <input type="hidden" name="id" value="{{ object.id }}" />
+                    <input type="hidden" name="id" value="{{ object.id }}" />
                     {% endif %}
 
                     {% block form_preffix %}{% endblock %}

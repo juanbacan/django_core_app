@@ -48,37 +48,48 @@ def db_table_exists(table_name):
     :param table_name: Nombre de la tabla
     :return: True si la tabla existe, False en caso contrario
     """
-    with connection.cursor() as cursor:
-        # Detectar el tipo de base de datos
-        db_vendor = connection.vendor
-        
-        if db_vendor == 'postgresql':
-            cursor.execute(
-                "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = %s);",
-                [table_name]
-            )
-            return cursor.fetchone()[0]
-        elif db_vendor == 'sqlite':
-            cursor.execute(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name = ?;",
-                [table_name]
-            )
-            result = cursor.fetchone()
-            return result is not None
-        elif db_vendor == 'mysql':
-            cursor.execute(
-                "SELECT TABLE_NAME FROM information_schema.tables WHERE table_name = %s AND table_schema = DATABASE();",
-                [table_name]
-            )
-            result = cursor.fetchone()
-            return result is not None
-        else:
-            # Fallback genérico: intentar hacer una consulta simple a la tabla
-            try:
-                cursor.execute(f"SELECT 1 FROM {table_name} LIMIT 1;")
-                return True
-            except Exception:
-                return False
+    # Preferir la introspección de Django cuando esté disponible: es más fiable
+    # para distintas versiones de DB y evita problemas con placeholders.
+    try:
+        introspection = connection.introspection
+        try:
+            # Algunas versiones aceptan cursor como argumento, otras no.
+            tables = introspection.table_names()
+        except TypeError:
+            with connection.cursor() as cursor:
+                tables = introspection.table_names(cursor)
+        return table_name in tables
+    except Exception:
+        # Si falla la introspección, usar el fallback por vendor (como antes).
+        with connection.cursor() as cursor:
+            db_vendor = connection.vendor
+            if db_vendor == 'postgresql':
+                cursor.execute(
+                    "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = %s);",
+                    [table_name]
+                )
+                return cursor.fetchone()[0]
+            elif db_vendor == 'sqlite':
+                cursor.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name = ?;",
+                    [table_name]
+                )
+                result = cursor.fetchone()
+                return result is not None
+            elif db_vendor == 'mysql':
+                cursor.execute(
+                    "SELECT TABLE_NAME FROM information_schema.tables WHERE table_name = %s AND table_schema = DATABASE();",
+                    [table_name]
+                )
+                result = cursor.fetchone()
+                return result is not None
+            else:
+                # Fallback genérico: intentar hacer una consulta simple a la tabla
+                try:
+                    cursor.execute(f"SELECT 1 FROM {table_name} LIMIT 1;")
+                    return True
+                except Exception:
+                    return False
 
 def gestionar_modulos(urls_sistema):
     """
