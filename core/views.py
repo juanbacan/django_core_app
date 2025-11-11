@@ -121,6 +121,7 @@ def one_tap_google_login(request):
                 uid=uid, provider="google"
             )
             user = social.user
+            return autenticar_usuario(request, user, add_group='Estudiante')
 
         except SocialAccount.DoesNotExist:
             # ── 3) ¿Existe EmailAddress con el mismo email? ────────────────────
