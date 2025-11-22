@@ -640,10 +640,17 @@ class ModelCRUDView(ViewAdministracionBase):
         • valores no numéricos
         • valores menores que 1
         • páginas fuera de rango
+        
+        Si paginate_by es None, retorna el queryset completo sin paginar.
         """
         if paginate_by is None:
             paginate_by = self.paginate_by
-        paginator   = Paginator(queryset, self.paginate_by)
+        
+        # Si paginate_by es None, no paginar
+        if paginate_by is None:
+            return queryset, False
+            
+        paginator   = Paginator(queryset, paginate_by)
 
         if raw_page is None:
             # acepta ?page= ó ?pagina= (en minúscula)
@@ -897,6 +904,7 @@ class ModelCRUDView(ViewAdministracionBase):
         ordering = self.get_ordering()
         if ordering:
             qs = qs.order_by(*ordering)
+            
         page_obj, is_paginated = self.paginate_queryset(qs)
 
         context.update({
