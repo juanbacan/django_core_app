@@ -1,6 +1,14 @@
 {{ form.media }}
 
-{% block extrajs %}{% endblock extrajs %}
+{% block extrajs %}
+    {% include 'core/forms/form_js.html' %}
+{% endblock extrajs %}
+
+{# Incluir estilos comunes #}
+<style>
+    {% include 'core/forms/form_css.html' %}
+</style>
+
 <div class="modal-dialog modal-dialog-scrollable modal-lg">
     <div class="modal-content">
         <div class="modal-header">
@@ -29,7 +37,13 @@
                 {% block formextra %}{% endblock formextra %}
                 
                 {% block formpreffix %}{% endblock formpreffix %}
-                {% include 'core/forms/formRender.html' %}
+                {% if form.helper %}
+                    {# Si el formulario tiene helper, usar el sistema de layout #}
+                    {{ form.helper.render_layout|safe }}
+                {% else %}
+                    {# Fallback al sistema tradicional #}
+                    {% include 'core/forms/formRender.html' %}
+                {% endif %}
                 {% block formsuffix %}{% endblock formsuffix %}
 
                 <div class="modal-footer">

@@ -2,6 +2,21 @@
 
 Sistema similar a **crispy-forms** para Django que te permite controlar completamente el diseño de tus formularios.
 
+## ⚡ Detección Automática
+
+**¡No necesitas cambiar tus templates!** El sistema detecta automáticamente si tu formulario usa `helper`:
+
+```python
+# Simplemente agrega helper a tu formulario
+class MiFormulario(ModelBaseForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper(self)  # ← Esto es todo lo que necesitas
+        self.helper.layout = Layout(...)
+```
+
+Los templates `formAdmin.html`, `formModal.html` y `form.html` **detectan automáticamente** el helper y renderizan con el nuevo sistema. Si no tiene helper, usan el sistema tradicional.
+
 ## ✨ Características
 
 - ✅ **Filas y columnas** responsive con Bootstrap
@@ -86,13 +101,34 @@ HTML('<div class="alert alert-info">Mensaje importante</div>')
 
 ## 🎯 En el Template
 
+**¡No necesitas hacer nada especial!** Los templates detectan automáticamente si el formulario tiene `helper`:
+
 ```django
+{# Funciona automáticamente con formAdmin.html #}
+{% extends 'layout/base_admin.html' %}
+
+{% block content %}
 <form method="POST">
     {% csrf_token %}
-    {% include 'core/forms/formWithLayout.html' %}
+    {% include 'core/forms/form.html' %}
     <button type="submit" class="btn btn-primary">Guardar</button>
 </form>
+{% endblock %}
 ```
+
+```django
+{# También funciona con formModal.html #}
+{% include 'core/modals/formModal.html' %}
+```
+
+**Si el formulario tiene `helper`**, usa automáticamente el sistema de layout.  
+**Si no tiene `helper`**, usa el sistema tradicional (formRender.html).
+
+### Templates que soportan detección automática:
+- ✅ `core/forms/form.html`
+- ✅ `core/forms/formAdmin.html`
+- ✅ `core/modals/formModal.html`
+- ✅ `core/forms/formWithLayout.html`
 
 ## 📚 Componentes Disponibles
 

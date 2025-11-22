@@ -1,10 +1,22 @@
+{# Incluir estilos comunes #}
+{% include 'core/forms/form_css.html' %}
+
 <div>
-    {% include 'core/forms/formRender.html' %}
+    {% if form.helper %}
+        {# Si el formulario tiene helper, usar el sistema de layout #}
+        {{ form.helper.render_layout|safe }}
+    {% else %}
+        {# Fallback al sistema tradicional #}
+        {% include 'core/forms/formRender.html' %}
+    {% endif %}
 
     {% if form.inline_formsets %}
         {% include 'core/forms/form_inline.html' %}
     {% endif %}
 </div>
+
+{# Incluir modales del formulario #}
+{% include 'core/forms/form_modals.html' %}
 
 
 

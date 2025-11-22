@@ -1,5 +1,8 @@
 {% load static %}
 
+{# Incluir CSS común #}
+{% include 'core/forms/form_css.html' %}
+
 <div class="mb-2">
     {% block message %}{{ message|safe }}{% endblock message %}
 </div>
@@ -33,6 +36,7 @@
         </div>
     {% endif %}
     
+    {# Mostrar errores no asociados a campos #}
     {% if form.non_field_errors %}
         <div class="alert alert-danger mt-3">
             {% for error in form.non_field_errors %}
@@ -40,4 +44,15 @@
             {% endfor %}
         </div>
     {% endif %}
+    
+    {# Incluir formsets inline si existen #}
+    {% if form.inline_formsets %}
+        {% include 'core/forms/form_inline.html' %}
+    {% endif %}
 {% endif %}
+
+{# Incluir JavaScript común #}
+{% include 'core/forms/form_js.html' %}
+
+{# Incluir modales del formulario #}
+{% include 'core/forms/form_modals.html' %}

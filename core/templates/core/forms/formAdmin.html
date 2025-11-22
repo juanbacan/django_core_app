@@ -30,7 +30,18 @@
 
                     {% block form_preffix %}{% endblock %}
                     
-                    {% block form %}{% include 'core/forms/form.html' %}{% endblock %}
+                    {% block form %}
+                        {% if form.helper %}
+                            {# Si el formulario tiene helper, usar el sistema de layout #}
+                            {{ form.helper.render_layout|safe }}
+                            {% if form.inline_formsets %}
+                                {% include 'core/forms/form_inline.html' %}
+                            {% endif %}
+                        {% else %}
+                            {# Fallback al sistema tradicional #}
+                            {% include 'core/forms/form.html' %}
+                        {% endif %}
+                    {% endblock %}
 
                     {% block form_suffix %}{% endblock %}
 
@@ -62,258 +73,16 @@
     </div>
 </div>
 
-{% if form.iconpicker %}
-    <div class="modal fade" id="iconModal" tabindex="-1" aria-labelledby="iconModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-scrollable modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="iconModalLabel">Selecciona un icono</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <!-- Barra de búsqueda -->
-                    <div class="mb-3">
-                        <input type="text" id="iconSearch" class="form-control" placeholder="Buscar iconos por nombre...">
-                    </div>
-                    <!-- Contenedor de iconos -->
-                    <div id="icon-list" class="row"></div>
-                    <!-- Controles de paginación -->
-                </div>
-                <div class="modal-footer">
-                    <button id="prevPage" class="btn-sm btn btn-info" disabled>Anterior</button>
-                    <span id="paginationInfo" class="align-self-center"></span>
-                    <button id="nextPage" class="btn-sm btn btn-info" disabled>Siguiente</button>
-                </div>
-            </div>
-        </div>
-    </div>
-{% endif %}
-
 {% endblock %}
 
+{# Modales del formulario #}
+{% include 'core/forms/form_modals.html' %}
 
 {% block extracss %}
-    <style>
-        /* Ajusta ancho completo y separa la fila de botones */
-        .fk-block select { width:100%; }
-
-        .fk-btn{
-            display:inline-flex;
-            align-items:center;
-            justify-content:center;
-            width:26px; height:26px;
-            font-size:13px;
-            border:1px solid #bbb;
-            border-radius:3px;
-            background:#fafafa;
-            color:#444;
-            text-decoration:none;
-        }
-        .fk-btn:hover{ background:#e9e9e9; color:#000; }
-    </style>
+    {% include 'core/forms/form_css.html' %}
 {% endblock %}
 
 {% block extrajs %}
-    {% if form.iconpicker %}
-        <script src="{% static 'core/assets/js/iconpicker.js' %}"></script>
-    {% endif %}
-
-    <script>
-        function slugify(text) {
-            return text.toString().toLowerCase()
-                .replace(/\s+/g, '-')           // Replace spaces with -
-                .replace(/[^\w\-]+/g, '')       // Remove all non-word chars
-                .replace(/\-\-+/g, '-')         // Replace multiple - with single -
-                .replace(/^-+/, '')             // Trim - from start of text
-                .replace(/-+$/, '');            // Trim - from end of text
-        }
-
-        function quitarTildes(texto) {
-            const mapaTildes = {
-                'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u', 'ñ': 'n',
-                'Á': 'A', 'É': 'E', 'Í': 'I', 'Ó': 'O', 'Ú': 'U', 'Ñ': 'N', 
-            };
-        
-            return texto.replace(/[áéíóúñÁÉÍÓÚÑ]/g, function(letra) {
-                return mapaTildes[letra];
-            });
-        }
-
-        ready(function() {
-            {% if prepopulated_fields %}
-                
-                {% for item in prepopulated_fields %}
-                    let {{ item.field }} = document.getElementById('id_{{ item.field }}');
-                    let {{ item.source }} = document.getElementById('id_{{ item.source }}');
-
-                    {{ item.source }}.addEventListener('input', function() {
-                        {{ item.field }}.value = slugify(quitarTildes({{ item.source }}.value));
-                    });
-                {% endfor %}
-            {% endif %}
-        });
-    </script>
-
-    {{ form.media }}
-
-    {% if form.inline_formsets %}
-        {% include 'core/forms/form_inline_js.html' %}
-    {% endif %}
-
-
-    <script>
-        function openFKPopup(addUrl, fieldId) {
-            // Construimos la URL con popup=1 y el id del campo
-            const url = addUrl + (addUrl.includes('?') ? '&' : '?') + 'popup=1&field_id=' + encodeURIComponent(fieldId);
-
-            // Dimensiones y posición
-            const w = 800, h = 500;
-            const left = (screen.width  - w) / 2;
-            const top  = (screen.height - h) / 2;
-
-            // Usamos fieldId como nombre de la ventana; nos servirá para saber a cuál input volver
-            window.open(url, fieldId, `width=${w},height=${h},top=${top},left=${left},resizable=yes,scrollbars=yes`);
-        }
-
-        function openFKEditPopup(btn){
-            const baseUrl = btn.getAttribute('data-edit-base');   // ….?action=edit
-            const fieldId = btn.getAttribute('data-field');
-            const el = document.getElementById(fieldId);
-            if(!el) return;
-
-            // Obtiene el ID seleccionado
-            let selectedId = null;
-            if(el.tagName === 'SELECT'){
-                if(el.multiple){
-                    selectedId = Array.from(el.selectedOptions).pop()?.value;
-                }else{
-                    selectedId = el.value;
-                }
-            }else{
-                selectedId = el.value;
-            }
-
-            if(!selectedId){
-                alert("Selecciona un registro para editar");
-                return;
-            }
-
-            openFKPopup(
-                `${baseUrl}&id=${selectedId}`,   // url completa
-                fieldId                          // para volver a este campo
-            );
-        }
-
-        function dismissAddPopup(newId, newRepr, fieldId) {
-            const origin = document.getElementById(fieldId);   // hidden o select
-            if (!origin) {
-                console.warn("No se encontró el elemento", fieldId);
-                return;
-            }
-
-            /* ───── 0) INPUT (simple) ──────────────────────────────────────── */
-            if (origin.tagName === "INPUT") {
-                origin.value = newId;
-                const label = document.getElementById(fieldId + "_label");
-                if (label) label.textContent = newRepr;
-                return;
-            }
-
-            /* ───── 1) SELECT (FK simple o múltiple) ───────────────────────── */
-            if (origin.tagName === "SELECT") {
-                const select = origin;
-
-                // ¿Existe la opción?
-                let option = Array.from(select.options).find(o => o.value == newId);
-                if (!option) {
-                    option = new Option(newRepr, newId, true, true);   // nueva
-                    select.add(option);
-                } else {
-                    option.textContent = newRepr;                     // ← actualiza texto
-                }
-
-                // Marcar como seleccionado
-                if (select.multiple) {
-                    option.selected = true;           // suma al resto
-                } else {
-                    select.value = newId;             // reemplaza la selección
-                }
-
-                // Notificar cambio (Select2 u otros)
-                select.dispatchEvent(new Event('change'));
-
-                // Si el select usa Select2, refrescar su UI usando la API de jQuery
-                if (window.jQuery && $(select).hasClass('select2-hidden-accessible')) {
-                    try {
-                        const $sel = $(select);
-                        // Si la opción no existía, la añadimos con jQuery para que Select2 la reconozca
-                        if (!option) {
-                            $sel.append(new Option(newRepr, newId, true, true));
-                        } else {
-                            // Actualizar el texto de la opción existente
-                            $(option).text(newRepr);
-                        }
-
-                        // Forzar la selección y notificar a Select2
-                        if (select.multiple) {
-                            // añadir al valor actual
-                            const vals = ($sel.val() || []).map(String);
-                            if (!vals.includes(String(newId))) vals.push(String(newId));
-                            $sel.val(vals).trigger('change.select2');
-                        } else {
-                            $sel.val(String(newId)).trigger('change.select2');
-                        }
-
-                        // Actualizar manualmente el contenedor visible de Select2 por si el plugin no refresca
-                        try {
-                            const container = document.getElementById('select2-' + select.id + '-container');
-                            if (container) {
-                                container.textContent = newRepr;
-                                container.title = newRepr;
-                            }
-                        } catch (e2) {
-                            // ignore
-                        }
-
-                    } catch (e) {
-                        // Fallback al trigger genérico si algo falla
-                        $(select).trigger('change.select2');
-                    }
-                }
-                return;
-            }
-
-            /* ───── 2) hidden + display ───────────────────────────────────── */
-            const hiddenInput  = origin;
-            const displayInput = document.getElementById(`${fieldId}_display`);
-
-            hiddenInput.value = newId;
-            if (displayInput) displayInput.value = newRepr;
-            hiddenInput.dispatchEvent(new Event('change'));
-        }
-
-        function clearFKField(fieldId) {
-            const el = document.getElementById(fieldId);
-            if (!el) return;
-
-            if (el.tagName === 'SELECT') {
-                // simple o multiple
-                for (const opt of el.options) opt.selected = false;
-            } else {
-                // hidden + display
-                el.value = '';
-                const display = document.getElementById(`${fieldId}_display`);
-                if (display) display.value = '';
-            }
-            el.dispatchEvent(new Event('change'));
-        }
-
-        function openFKRawPopup(baseUrl, fieldId) {
-            const input = document.getElementById(fieldId);
-            const currentId = input.value.trim();
-            const url = baseUrl + '?popup=1&field_id=' + fieldId + (currentId ? ('&id=' + currentId) : '');
-            window.open(url, fieldId, 'width=800,height=600,resizable=yes,scrollbars=yes');
-        }
-    </script>
+    {% include 'core/forms/form_js.html' %}
 {% endblock %}
 

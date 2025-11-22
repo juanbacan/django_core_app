@@ -1,0 +1,186 @@
+{% load static %}
+
+{# JavaScript común para todos los formularios #}
+
+<script>
+    function slugify(text) {
+        return text.toString().toLowerCase()
+            .replace(/\s+/g, '-')           // Replace spaces with -
+            .replace(/[^\w\-]+/g, '')       // Remove all non-word chars
+            .replace(/\-\-+/g, '-')         // Replace multiple - with single -
+            .replace(/^-+/, '')             // Trim - from start of text
+            .replace(/-+$/, '');            // Trim - from end of text
+    }
+
+    function quitarTildes(texto) {
+        const mapaTildes = {
+            'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u', 'ñ': 'n',
+            'Á': 'A', 'É': 'E', 'Í': 'I', 'Ó': 'O', 'Ú': 'U', 'Ñ': 'N', 
+        };
+    
+        return texto.replace(/[áéíóúñÁÉÍÓÚÑ]/g, function(letra) {
+            return mapaTildes[letra];
+        });
+    }
+
+    ready(function() {
+        {% if prepopulated_fields %}
+            {% for item in prepopulated_fields %}
+                let {{ item.field }} = document.getElementById('id_{{ item.field }}');
+                let {{ item.source }} = document.getElementById('id_{{ item.source }}');
+
+                if ({{ item.source }}) {
+                    {{ item.source }}.addEventListener('input', function() {
+                        {{ item.field }}.value = slugify(quitarTildes({{ item.source }}.value));
+                    });
+                }
+            {% endfor %}
+        {% endif %}
+    });
+</script>
+
+{# Media del formulario #}
+{{ form.media }}
+
+{# JavaScript para inline formsets #}
+{% if form.inline_formsets %}
+    {% include 'core/forms/form_inline_js.html' %}
+{% endif %}
+
+{# JavaScript para Foreign Key popups #}
+<script>
+    function openFKPopup(addUrl, fieldId) {
+        const url = addUrl + (addUrl.includes('?') ? '&' : '?') + 'popup=1&field_id=' + encodeURIComponent(fieldId);
+        const w = 800, h = 500;
+        const left = (screen.width  - w) / 2;
+        const top  = (screen.height - h) / 2;
+        window.open(url, fieldId, `width=${w},height=${h},top=${top},left=${left},resizable=yes,scrollbars=yes`);
+    }
+
+    function openFKEditPopup(btn){
+        const baseUrl = btn.getAttribute('data-edit-base');
+        const fieldId = btn.getAttribute('data-field');
+        const el = document.getElementById(fieldId);
+        if(!el) return;
+
+        let selectedId = null;
+        if(el.tagName === 'SELECT'){
+            if(el.multiple){
+                selectedId = Array.from(el.selectedOptions).pop()?.value;
+            }else{
+                selectedId = el.value;
+            }
+        }else{
+            selectedId = el.value;
+        }
+
+        if(!selectedId){
+            alert("Selecciona un registro para editar");
+            return;
+        }
+
+        openFKPopup(`${baseUrl}&id=${selectedId}`, fieldId);
+    }
+
+    function dismissAddPopup(newId, newRepr, fieldId) {
+        const origin = document.getElementById(fieldId);
+        if (!origin) {
+            console.warn("No se encontró el elemento", fieldId);
+            return;
+        }
+
+        /* ───── 0) INPUT (simple) ──────────────────────────────────────── */
+        if (origin.tagName === "INPUT") {
+            origin.value = newId;
+            const label = document.getElementById(fieldId + "_label");
+            if (label) label.textContent = newRepr;
+            return;
+        }
+
+        /* ───── 1) SELECT (FK simple o múltiple) ───────────────────────── */
+        if (origin.tagName === "SELECT") {
+            const select = origin;
+
+            let option = Array.from(select.options).find(o => o.value == newId);
+            if (!option) {
+                option = new Option(newRepr, newId, true, true);
+                select.add(option);
+            } else {
+                option.textContent = newRepr;
+            }
+
+            if (select.multiple) {
+                option.selected = true;
+            } else {
+                select.value = newId;
+            }
+
+            select.dispatchEvent(new Event('change'));
+
+            // Select2 support
+            if (window.jQuery && $(select).hasClass('select2-hidden-accessible')) {
+                try {
+                    const $sel = $(select);
+                    if (!option) {
+                        $sel.append(new Option(newRepr, newId, true, true));
+                    } else {
+                        $(option).text(newRepr);
+                    }
+
+                    if (select.multiple) {
+                        const vals = ($sel.val() || []).map(String);
+                        if (!vals.includes(String(newId))) vals.push(String(newId));
+                        $sel.val(vals).trigger('change.select2');
+                    } else {
+                        $sel.val(String(newId)).trigger('change.select2');
+                    }
+
+                    try {
+                        const container = document.getElementById('select2-' + select.id + '-container');
+                        if (container) {
+                            container.textContent = newRepr;
+                            container.title = newRepr;
+                        }
+                    } catch (e2) { }
+                } catch (e) {
+                    $(select).trigger('change.select2');
+                }
+            }
+            return;
+        }
+
+        /* ───── 2) hidden + display ───────────────────────────────────── */
+        const hiddenInput  = origin;
+        const displayInput = document.getElementById(`${fieldId}_display`);
+
+        hiddenInput.value = newId;
+        if (displayInput) displayInput.value = newRepr;
+        hiddenInput.dispatchEvent(new Event('change'));
+    }
+
+    function clearFKField(fieldId) {
+        const el = document.getElementById(fieldId);
+        if (!el) return;
+
+        if (el.tagName === 'SELECT') {
+            for (const opt of el.options) opt.selected = false;
+        } else {
+            el.value = '';
+            const display = document.getElementById(`${fieldId}_display`);
+            if (display) display.value = '';
+        }
+        el.dispatchEvent(new Event('change'));
+    }
+
+    function openFKRawPopup(baseUrl, fieldId) {
+        const input = document.getElementById(fieldId);
+        const currentId = input.value.trim();
+        const url = baseUrl + '?popup=1&field_id=' + fieldId + (currentId ? ('&id=' + currentId) : '');
+        window.open(url, fieldId, 'width=800,height=600,resizable=yes,scrollbars=yes');
+    }
+</script>
+
+{# JavaScript para iconpicker #}
+{% if form.iconpicker %}
+    <script src="{% static 'core/assets/js/iconpicker.js' %}"></script>
+{% endif %}
