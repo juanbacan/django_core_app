@@ -1,0 +1,38 @@
+{% extends 'layout/base_admin.html' %}
+{% load static %}
+
+{% block breadcrumb %}
+    <li class="breadcrumb-item active" aria-current="page">Ejemplo de Formulario con Layout</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card border-0">
+            <div class="card-body">
+                <h2 class="h4 mb-4">Formulario con Sistema de Layout</h2>
+                
+                <form method="POST" action="{{ request.get_full_path }}" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    {# Usa el nuevo sistema de layout #}
+                    {% include 'core/forms/formWithLayout.html' %}
+                    
+                    {# O renderiza directamente #}
+                    {# {{ form.helper.render_layout|safe }} #}
+                    
+                    {# Botones (si no los incluiste en el layout) #}
+                    <div class="d-flex gap-2 justify-content-end mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Guardar
+                        </button>
+                        <a href="/" class="btn btn-secondary">
+                            <i class="fas fa-times me-2"></i>Cancelar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

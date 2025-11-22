@@ -7,11 +7,13 @@ from django.apps import apps
 from django.conf import settings
 from core.crud_registry import crud_registry
 from core.widgets import IconPickerWidget
+from core.layout import FormHelper
 
 class BootstrapFieldsMixin:
     """
     Mixin para configurar automáticamente los campos de un formulario,
     agregando estilos de Bootstrap y otras personalizaciones.
+    Soporta el sistema de layout similar a crispy-forms.
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -41,6 +43,11 @@ class BootstrapFieldsMixin:
                 # Creamos una lista con los bound fields, comprobando que existan en self.fields
                 bound_fields = [self[field_name] for field_name in field_names if field_name in self.fields]
                 self.fieldset_bound.append((title, bound_fields))
+        
+        # Soporte para el sistema de layout
+        if hasattr(self, 'helper') and self.helper:
+            # El helper ya está configurado en la subclase
+            pass
 
     def configure_field(self, field, field_name):
         # Si el campo es un campo de búsqueda (raw_id_fields), se configura como input de texto
