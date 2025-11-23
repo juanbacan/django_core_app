@@ -149,7 +149,7 @@ class Field(LayoutObject):
             existing_class = field.field.widget.attrs.get('class', '')
             field.field.widget.attrs['class'] = f"{existing_class} {self.css_class}".strip()
         
-        # Agregar atributos HTML adicionales
+        # Agregar atributos HTML adicionales (placeholder, etc.)
         for key, value in self.attrs.items():
             field.field.widget.attrs[key] = value
         
@@ -158,45 +158,44 @@ class Field(LayoutObject):
             return render_to_string(self.template, {'field': field, 'form': form})
         
         # Renderizar según la posición del label
+        # IMPORTANTE: El campo ya tiene las clases CSS y atributos aplicados
         return self._render_field(field)
     
     def _render_field(self, field):
-        """Renderiza el campo con el layout apropiado"""
+        """Renderiza el campo con el layout apropiado usando fieldRender.html"""
         html = f'<div class="{self.wrapper_class}" id="fieldset_{field.name}">'
         
         if self.label_position == 'hidden':
-            # Sin label
-            html += str(field)
+            # Sin label, solo el campo
+            field_html = render_to_string('core/forms/fieldRender.html', {'field': field})
+            html += field_html
         elif self.label_position == 'top':
-            # Label arriba
+            # Label arriba (por defecto)
             if field.label:
                 label_class = f"form-label {self.label_class}".strip()
                 html += f'<label for="id_{field.name}" class="{label_class}">{field.label}</label>'
-            html += str(field)
+            # Renderizar campo con fieldRender.html (incluye botones FK, help_text, errores)
+            field_html = render_to_string('core/forms/fieldRender.html', {'field': field})
+            html += field_html
         elif self.label_position == 'left':
             # Label a la izquierda (horizontal)
             html += '<div class="row">'
             label_class = f"col-form-label {self.label_class}".strip()
             html += f'<label for="id_{field.name}" class="col-md-3 {label_class}">{field.label}</label>'
-            html += f'<div class="col-md-9">{field}</div>'
+            html += '<div class="col-md-9">'
+            # Renderizar campo con fieldRender.html
+            field_html = render_to_string('core/forms/fieldRender.html', {'field': field})
+            html += field_html
+            html += '</div>'
             html += '</div>'
         elif self.label_position == 'right':
-            # Label a la derecha
+            # Label a la derecha (para checkboxes)
             html += '<div class="d-flex align-items-center gap-2">'
-            html += str(field)
+            # Renderizar campo con fieldRender.html
+            field_html = render_to_string('core/forms/fieldRender.html', {'field': field})
+            html += field_html
             if field.label:
                 html += f'<label for="id_{field.name}" class="{self.label_class}">{field.label}</label>'
-            html += '</div>'
-        
-        # Agregar help_text si existe
-        if field.help_text:
-            html += f'<small class="form-text text-muted d-block mt-1">{field.help_text}</small>'
-        
-        # Agregar errores si existen
-        if field.errors:
-            html += '<div class="field-error-message text-danger mt-1">'
-            for error in field.errors:
-                html += f'<small class="fw-bold"><i class="fas fa-exclamation-circle me-1"></i>{error}</small>'
             html += '</div>'
         
         html += '</div>'
