@@ -809,6 +809,27 @@ class ModelCRUDView(ViewAdministracionBase):
         """
         return self.ordering
     
+    def get_list_display(self, request):
+        """
+        Retorna la lista de campos a mostrar en la vista de lista.
+        Puede ser sobrescrito en subclases para lógica personalizada basada en el request.
+        Por ejemplo, para obtener el dominio y construir URLs dinámicas.
+        
+        Ejemplo de uso:
+            def get_list_display(self, request):
+                domain = request.get_host()
+                protocol = 'https' if request.is_secure() else 'http'
+                
+                return [
+                    'codigo',
+                    ('Enlace', lambda obj: format_html(
+                        '<a href="{}://{}/{}/">{}</a>',
+                        protocol, domain, obj.slug, obj.nombre
+                    )),
+                ]
+        """
+        return self.list_display
+    
     def build_display(self):
         headers, specs = [], []
         # si es popup, añadimos el campo ID como primera columna
@@ -824,7 +845,9 @@ class ModelCRUDView(ViewAdministracionBase):
                 )
             )
 
-        for item in self.list_display:
+        # Usar get_list_display para permitir personalización basada en request
+        list_display = self.get_list_display(self.request)
+        for item in list_display:
             if isinstance(item, (list, tuple)) and len(item) == 2:
                 label, spec = item
             else:
