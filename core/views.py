@@ -938,10 +938,10 @@ class ModelCRUDView(ViewAdministracionBase):
             "view":          self,                    
         })
 
-        # Build display data for templates. If `list_display` is not defined
-        # we still provide a sensible fallback so custom `template_list`
-        # can render data without forcing every view to declare list_display.
-        if self.list_display:
+        # Build display data for templates. Check if list_display is defined
+        # either as class attribute or via get_list_display() method
+        list_display_result = self.get_list_display(request)
+        if list_display_result:
             headers, specs = self.build_display()
             table_rows = self.build_table_rows(page_obj, specs)
         else:
