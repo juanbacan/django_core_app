@@ -23,6 +23,8 @@ from django.forms import modelform_factory
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage, InvalidPage
 from django.utils.safestring import mark_safe
 from django.utils.html import format_html
+import datetime
+from django.utils import timezone
 
 from allauth.account.adapter import get_adapter
 from allauth.socialaccount.models import SocialAccount, SocialApp
@@ -867,7 +869,27 @@ class ModelCRUDView(ViewAdministracionBase):
             cells = []
             for spec in specs:
                 value = spec(o) if callable(spec) else resolve_attr(o, spec)
-                cells.append(mark_safe(value))
+
+                # Formatear fechas/hora a zona local antes de renderizar
+                try:
+                    # datetime.datetime (con o sin tzinfo)
+                    if isinstance(value, datetime.datetime):
+                        if settings.USE_TZ:
+                            try:
+                                value = timezone.localtime(value)
+                            except Exception:
+                                # si no se puede convertir, usar el valor original
+                                pass
+                        value = value.strftime("%d/%m/%Y %H:%M")
+                    # datetime.date (sin hora)
+                    elif isinstance(value, datetime.date):
+                        value = value.strftime("%d/%m/%Y")
+                except Exception:
+                    # Si cualquier cosa falla al formatear, caeremos al str(value)
+                    pass
+
+                # Finalmente forzamos a string antes de marcar como safe
+                cells.append(mark_safe(str(value)))
             rows.append((o, cells))
         return rows
 
