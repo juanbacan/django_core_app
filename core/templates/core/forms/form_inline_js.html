@@ -3,13 +3,15 @@
     function removeInline(button) {
         var inlineDiv = button.closest('.inline-form');
 
-        // Eliminar los editores de texto
-        var textareas = inlineDiv.querySelectorAll("textarea");
-        textareas.forEach(function(textarea) {
-            if (tinymce.get(textarea.id)) {
-                tinymce.EditorManager.execCommand('mceRemoveEditor', true, textarea.id);
-            }
-        });
+        // Eliminar los editores de texto solo si TinyMCE está disponible
+        if (typeof tinymce !== 'undefined') {
+            var textareas = inlineDiv.querySelectorAll("textarea");
+            textareas.forEach(function(textarea) {
+                if (tinymce.get(textarea.id)) {
+                    tinymce.EditorManager.execCommand('mceRemoveEditor', true, textarea.id);
+                }
+            });
+        }
 
         if (inlineDiv) {
             inlineDiv.remove();
@@ -55,22 +57,33 @@
             document.getElementById("tbody-" + prefix).appendChild(newRow);
             totalFormsInput.value = formCount + 1;
     
-            // Inicializar tinymce, si corresponde
-            let newTextareas = newRow.querySelectorAll("textarea");
-            newTextareas.forEach(function(textarea) {
-                if (!textarea.id) {
-                    textarea.id = "id_" + textarea.name.replace(/-/g, "_") + "_" + formCount;
-                }
-                if (!tinymce.get(textarea.id)) {
-                    tinymce.EditorManager.execCommand('mceAddEditor', true, textarea.id);
-                }
-            });
+            // Inicializar tinymce solo si está disponible
+            if (typeof tinymce !== 'undefined') {
+                let newTextareas = newRow.querySelectorAll("textarea");
+                newTextareas.forEach(function(textarea) {
+                    if (!textarea.id) {
+                        textarea.id = "id_" + textarea.name.replace(/-/g, "_") + "_" + formCount;
+                    }
+                    if (!tinymce.get(textarea.id)) {
+                        tinymce.EditorManager.execCommand('mceAddEditor', true, textarea.id);
+                    }
+                });
+            }
         });
     }
     
-    document.addEventListener("DOMContentLoaded", function() {
+    // Función para inicializar todos los formsets
+    function initAllInlineFormsets() {
         {% for formset in form.inline_formsets %}
             initInlineFormset("{{ formset.prefix }}");
         {% endfor %}
-    });  
+    }
+    
+    // Inicializar en DOMContentLoaded (para páginas normales)
+    if (document.readyState === 'loading') {
+        document.addEventListener("DOMContentLoaded", initAllInlineFormsets);
+    } else {
+        // Si el DOM ya está cargado (modales), ejecutar inmediatamente
+        initAllInlineFormsets();
+    }
 </script>

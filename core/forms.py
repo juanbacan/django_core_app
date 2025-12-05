@@ -216,12 +216,14 @@ class ModelBaseForm(BootstrapFieldsMixin, forms.ModelForm):
 
     def save(self, commit=True):
         instance = super(ModelBaseForm, self).save(commit=commit)
-        for formset in getattr(self, 'inline_formsets', []):
-            if formset.is_valid():
-                for form in formset:
-                    print("Campos del formulario:", list(form.fields.keys()))
-                formset.instance = instance
-                formset.save()
+        
+        if commit:
+            # Solo guardar los inlines si commit=True (la instancia ya tiene ID)
+            for formset in getattr(self, 'inline_formsets', []):
+                if formset.is_valid():
+                    formset.instance = instance
+                    formset.save(commit=commit)
+        
         return instance
     
     @property
@@ -311,6 +313,10 @@ class BaseInline:
       - form: el ModelForm a utilizar para el inline. Si no se proporciona, se generará uno automáticamente.
       - extra: número de formularios extra (por defecto 1)
       - can_delete: si se permite marcar para eliminar (por defecto True)
+      - min_num: número mínimo de formularios requeridos (por defecto None)
+      - max_num: número máximo de formularios permitidos (por defecto None)
+      - validate_min: validar el número mínimo de formularios (por defecto False)
+      - validate_max: validar el número máximo de formularios (por defecto False)
       - prefix: prefijo para el formset (opcional)
       - verbose_name: nombre singular del inline (opcional)
       - verbose_name_plural: nombre plural del inline (opcional)
@@ -319,6 +325,10 @@ class BaseInline:
     form = None
     extra = 1
     can_delete = True
+    min_num = None
+    max_num = None
+    validate_min = False
+    validate_max = False
     prefix = None
     verbose_name = None
     verbose_name_plural = None
@@ -332,6 +342,16 @@ class BaseInline:
             "extra": self.extra,
             "can_delete": self.can_delete,
         }
+        
+        # Agregar parámetros opcionales si están definidos
+        if self.min_num is not None:
+            formset_params["min_num"] = self.min_num
+        if self.max_num is not None:
+            formset_params["max_num"] = self.max_num
+        if self.validate_min:
+            formset_params["validate_min"] = self.validate_min
+        if self.validate_max:
+            formset_params["validate_max"] = self.validate_max
         
         if self.form is not None:
             if not hasattr(self.form, 'Meta') or not hasattr(self.form.Meta, 'model'):

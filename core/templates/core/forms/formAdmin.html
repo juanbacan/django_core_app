@@ -27,6 +27,12 @@
                     {% if object %}
                     <input type="hidden" name="id" value="{{ object.id }}" />
                     {% endif %}
+                    
+                    {% if campos_hidden %}
+                        {% for key, value in campos_hidden.items %}
+                        <input type="hidden" name="{{ key }}" value="{{ value }}">
+                        {% endfor %}
+                    {% endif %}
 
                     {% block form_preffix %}{% endblock %}
                     
@@ -34,7 +40,8 @@
                         {% if form.helper %}
                             {# Si el formulario tiene helper, usar el sistema de layout #}
                             {{ form.helper.render_layout|safe }}
-                            {% if form.inline_formsets %}
+                            {# Solo renderizar inlines si no fueron renderizados en el layout #}
+                            {% if form.inline_formsets and not form.inlines_rendered_in_layout %}
                                 {% include 'core/forms/form_inline.html' %}
                             {% endif %}
                         {% else %}
