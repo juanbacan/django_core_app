@@ -16,7 +16,7 @@ Uso: {% include 'core/forms/field_widget_render.html' with field=fields %}
         <span class="input-group-text">{{ field.field.widget.attrs.input_group }}</span>
         {{ field }}
     </div>
-{% elif field.field.widget.attrs.fk_raw_url %}
+{% elif field.field.widget.attrs.fk_raw_url and field.field.widget.attrs.fk_raw_url|length > 0 %}
     <div class="fk-raw d-flex flex-column">
         <div class="d-flex align-items-start gap-1">
             {{ field }}

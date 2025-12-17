@@ -60,8 +60,6 @@ class BootstrapFieldsMixin:
             # se mostrará como input de texto, no select
             field.widget = forms.TextInput(attrs={
                 "class": "form-control form-control-sm",
-                "fk_raw_url": "",   
-                "fk_repr": "",      
             })
 
         # Aplica automáticamente DateInput en los DateField
