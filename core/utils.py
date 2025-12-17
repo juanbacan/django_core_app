@@ -158,7 +158,7 @@ def null_safe_string(value):
         return str(value)
 
 
-def success_json(mensaje=None, resp=None, url=None):
+def success_json(mensaje=None, resp=None, url=None, request=None, obj=None):
     data = {
         'result': 'ok',
         'redirected': bool(url)
@@ -169,6 +169,17 @@ def success_json(mensaje=None, resp=None, url=None):
         data['resp'] = resp
     if url:
         data['url'] = url
+    
+    # Si es popup y tenemos el objeto, retornar respuesta popup
+    if request and request.GET.get("popup") == "1" and obj:
+        return JsonResponse({
+            "result": "ok",
+            "popup": True,
+            "pk": obj.pk,
+            "repr": str(obj),
+            "field_id": request.GET.get("field_id", ""),
+        })
+    
     return JsonResponse(data)
 
 
@@ -193,7 +204,18 @@ def bad_json(mensaje=None, error=None, form=None, extradata=None):
     return JsonResponse(data)
 
     
-def error_json(mensaje=None, error=None, forms=[], extradata=None):
+def error_json(mensaje=None, error=None, forms=[], extradata=None, request=None, obj=None):
+    # Si es popup y tenemos el objeto, retornar respuesta popup con error
+    if request and request.GET.get("popup") == "1" and obj:
+        return JsonResponse({
+            "result": "error",
+            "popup": True,
+            "pk": obj.pk,
+            "repr": str(obj),
+            "field_id": request.GET.get("field_id", ""),
+            "mensaje": mensaje or "Error al guardar",
+        })
+    
     data = {'result': 'error'}
     mensajes_error = []
 

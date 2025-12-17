@@ -899,41 +899,46 @@ class ModelCRUDView(ViewAdministracionBase):
             return getattr(self, f'post_{self.action}')(request, context, *args, **kwargs)
         return error_json(mensaje="Acción no permitida")
 
+    def get_form_kwargs(self, request, **extra_kwargs):
+        """
+        Prepara los kwargs para instanciar el formulario.
+        Extrae automáticamente los parámetros del query string y los pasa al formulario.
+        """
+        form_kwargs = extra_kwargs.copy()
+        
+        # Extraer parámetros del query string (excepto los propios del CRUD)
+        exclude_params = {'action', 'id', 'page', 'pagina', 'popup', 'field_id', 'search', 'sort'}
+        for key, value in request.GET.items():
+            if key not in exclude_params:
+                form_kwargs[key] = value
+        
+        return form_kwargs
+
+    def _get_add_form(self, request, data=None, files=None):
+        """Helper para obtener el formulario de agregar con los kwargs automáticos."""
+        form_kwargs = self.get_form_kwargs(request)
+        return self.form_class(data, files or None, **form_kwargs)
+
+    def _get_edit_form(self, request, instance, data=None, files=None):
+        """Helper para obtener el formulario de editar con los kwargs automáticos."""
+        form_kwargs = self.get_form_kwargs(request, instance=instance)
+        return self.form_class(data, files or None, **form_kwargs)
+
     def post_add(self, request, context, *args, **kwargs):
-        form = self.form_class(request.POST, request.FILES or None)
+        form = self._get_add_form(request, request.POST, request.FILES)
         if form.is_valid():
             obj = form.save()
- 
-            # Si es popup se está agregando desde un popup
-            if request.GET.get("popup") == "1":
-                return JsonResponse({
-                    "result": "ok",
-                    "popup": True,
-                    "pk": obj.pk,
-                    "repr": str(obj),
-                    "field_id": request.GET.get("field_id", ""),
-                })
-        
-            return success_json(url=get_redirect_url(request))
-        return error_json(mensaje="Error al guardar el objeto", forms=[form])
+            return success_json(url=get_redirect_url(request), request=request, obj=obj)
+        return error_json(mensaje="Error al guardar el objeto", forms=[form], request=request)
 
     def post_edit(self, request, context, *args, **kwargs):
         instance = self.model.objects.get(pk=self.data.get('id'))
-        form = self.form_class(request.POST, request.FILES or None, instance=instance)
+        form = self._get_edit_form(request, instance, request.POST, request.FILES)
         if form.is_valid():
             obj = form.save()
-
-            if request.GET.get("popup") == "1":
-                return JsonResponse({
-                    "result": "ok",
-                    "popup": True,
-                    "pk": obj.pk,
-                    "repr": str(obj),
-                    "field_id": request.GET.get("field_id", ""),
-                })
             messages.success(request, "Objeto actualizado correctamente")
-            return success_json(url=get_redirect_url(request, object=instance))
-        return error_json(mensaje="Error al guardar el objeto", forms=[form])
+            return success_json(url=get_redirect_url(request, object=instance), request=request, obj=obj)
+        return error_json(mensaje="Error al guardar el objeto", forms=[form], request=request)
 
     def post_delete(self, request, context, *args, **kwargs):
         obj = self.model.objects.get(id=request.POST.get('id'))
@@ -994,13 +999,15 @@ class ModelCRUDView(ViewAdministracionBase):
         return render(request, self.template_list, context)
 
     def get_add(self, request, context, *args, **kwargs):
-        context['form'] = self.form_class()
+        form_kwargs = self.get_form_kwargs(request)
+        context['form'] = self.form_class(**form_kwargs)
         return render(request, self.template_form, context)
 
     def get_edit(self, request, context, *args, **kwargs):
         obj = self.model.objects.get(pk=self.data.get('id'))
         context['object'] = obj
-        context['form'] = self.form_class(instance=obj)
+        form_kwargs = self.get_form_kwargs(request, instance=obj)
+        context['form'] = self.form_class(**form_kwargs)
         return render(request, self.template_form, context)
 
     def get_delete(self, request, context, *args, **kwargs):
