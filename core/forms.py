@@ -15,7 +15,12 @@ class BootstrapFieldsMixin:
     agregando estilos de Bootstrap y otras personalizaciones.
     Soporta el sistema de layout similar a crispy-forms.
     """
+    # Diccionario para definir parámetros FK por campo: {'campo': 'param1=valor1&param2=valor2'}
+    fk_params = {}
+    
     def __init__(self, *args, **kwargs):
+        # Extraer parámetros FK si se pasan como kwargs
+        self.fk_params = kwargs.pop('fk_params', getattr(self.__class__, 'fk_params', {}))
         super().__init__(*args, **kwargs)
 
         if self.is_bound:
@@ -107,6 +112,10 @@ class BootstrapFieldsMixin:
                 field.widget.attrs['fk_add_url'] = add
                 if not isinstance(field.widget, SelectMultiple):
                     field.widget.attrs['fk_edit_url'] = edit
+
+                # Agregar parámetros FK si están definidos para este campo
+                if field_name in self.fk_params:
+                    field.widget.attrs['fk_params'] = self.fk_params[field_name]
 
                 # Para RAW-ID
                 if field_name in getattr(self, "raw_id_fields", []):

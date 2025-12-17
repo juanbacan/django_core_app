@@ -37,14 +37,14 @@ Uso: {% include 'core/forms/field_widget_render.html' with field=fields %}
         <div class="d-flex justify-content-end gap-1 mt-2">
             <a  href="javascript:void(0)"
                 class="fk-btn"
-                onclick="openFKPopup('/{{ field.field.widget.attrs.fk_add_url }}', '{{ field.auto_id }}')"
+                onclick="openFKPopup('/{{ field.field.widget.attrs.fk_add_url }}{% if field.field.widget.attrs.fk_params %}?{{ field.field.widget.attrs.fk_params }}{% endif %}', '{{ field.auto_id }}')"
                 title="Agregar nuevo">
                 <i class="fa fa-plus"></i>
             </a>
             {% if field.value and field.field.widget.attrs.fk_edit_url %}
                 <a href="javascript:void(0)"
                     class="fk-btn"
-                    data-edit-base="/{{ field.field.widget.attrs.fk_edit_url }}"
+                    data-edit-base="/{{ field.field.widget.attrs.fk_edit_url }}{% if field.field.widget.attrs.fk_params %}?{{ field.field.widget.attrs.fk_params }}{% endif %}"
                     data-field="{{ field.auto_id }}"
                     onclick="openFKEditPopup(this)"
                     title="Editar seleccionado">
