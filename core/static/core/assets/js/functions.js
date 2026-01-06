@@ -464,11 +464,11 @@ window.initDalSelect2InModal = function (modalElOrSelector) {
                     dataType: 'json',
                     delay: 200,
                     data: function (params) {
-                        var base = {
+                        return {
                             q: params.term || '',
-                            page: params.page || 1
+                            page: params.page || 1,
+                            forward: JSON.stringify(buildForward()),
                         };
-                        return Object.assign(base, buildForward());
                     },
                     processResults: function (data) {
                         return data && data.results ? data : { results: [] };
