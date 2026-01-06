@@ -375,6 +375,49 @@ const submitModalForm1 = async (formid = 'modalForm1', showError = true) => {
 };
 
 // Inicializar Select2 en modales
+
+function manualGetForwards(element) {
+    var id = element.attr('id');
+    if (!id) return "{}";
+
+    // Buscar el div de configuración por los dos IDs posibles que genera DAL
+    var selector = '#dal-forward-conf-for-' + id + ', #dal-forward-conf-for_' + id;
+    var $confDiv = $(selector);
+    
+    // Si no lo encuentra por ID global, buscarlo como hermano (común en widgets personalizados)
+    if ($confDiv.length === 0) {
+        $confDiv = element.parent().find('.dal-forward-conf');
+    }
+
+    var script = $confDiv.find('script');
+    if (script.length === 0) return "{}";
+
+    try {
+        var forwardList = JSON.parse(script.text());
+        var forwardedData = {};
+
+        $.each(forwardList, function (ix, field) {
+            if (field.type === "const") {
+                forwardedData[field.dst] = field.val;
+            } else if (field.type === "field") {
+                // Buscar el campo de origen (src)
+                var $srcField = $('[name="' + field.src + '"]');
+                if ($srcField.length) {
+                    // Si el campo tiene valor (o es checkbox/radio)
+                    forwardedData[field.dst || field.src] = $srcField.val();
+                }
+            } else if (field.type === "self") {
+                forwardedData[field.dst || "self"] = element.val();
+            }
+        });
+
+        return JSON.stringify(forwardedData);
+    } catch (e) {
+        console.error("Error al procesar forward manual:", e);
+        return "{}";
+    }
+}
+
 // Esta función se llama automáticamente al cargar el modal o al abrir un modal existente
 window.initDalSelect2InModal = function (modalElOrSelector) {
     // 1) No jQuery => no hacer nada
@@ -464,16 +507,23 @@ window.initDalSelect2InModal = function (modalElOrSelector) {
                     dataType: 'json',
                     delay: 200,
                     data: function (params) {
-                        // USAMOS LA FUNCIÓN OFICIAL DE DAL PARA OBTENER LOS FORWARDS
-                        var forwardData = '{}';
+                        var $el = $(this);
+                        var forwardData = "{}";
+
+                        // 1. Intentar con el método oficial de DAL
                         if (window.yl && typeof window.yl.getForwards === 'function') {
-                            forwardData = window.yl.getForwards($el) || '{}';
+                            forwardData = window.yl.getForwards($el);
+                        }
+
+                        // 2. FALLBACK: Si DAL falla (común en modales), buscamos el script manualmente
+                        if (!forwardData || forwardData === "{}") {
+                            forwardData = manualGetForwards($el);
                         }
 
                         return {
                             q: params.term || '',
                             page: params.page || 1,
-                            forward: forwardData // Ya viene como string JSON desde yl.getForwards
+                            forward: forwardData
                         };
                     },
                     processResults: function (data) {
