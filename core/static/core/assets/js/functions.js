@@ -464,10 +464,16 @@ window.initDalSelect2InModal = function (modalElOrSelector) {
                     dataType: 'json',
                     delay: 200,
                     data: function (params) {
+                        // USAMOS LA FUNCIÓN OFICIAL DE DAL PARA OBTENER LOS FORWARDS
+                        var forwardData = '{}';
+                        if (window.yl && typeof window.yl.getForwards === 'function') {
+                            forwardData = window.yl.getForwards($el) || '{}';
+                        }
+
                         return {
                             q: params.term || '',
                             page: params.page || 1,
-                            forward: JSON.stringify(buildForward()),
+                            forward: forwardData // Ya viene como string JSON desde yl.getForwards
                         };
                     },
                     processResults: function (data) {
