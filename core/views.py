@@ -45,7 +45,7 @@ from .forms import configure_auto_complete_widgets
 
 from .utils import bad_json, queryset_to_excel, success_json, get_query_params, \
     save_error, upload_image_to_firebase_storage, get_redirect_url, \
-    error_json, get_header, resolve_attr
+    error_json, get_header, resolve_attr, register_all_crud_views
 
 
 def obtener_extra_data(data):
@@ -230,6 +230,10 @@ class ModelAutocompleteView(autocomplete.Select2QuerySetView):
         model_name = self.forwarded.get('model', None)
         if not model_name:
             return
+
+        # Asegurar que el registro de vistas CRUD esté poblado para resolver search_fields
+        if not crud_registry:
+            register_all_crud_views()
 
         model = None
         # Si el forward viene como 'app_label.ModelName', usarlo directamente
