@@ -427,12 +427,58 @@ window.initDalSelect2InModal = function (modalElOrSelector) {
 
         // 4) Si DAL no lo dejó inicializado, se realiza manualmente (si existe Select2)
         if (!initialized && $.fn && $.fn.select2) {
-            $el.select2({
+            // Fallback AJAX usando los data-* que inyecta el widget DAL
+            var ajaxUrl = $el.data('autocomplete-light-url') || $el.attr('data-autocomplete-light-url');
+            var minLen = parseInt($el.data('autocomplete-light-minimum-input-length') || $el.attr('data-autocomplete-light-minimum-input-length') || 0, 10);
+            var forwardConf = $el.attr('data-autocomplete-light-forward');
+
+            function buildForward() {
+                if (!forwardConf) return {};
+                try {
+                    var cfg = JSON.parse(forwardConf);
+                    return cfg.reduce(function(acc, item) {
+                        if (item.type === 'const') {
+                            acc[item.dst] = item.src;
+                        } else if (item.type === 'field') {
+                            var srcEl = document.getElementById(item.src) || document.querySelector('[name="' + item.src + '"]');
+                            if (srcEl) acc[item.dst] = srcEl.value;
+                        }
+                        return acc;
+                    }, {});
+                } catch (e) {
+                    console.warn('Error parseando forward DAL', e, forwardConf);
+                    return {};
+                }
+            }
+
+            var opts = {
                 placeholder: ph,
                 allowClear: true,
                 language: 'es',
                 dropdownParent: $dp.length ? $dp : $(document.body)
-            });
+            };
+
+            if (ajaxUrl) {
+                opts.ajax = {
+                    url: ajaxUrl,
+                    dataType: 'json',
+                    delay: 200,
+                    data: function (params) {
+                        var base = {
+                            q: params.term || '',
+                            page: params.page || 1
+                        };
+                        return Object.assign(base, buildForward());
+                    },
+                    processResults: function (data) {
+                        return data && data.results ? data : { results: [] };
+                    }
+                };
+                opts.minimumInputLength = isNaN(minLen) ? 0 : minLen;
+                opts.escapeMarkup = function (m) { return m; };
+            }
+
+            $el.select2(opts);
         }
         // 5) Asegurar que el input de búsqueda tenga el foco al abrir
         $el.off('select2:open.autofocus')
@@ -456,6 +502,10 @@ for (let i = 0; i < forms.length; i++) {
 
 
 ready(function(){
+    if (window.initDalSelect2InModal) {
+        window.initDalSelect2InModal(document.body);
+    }
+
     // Inicializar tooltips de Bootstrap 5
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
