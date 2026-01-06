@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="django-core-app",  # Nombre que tendrá en PyPI
-    version="0.2.42",         # Versión inicial (usa Semantic Versioning)
+    version="0.2.43",         # Versión inicial (usa Semantic Versioning)
     packages=find_packages(),
     include_package_data=True,  # Incluye archivos declarados en MANIFEST.in
     install_requires=[

@@ -275,6 +275,29 @@ class ModelAutocompleteView(autocomplete.Select2QuerySetView):
             raise ValueError(f"La vista CRUD de {model.__name__} no define 'search_fields'")
 
         qs = model.objects.all()
+        
+        # Aplicar filtros desde forwarded (excluyendo 'model' que ya usamos)
+        forward_filters = {k: v for k, v in self.forwarded.items() if k != 'model' and v not in [None, '', []]}
+        
+        # Si la vista CRUD tiene un método para filtrar el autocomplete, usarlo
+        if hasattr(view_cls, 'filter_autocomplete_queryset'):
+            qs = view_cls.filter_autocomplete_queryset(qs, forward_filters, self.q)
+        else:
+            # Aplicar filtros automáticos basados en los campos del modelo
+            for field_name, value in forward_filters.items():
+                try:
+                    # Verificar si el campo existe en el modelo
+                    model._meta.get_field(field_name)
+                    # Si el valor es una lista, usar __in
+                    if isinstance(value, list):
+                        qs = qs.filter(**{f"{field_name}__in": value})
+                    else:
+                        qs = qs.filter(**{field_name: value})
+                except Exception:
+                    # Si el campo no existe, ignorar silenciosamente
+                    pass
+        
+        # Aplicar búsqueda por texto
         if self.q:
             for word in self.q.strip().split():
                 q = Q()
