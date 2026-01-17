@@ -1,0 +1,125 @@
+{% extends "core/layout/list.html" %}
+{% load static %}
+
+{% block table %}
+<table class="table small table-hover table-striped mb-5">
+    <thead>
+        <tr>
+            <th style="width: 5%;" class="text-center">
+                <i class="fas fa-hashtag"></i>
+            </th>
+            <th style="width: 25%;">Grupo de Usuario</th>
+            <th style="width: 55%;" class="text-muted">Módulos Asignados</th>
+            <th style="width: 15%;" class="text-center">Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for grupo_modulo in objs %}
+        <tr class="align-middle">
+            <!-- ID -->
+            <td class="text-center">
+                <span class="badge bg-secondary">{{ grupo_modulo.id }}</span>
+            </td>
+
+            <!-- Nombre del grupo -->
+            <td>
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-users me-2" style="font-size: 1.3rem; color: #0d6efd;"></i>
+                    <div>
+                        <div class="fw-semibold">{{ grupo_modulo.grupo.name }}</div>
+                        <small class="text-muted">Grupo de permisos</small>
+                    </div>
+                </div>
+            </td>
+
+            <!-- Módulos asociados agrupados por AgrupacionModulo -->
+            <td>
+                {% with agrupaciones=grupo_modulo.modulos_por_agrupacion %}
+                    {% if agrupaciones %}
+                        {% for agrupacion_item in agrupaciones %}
+                            <div class="mb-3">
+                                <div class="d-flex align-items-center mb-2">
+                                    {% if agrupacion_item.agrupacion.icono %}
+                                        <i class="{{ agrupacion_item.agrupacion.icono }} me-2" style="color: #6c757d;"></i>
+                                    {% else %}
+                                        <i class="fas fa-folder me-2" style="color: #6c757d;"></i>
+                                    {% endif %}
+                                    <strong class="text-muted small">{{ agrupacion_item.agrupacion.nombre }}</strong>
+                                </div>
+                                <div class="module-list ms-3">
+                                    {% for modulo in agrupacion_item.modulos %}
+                                        <span class="badge {% if modulo.activo %}bg-success{% else %}bg-secondary{% endif %} me-1 mb-1">
+                                            {% if modulo.icon %}
+                                                <i class="{{ modulo.icon }} me-1"></i>
+                                            {% endif %}
+                                            {{ modulo.nombre }}
+                                            {% if not modulo.activo %}
+                                                <i class="fas fa-ban ms-1 small" title="Inactivo"></i>
+                                            {% endif %}
+                                        </span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                        <small class="text-muted d-block mt-2 pt-2 border-top">
+                            <i class="fas fa-layer-group text-info me-1"></i>
+                            {% with total_modulos=grupo_modulo.modulos.all|length %}
+                                <strong>{{ total_modulos }}</strong> módulo{{ total_modulos|pluralize }} asignado{{ total_modulos|pluralize }}
+                            {% endwith %}
+                        </small>
+                    {% else %}
+                        <span class="badge bg-warning text-dark">
+                            <i class="fas fa-exclamation-triangle me-1"></i>Sin módulos asignados
+                        </span>
+                    {% endif %}
+                {% endwith %}
+            </td>
+
+            <!-- Acciones -->
+            <td class="text-center">
+                <div class="btn-group btn-group-sm" role="group">
+                    <a href="{{ path }}?action=edit&id={{ grupo_modulo.id }}" 
+                       class="btn btn-outline-primary" 
+                       title="Editar"
+                       data-bs-toggle="tooltip">
+                        <i class="fas fa-pencil"></i>
+                    </a>
+                    <a href="{{ path }}?action=delete&id={{ grupo_modulo.id }}" 
+                       class="btn btn-outline-danger formmodal" 
+                       title="Eliminar"
+                       data-bs-toggle="tooltip">
+                        <i class="fas fa-trash"></i>
+                    </a>
+                </div>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="4" class="text-center py-4">
+                <i class="fas fa-inbox text-muted" style="font-size: 2rem; margin-bottom: 1rem; display: block;"></i>
+                <p class="text-muted mb-0">No hay asignaciones de módulos a grupos</p>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<style>
+    .module-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+    }
+    
+    .module-list .badge {
+        font-size: 0.75rem;
+        padding: 0.35rem 0.5rem;
+        white-space: nowrap;
+    }
+
+    .btn-group-sm .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+</style>
+{% endblock %}

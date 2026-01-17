@@ -1,4 +1,27 @@
-async function fetchRequest(url, params, csrftoken=csrf_token) {
+// Obtiene el CSRF token desde cookie, meta tags o variables globales
+function getCSRFToken() {
+    // 1) cookie 'csrftoken'
+    try {
+        const match = document.cookie.match(/(?:^|; )csrftoken=([^;]+)/);
+        if (match) return decodeURIComponent(match[1]);
+    } catch (e) {}
+
+    // 2) meta tags comunes
+    const metaNames = ['csrf-token', 'csrfmiddlewaretoken', 'csrf_token', 'csrftoken'];
+    for (const name of metaNames) {
+        const m = document.querySelector(`meta[name="${name}"]`);
+        if (m && m.getAttribute('content')) return m.getAttribute('content');
+    }
+
+    // 3) variables globales que puedan existir
+    if (window.csrftoken) return window.csrftoken;
+    if (window.csrf_token) return window.csrf_token;
+    if (document.csrftoken) return document.csrftoken;
+
+    return '';
+}
+
+async function fetchRequest(url, params, csrftoken = getCSRFToken()) {
     const resp = await fetch(url, {
         method: 'POST',
         headers: {
@@ -25,7 +48,7 @@ function fetchRequest2(options) {
         let url = options.url;
         headers = {
             'Content-Type': 'application/json', 
-            'X-CSRFToken': csrf_token,
+            'X-CSRFToken': getCSRFToken(),
             'X-Requested-With': 'XMLHttpRequest'
         };
         if (options.headers) headers = Object.assign(headers, options.headers);

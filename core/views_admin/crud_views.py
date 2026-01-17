@@ -1,3 +1,5 @@
+import json
+
 from django.contrib.auth import login, logout
 
 from core.views import ModelCRUDView
@@ -11,6 +13,7 @@ from core.utils import error_json, success_json, get_redirect_url
 class AgrupacionModulosView(ModelCRUDView):
     model = AgrupacionModulo
     form_class = AgrupacionModuloForm
+    template_list = 'core/administracion/agrupacion_modulos_tree.html'
     list_display = [
         'nombre',
         'icono',
@@ -18,6 +21,42 @@ class AgrupacionModulosView(ModelCRUDView):
         'orden',
     ]
     ordering = ['orden', 'id']
+    
+    def get_queryset(self):
+        """Obtiene agrupaciones sin duplicados."""
+        return super().get_queryset().distinct()
+    
+    def post_reordenar(self, request, context, *args, **kwargs):
+        """Actualiza el orden de las agrupaciones."""
+        try:
+            data = json.loads(request.body)
+            orden_ids = data.get('orden', [])
+            
+            # Actualizar el orden de cada agrupación
+            for index, agrupacion_id in enumerate(orden_ids, start=1):
+                AgrupacionModulo.objects.filter(id=agrupacion_id).update(orden=index)
+            
+            return success_json(mensaje="Orden actualizado correctamente")
+        except Exception as e:
+            return error_json(mensaje=f"Error al actualizar el orden: {str(e)}")
+    
+    def post_reordenar_modulos(self, request, context, *args, **kwargs):
+        """Actualiza el orden de los módulos dentro de una agrupación."""
+        import json
+        try:
+            data = json.loads(request.body)
+            agrupacion_id = data.get('agrupacion_id')
+            modulos = data.get('modulos', [])
+            
+            # Actualizar el orden de cada módulo
+            for item in modulos:
+                modulo_id = item.get('id')
+                orden = item.get('orden')
+                Modulo.objects.filter(id=modulo_id).update(orden=orden)
+            
+            return success_json(mensaje="Orden de módulos actualizado correctamente")
+        except Exception as e:
+            return error_json(mensaje=f"Error al actualizar el orden de módulos: {str(e)}")
 
 
 class GroupsView(ModelCRUDView):
@@ -36,8 +75,21 @@ class ModulosView(ModelCRUDView):
 
 class GrupoModulosView(ModelCRUDView):
     model = GrupoModulo
+    template_list = 'core/administracion/grupo_modulos_tree.html'
+    template_form = 'core/administracion/grupo_modulos_form.html'
     list_display = ['grupo', 'modulos']
     ordering = ['id']
+    
+    def get_queryset(self):
+        return super().get_queryset().select_related('grupo').distinct()
+    
+    def get_add(self, request, context, *args, **kwargs):
+        context['agrupaciones'] = AgrupacionModulo.objects.prefetch_related('modulos').order_by('orden', 'nombre')
+        return super().get_add(request, context, *args, **kwargs)
+    
+    def get_edit(self, request, context, *args, **kwargs):
+        context['agrupaciones'] = AgrupacionModulo.objects.prefetch_related('modulos').order_by('orden', 'nombre')
+        return super().get_edit(request, context, *args, **kwargs)
 
 
 class NotificacionesAppView(ModelCRUDView):

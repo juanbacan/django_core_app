@@ -8,15 +8,43 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <input type="text" id="iconSearch" class="form-control" placeholder="Buscar iconos por nombre...">
+                    <div class="mb-3 d-flex gap-2">
+                        <input type="text" id="iconSearch" class="form-control" placeholder="Buscar iconos (ej: flecha, cámara, correo)..." aria-label="Buscar iconos">
+                        <button type="button" id="clearSearch" class="btn btn-outline-secondary" title="Limpiar búsqueda">Limpiar</button>
                     </div>
-                    <div id="icon-list" class="row"></div>
+
+                    <div class="mb-2 d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center gap-2">
+                            <label for="perPage" class="small text-muted mb-0">Por página</label>
+                            <select id="perPage" class="form-select form-select-sm" style="width: auto;">
+                                <option value="36">36</option>
+                                <option value="54" selected>54</option>
+                                <option value="90">90</option>
+                            </select>
+                        </div>
+                        <div class="text-muted small" aria-live="polite">
+                            <span id="resultsCount">--</span>
+                        </div>
+                    </div>
+
+                    <div id="icon-list" class="row" role="list"></div>
+                    <div id="noResults" class="text-center text-muted mt-3 d-none">No se encontraron iconos.</div>
+                    <div id="iconSpinner" class="text-center my-3 d-none">
+                        <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
+                        <div class="small text-muted">Cargando iconos...</div>
+                    </div>
                 </div>
                 <div class="modal-footer">
-                    <button id="prevPage" class="btn-sm btn btn-info" disabled>Anterior</button>
-                    <span id="paginationInfo" class="align-self-center"></span>
-                    <button id="nextPage" class="btn-sm btn btn-info" disabled>Siguiente</button>
+                    <div class="me-auto">
+                        <button type="button" id="prevPage" class="btn-sm btn btn-outline-secondary" disabled aria-label="Anterior">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <span id="paginationInfo" class="align-self-center mx-2 small text-muted"></span>
+                        <button type="button" id="nextPage" class="btn-sm btn btn-outline-secondary" disabled aria-label="Siguiente">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
                 </div>
             </div>
         </div>

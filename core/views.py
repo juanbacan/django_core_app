@@ -468,33 +468,11 @@ class ViewClassBase(ContextMixin, View):
         data = {}
         error_message = ""
         if request.method == "POST":
-            action = request.POST.get("action")
             try:
                 with transaction.atomic():
                     response = super().dispatch(request, *args, **kwargs)
-            # except SomeValueException as ex:
-            #     res_json = {"message": str(ex)}
-            #     response = JsonResponse(res_json, status=202)
-            #     has_except = True
-            #     error_message = str(ex)
-            # except FormException as ex:
-            #     res_json = ex.dict_error
-            #     response = JsonResponse(res_json, status=202)
-            #     has_except = True
-            #     error_message = "Formulario no válido"
-            # except IntegrityError as ex:
-            #     has_except = True
-            #     msg = str(ex)
-            #     error_message = "Integrity Error"
-            #     for key in getattr(settings, 'CONSTRAINT_MSG', {}).keys():
-            #         if re.search(f"\\b{key}\\b", msg):
-            #             error_message = getattr(settings, 'CONSTRAINT_MSG', {}).get(key) or 'Integrity Error'
-            #     if request.user.is_superuser:
-            #         error_message = f"{error_message} | {msg}"
-            #     res_json = {"message": error_message}
-            #     response = JsonResponse(res_json, status=202)
+
             except Exception as ex:
-                print(ex)
                 error_message = "Intente Nuevamente"
                 if request.user.is_superuser:
                     error_message = f"{error_message} | {ex}"
@@ -510,6 +488,11 @@ class ViewClassBase(ContextMixin, View):
             try:
                 response = super().dispatch(request, *args, **kwargs)
             except Exception as ex:
+                # Imprmir el error completo en la consola
+                import traceback
+                traceback.print_exc()
+
+
                 error_message = "Ha ocurrido un error inesperado"
                 if request.user.is_superuser:
                     error_message = f"{error_message} | {ex}"

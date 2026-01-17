@@ -1,0 +1,349 @@
+{% extends "core/layout/list.html" %}
+{% load static %}
+
+{% block table %}
+<div class="alert alert-info mb-3">
+    <i class="fas fa-info-circle me-2"></i>
+    <strong>Tip:</strong> Arrastra las filas para cambiar el orden. Haz clic en el ícono <i class="fas fa-chevron-down"></i> para expandir/contraer módulos.
+</div>
+
+<table class="table small table-hover table-striped mb-5" id="agrupaciones-table">
+    <thead>
+        <tr>
+            <th style="width: 3%;" class="text-center">
+                <i class="fas fa-grip-vertical"></i>
+            </th>
+            <th style="width: 3%;" class="text-center">
+                <i class="fas fa-chevron-down"></i>
+            </th>
+            <th style="width: 4%;" class="text-center">
+                <i class="fas fa-hashtag"></i>
+            </th>
+            <th style="width: 25%;">Agrupación</th>
+            <th style="width: 13%;" class="text-center">Ícono</th>
+            <th style="width: 34%;" class="text-muted">Módulos</th>
+            <th style="width: 18%;" class="text-center">Acciones</th>
+        </tr>
+    </thead>
+    <tbody id="sortable-agrupaciones">
+        {% for agrupacion in objs %}
+        <tr class="align-middle sortable-row agrupacion-row" data-id="{{ agrupacion.id }}" style="cursor: move;">
+            <!-- Drag handle -->
+            <td class="text-center drag-handle">
+                <i class="fas fa-grip-vertical text-muted"></i>
+            </td>
+            
+            <!-- Expand toggle -->
+            <td class="text-center" style="cursor: pointer;" onclick="toggleAgrupacion(event, {{ agrupacion.id }})">
+                <i class="fas fa-chevron-down toggle-icon" data-id="{{ agrupacion.id }}"></i>
+            </td>
+            
+            <!-- Orden -->
+            <td class="text-center">
+                <span class="badge bg-secondary">{{ agrupacion.orden }}</span>
+            </td>
+
+            <!-- Nombre agrupación -->
+            <td>
+                <div class="d-flex align-items-center">
+                    {% if agrupacion.icono %}
+                        <i class="{{ agrupacion.icono }} me-2" style="font-size: 1.3rem; color: #0d6efd;"></i>
+                    {% else %}
+                        <i class="fas fa-folder me-2" style="font-size: 1.3rem; color: #6c757d;"></i>
+                    {% endif %}
+                    <div>
+                        <div class="fw-semibold">{{ agrupacion.nombre }}</div>
+                        <small class="text-muted">{{ agrupacion.url }}</small>
+                    </div>
+                </div>
+            </td>
+
+            <!-- Ícono preview -->
+            <td class="text-center">
+                {% if agrupacion.icono %}
+                    <span class="badge bg-light">
+                        <i class="{{ agrupacion.icono }}" style="font-size: 1.2rem; color: #0d6efd;"></i>
+                    </span>
+                {% else %}
+                    <span class="badge bg-light text-muted">Sin ícono</span>
+                {% endif %}
+            </td>
+
+            <!-- Módulos asociados -->
+            <td>
+                {% if agrupacion.modulos_activos %}
+                    <div class="module-list">
+                        {% for modulo in agrupacion.modulos_activos %}
+                            <span class="badge bg-info me-1 mb-1">
+                                {% if modulo.icon %}
+                                    <i class="{{ modulo.icon }} me-1"></i>
+                                {% endif %}
+                                {{ modulo.nombre }}
+                            </span>
+                        {% endfor %}
+                    </div>
+                    <small class="text-muted d-block mt-1">
+                        Total: <strong>{{ agrupacion.modulos_activos|length }} módulo{{ agrupacion.modulos_activos|length|pluralize }}</strong>
+                    </small>
+                {% else %}
+                    <span class="badge bg-warning text-dark">
+                        <i class="fas fa-exclamation-triangle me-1"></i>Sin módulos
+                    </span>
+                {% endif %}
+            </td>
+
+            <!-- Acciones -->
+            <td class="text-center">
+                <div class="btn-group btn-group-sm" role="group">
+                    <a href="{{ path }}?action=edit&id={{ agrupacion.id }}" 
+                       class="btn btn-outline-primary" 
+                       title="Editar"
+                       data-bs-toggle="tooltip">
+                        <i class="fas fa-pencil"></i>
+                    </a>
+                    <a nhref="{{ path }}?action=delete&id={{ agrupacion.id }}" 
+                       href="#"
+                       class="btn btn-outline-danger formmodal" 
+                       title="Eliminar"
+                       data-bs-toggle="tooltip">
+                        <i class="fas fa-trash"></i>
+                    </a>
+                </div>
+            </td>
+        </tr>
+        
+        <!-- Módulos expandibles -->
+        {% if agrupacion.modulos_activos %}
+        <tr class="modulos-container d-none" id="modulos-{{ agrupacion.id }}">
+            <td colspan="7">
+                <table class="table table-sm table-borderless mb-0">
+                    <tbody id="sortable-modulos-{{ agrupacion.id }}" class="sortable-modulos" data-agrupacion-id="{{ agrupacion.id }}">
+                        {% for modulo in agrupacion.modulos_activos %}
+                        <tr class="modulo-row sortable-modulo" data-modulo-id="{{ modulo.id }}" style="cursor: move; background-color: #f8f9fa;">
+                            <td style="width: 3%;"></td>
+                            <td style="width: 3%;" class="drag-handle-modulo">
+                                <i class="fas fa-grip-vertical text-muted small"></i>
+                            </td>
+                            <td style="width: 4%;"></td>
+                            <td style="width: 25%;">
+                                <div class="d-flex align-items-center ms-3">
+                                    {% if modulo.icon %}
+                                        <i class="{{ modulo.icon }} me-2"></i>
+                                    {% endif %}
+                                    <span>{{ modulo.nombre }}</span>
+                                </div>
+                            </td>
+                            <td style="width: 13%;"></td>
+                            <td style="width: 34%;">
+                                <small class="text-muted">{{ modulo.url }}</small>
+                                {% if not modulo.activo %}
+                                    <span class="badge bg-warning text-dark ms-2">Inactivo</span>
+                                {% endif %}
+                            </td>
+                            <td style="width: 18%;" class="text-center orden-modulo">
+                                <small class="text-muted">Orden: <span class="orden-value">{{ modulo.orden }}</span></small>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+        {% endif %}
+        
+        {% empty %}
+        <tr>
+            <td colspan="7" class="text-center py-4">
+                <i class="fas fa-inbox text-muted" style="font-size: 2rem; margin-bottom: 1rem; display: block;"></i>
+                <p class="text-muted mb-0">No hay agrupaciones de módulos</p>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<style>
+    .module-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+    }
+    
+    .module-list .badge {
+        font-size: 0.75rem;
+        padding: 0.35rem 0.5rem;
+        white-space: nowrap;
+    }
+
+    .btn-group-sm .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+    
+    .sortable-row.sortable-ghost {
+        opacity: 0.4;
+        background-color: #e9ecef;
+    }
+    
+    .drag-handle {
+        cursor: move;
+    }
+    
+    .sortable-row:hover .drag-handle {
+        color: #0d6efd !important;
+    }
+    
+    .modulos-container {
+        background-color: #f8f9fa;
+    }
+    
+    .modulo-row:hover {
+        background-color: #e9ecef !important;
+    }
+    
+    .toggle-icon {
+        transition: transform 0.3s ease;
+    }
+    
+    .toggle-icon.rotated {
+        transform: rotate(180deg);
+    }
+    
+    .drag-handle-modulo {
+        cursor: move;
+    }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tbody = document.getElementById('sortable-agrupaciones');
+    
+    // ===== DRAG & DROP AGRUPACIONES =====
+    if (tbody && tbody.children.length > 0) {
+        const sortable = new Sortable(tbody, {
+            animation: 150,
+            handle: '.drag-handle',
+            ghostClass: 'sortable-ghost',
+            filter: '.modulos-container',
+            preventOnFilter: false,
+            onEnd: function(evt) {
+                // Obtener solo las filas de agrupaciones (no los containers de módulos)
+                const rows = Array.from(tbody.querySelectorAll('.agrupacion-row'));
+                const orden = rows.map(row => row.dataset.id);
+                
+                // Actualizar badges
+                rows.forEach((row, index) => {
+                    const badge = row.querySelector('.badge.bg-secondary');
+                    if (badge) {
+                        badge.textContent = index + 1;
+                    }
+                });
+                
+                // Enviar al servidor
+                fetch(window.location.pathname + '?action=reordenar', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.csrftoken || getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({ orden: orden })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Response data:', data);
+                    if (data && data.result === "ok") {
+                        console.log('✓ Orden de agrupaciones actualizado correctamente');
+                    } else if (data && data.mensaje) {
+                        console.error('✗ Error:', data.mensaje);
+                        alert('Error al actualizar el orden: ' + data.mensaje);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error de red:', error);
+                    alert('Error de conexión al actualizar el orden');
+                });
+            }
+        });
+    }
+    
+    // ===== DRAG & DROP MÓDULOS =====
+    document.querySelectorAll('.sortable-modulos').forEach(modulosContainer => {
+        const agrupacionId = modulosContainer.dataset.agrupacionId;
+        
+        const sortableModulos = new Sortable(modulosContainer, {
+            animation: 150,
+            handle: '.drag-handle-modulo',
+            ghostClass: 'sortable-ghost',
+            onEnd: function(evt) {
+                const rows = Array.from(modulosContainer.querySelectorAll('.sortable-modulo'));
+                const orden = rows.map((row, index) => ({
+                    id: row.dataset.moduloId,
+                    orden: index + 1
+                }));
+                
+                // Actualizar órdenes visualmente
+                rows.forEach((row, index) => {
+                    const ordenSpan = row.querySelector('.orden-value');
+                    if (ordenSpan) {
+                        ordenSpan.textContent = index + 1;
+                    }
+                });
+                
+                // Enviar al servidor
+                fetch(window.location.pathname + '?action=reordenar_modulos', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.csrftoken || getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({ agrupacion_id: agrupacionId, modulos: orden })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Response data:', data);
+                    if (data && data.result === "ok") {
+                        console.log('✓ Orden de módulos actualizado correctamente');
+                    } else if (data && data.mensaje) {
+                        console.error('✗ Error:', data.mensaje);
+                        alert('Error al actualizar el orden de módulos: ' + data.mensaje);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error de red:', error);
+                    alert('Error de conexión al actualizar el orden');
+                });
+            }
+        });
+    });
+    
+    // Helper para obtener cookie
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
+
+// Toggle expand/collapse de módulos
+function toggleAgrupacion(event, agrupacionId) {
+    event.preventDefault();
+    const container = document.getElementById('modulos-' + agrupacionId);
+    const icon = document.querySelector(`[data-id="${agrupacionId}"]`);
+    
+    if (container) {
+        container.classList.toggle('d-none');
+        icon.classList.toggle('rotated');
+    }
+}
+</script>
+{% endblock %}

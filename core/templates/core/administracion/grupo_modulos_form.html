@@ -1,0 +1,152 @@
+{% extends "core/forms/formAdmin.html" %}
+{% load static %}
+
+{% block form %}
+<style>
+    .agrupacion-section {
+        margin-bottom: 1.5rem;
+        border-left: 3px solid #0d6efd;
+        padding-left: 1rem;
+    }
+    
+    .agrupacion-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 0.75rem;
+        padding: 0.5rem;
+        background-color: #f8f9fa;
+        border-radius: 0.25rem;
+    }
+    
+    .modulo-checkbox {
+        margin-left: 1.5rem;
+        padding: 0.5rem;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .modulo-checkbox:last-child {
+        border-bottom: none;
+    }
+    
+    .modulo-checkbox:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .form-check-input {
+        cursor: pointer;
+    }
+    
+    .form-check-label {
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        width: 100%;
+    }
+    
+    .modulo-url {
+        color: #6c757d;
+        font-size: 0.875rem;
+        margin-left: 0.5rem;
+    }
+    
+    .badge-inactive {
+        font-size: 0.75rem;
+        margin-left: 0.5rem;
+    }
+</style>
+
+<div class="mb-3">
+    <!-- Campo grupo (oculto si es edición, visible si es creación) -->
+    {% if not form.instance.pk %}
+        <label for="{{ form.grupo.id_for_label }}" class="form-label">
+            {{ form.grupo.label }}
+            {% if form.grupo.field.required %}<span class="text-danger">*</span>{% endif %}
+        </label>
+        {{ form.grupo }}
+        {% if form.grupo.errors %}
+            <div class="invalid-feedback d-block">
+                {{ form.grupo.errors }}
+            </div>
+        {% endif %}
+    {% else %}
+        <input type="hidden" name="grupo" value="{{ form.instance.grupo.id }}">
+        <div class="alert alert-info">
+            <i class="fas fa-users me-2"></i>
+            <strong>Grupo:</strong> {{ form.instance.grupo.name }}
+        </div>
+    {% endif %}
+</div>
+
+<div class="mb-3">
+    <label class="form-label fw-semibold">
+        Módulos Asignados
+        <span class="text-danger">*</span>
+    </label>
+    <p class="text-muted small mb-3">Selecciona los módulos que tendrá acceso este grupo de usuarios</p>
+    
+    <div id="modulos-container">
+        {% for agrupacion in agrupaciones %}
+        <div class="agrupacion-section">
+            <div class="agrupacion-header">
+                {% if agrupacion.icono %}
+                    <i class="{{ agrupacion.icono }} me-2" style="font-size: 1.2rem; color: #0d6efd;"></i>
+                {% else %}
+                    <i class="fas fa-folder me-2" style="font-size: 1.2rem; color: #6c757d;"></i>
+                {% endif %}
+                <strong>{{ agrupacion.nombre }}</strong>
+                <span class="badge bg-secondary ms-auto">{{ agrupacion.modulos_activos|length }}</span>
+            </div>
+            
+            {% for modulo in agrupacion.modulos_activos %}
+            <div class="modulo-checkbox">
+                <div class="form-check">
+                    <input class="form-check-input" 
+                           type="checkbox" 
+                           name="modulos" 
+                           value="{{ modulo.id }}" 
+                           id="modulo_{{ modulo.id }}"
+                           {% if modulo in form.instance.modulos.all %}checked{% endif %}>
+                    <label class="form-check-label" for="modulo_{{ modulo.id }}">
+                        {% if modulo.icon %}
+                            <i class="{{ modulo.icon }} me-2"></i>
+                        {% endif %}
+                        {{ modulo.nombre }}
+                        <span class="modulo-url">({{ modulo.url }})</span>
+                        {% if not modulo.activo %}
+                            <span class="badge bg-warning text-dark badge-inactive">
+                                <i class="fas fa-ban me-1"></i>Inactivo
+                            </span>
+                        {% endif %}
+                    </label>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+    </div>
+    
+    {% if form.modulos.errors %}
+        <div class="invalid-feedback d-block">
+            {{ form.modulos.errors }}
+        </div>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Contar módulos seleccionados
+    function updateCount() {
+        const checked = document.querySelectorAll('input[name="modulos"]:checked').length;
+        const total = document.querySelectorAll('input[name="modulos"]').length;
+        console.log(`Seleccionados: ${checked} de ${total}`);
+    }
+    
+    // Escuchar cambios en checkboxes
+    document.querySelectorAll('input[name="modulos"]').forEach(checkbox => {
+        checkbox.addEventListener('change', updateCount);
+    });
+    
+    updateCount();
+});
+</script>
+{% endblock %}

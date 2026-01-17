@@ -395,6 +395,35 @@ class GrupoModulo(ModeloBase):
         verbose_name = "Módulos de un Grupo"
         verbose_name_plural = "Módulos Pertenecientes a un Grupo"
         ordering = ['grupo__name']
+    
+    @cached_property
+    def modulos_por_agrupacion(self):
+        """Retorna módulos agrupados por AgrupacionModulo sin duplicados."""
+        from collections import OrderedDict
+        
+        # Obtener todos los módulos con sus agrupaciones
+        modulos = self.modulos.prefetch_related('agrupacionmodulo_set').order_by('orden')
+        
+        # Agrupar por agrupación
+        agrupaciones_dict = OrderedDict()
+        
+        for modulo in modulos:
+            # Obtener la primera agrupación del módulo (debería haber solo una)
+            agrupacion = modulo.agrupacionmodulo_set.first()
+            
+            if agrupacion:
+                if agrupacion.id not in agrupaciones_dict:
+                    agrupaciones_dict[agrupacion.id] = {
+                        'agrupacion': agrupacion,
+                        'modulos': []
+                    }
+                agrupaciones_dict[agrupacion.id]['modulos'].append(modulo)
+        
+        # Ordenar agrupaciones por orden
+        return sorted(
+            agrupaciones_dict.values(),
+            key=lambda x: (x['agrupacion'].orden, x['agrupacion'].nombre)
+        )
 
 
 class AgrupacionModulo(ModeloBase):
