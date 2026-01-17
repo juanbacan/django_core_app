@@ -3,11 +3,67 @@ from django.utils.safestring import mark_safe
 from tinymce.widgets import TinyMCE
 from dal_select2.widgets import ModelSelect2, Select2, Select2Multiple, ModelSelect2Multiple
 from dal import autocomplete as dal_autocomplete, forward as dal_forward
+from django.db.models import Q
+import json
 from django.apps import apps
 from django.conf import settings
 from core.crud_registry import crud_registry
 from core.widgets import IconPickerWidget
 from core.layout import FormHelper
+
+
+def serialize_q(qobj):
+    """Serializa un objeto Q a una estructura dict serializable.
+
+    Representación simple: {'connector': 'AND'|'OR', 'negated': bool, 'children': [ ... ]}
+    Cada child es o bien [lookup, value] o un nested dict con la misma estructura.
+    """
+    if not isinstance(qobj, Q):
+        raise TypeError("serialize_q requiere un Q")
+
+    def _serialize(q):
+        children = []
+        for child in q.children:
+            if isinstance(child, Q):
+                children.append(_serialize(child))
+            else:
+                # child is a tuple (lookup, value)
+                lookup, value = child
+                children.append([lookup, value])
+
+        return {
+            'connector': q.connector,
+            'negated': q.negated,
+            'children': children,
+        }
+
+    return _serialize(qobj)
+
+
+def build_forward_const(val, dst):
+    """Construye un `dal.forward.Const` a partir de `val`.
+
+    - Si `val` es Q -> serializa a {'__q__': ...}
+    - Si `val` es lista/tuple de Q o dicts -> serializa cada Q dentro
+    - Si es otra cosa, lo deja como está (string, int, dict serializable)
+    """
+    # Q
+    if isinstance(val, Q):
+        return dal_forward.Const({'__q__': serialize_q(val)}, dst)
+
+    # list/tuple
+    if isinstance(val, (list, tuple)):
+        out = []
+        for item in val:
+            if isinstance(item, Q):
+                out.append({'__q__': serialize_q(item)})
+            else:
+                out.append(item)
+        return dal_forward.Const(out, dst)
+
+    # otherwise
+    return dal_forward.Const(val, dst)
+
 
 class BootstrapFieldsMixin:
     """
@@ -286,9 +342,10 @@ def configure_auto_complete_widgets(form_class, model, auto_complete_fields=None
 
         forward_value = f"{related_model._meta.app_label}.{related_model.__name__}"
         try:
+            # Use helper to build Const (supports Q serialization)
             widget = widget_cls(
                 url='core:model_autocomplete',
-                forward=(dal_forward.Const(forward_value, 'model'),),
+                forward=(build_forward_const(forward_value, 'model'),),
                 attrs={'data-html': True}
             )
         except Exception as e:

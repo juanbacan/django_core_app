@@ -266,27 +266,84 @@ class ModelAutocompleteView(autocomplete.Select2QuerySetView):
 
         # Buscar la vista CRUD registrada para este modelo
         info = crud_registry.get(model)
-        if not info:
-            raise ValueError(f"No hay una ModelCRUDView registrada para el modelo {model.__name__}")
+        view_cls = info.get('view') if info else None
 
-        view_cls = info.get('view')
-        search_fields = getattr(view_cls, 'search_fields', None)
+        # Determinar `search_fields`:
+        # - Si el forward incluye `search_fields`, lo usamos (sobrescribe la vista CRUD si existiera)
+        # - En caso contrario, usamos `search_fields` de la vista CRUD registrada
+        search_fields = None
+        # permitir que el widget reenvíe una lista o un string con campos
+        f_sf = self.forwarded.get('search_fields')
+        if f_sf:
+            if isinstance(f_sf, str):
+                search_fields = [s.strip() for s in f_sf.split(',') if s.strip()]
+            elif isinstance(f_sf, (list, tuple)):
+                search_fields = list(f_sf)
+
+        if search_fields is None and view_cls:
+            search_fields = getattr(view_cls, 'search_fields', None)
+
         if not search_fields:
-            raise ValueError(f"La vista CRUD de {model.__name__} no define 'search_fields'")
+            raise ValueError(f"La vista CRUD de {model.__name__} no define 'search_fields' y no se recibió 'search_fields' en forward")
 
         qs = model.objects.all()
         
         # Aplicar filtros desde forwarded (excluyendo 'model' que ya usamos)
         forward_filters = {k: v for k, v in self.forwarded.items() if k != 'model' and v not in [None, '', []]}
-        
+
         # Si la vista CRUD tiene un método para filtrar el autocomplete, usarlo
-        if hasattr(view_cls, 'filter_autocomplete_queryset'):
+        if view_cls and hasattr(view_cls, 'filter_autocomplete_queryset'):
             qs = view_cls.filter_autocomplete_queryset(qs, forward_filters, self.q)
         else:
             # Aplicar filtros automáticos basados en los campos del modelo
             for field_name, value in forward_filters.items():
                 try:
-                    # Verificar si el campo existe en el modelo
+                    # Soportar estructuras complejas en el forwarded value.
+                    # Si se envía un dict con claves 'filter' y/o 'exclude',
+                    # aplicarlas directamente como kwargs a queryset.
+                    if isinstance(value, dict):
+                        # If it is a serialized Q object (from build_forward_const)
+                        if '__q__' in value:
+                            # Reconstruct Q object from serialized form
+                            def deserialize_q(d):
+                                connector = d.get('connector', 'AND')
+                                negated = d.get('negated', False)
+                                children = d.get('children', [])
+                                q = Q()
+                                q.connector = connector
+                                q.negated = negated
+                                q.children = []
+                                for ch in children:
+                                    if isinstance(ch, list) and len(ch) == 2:
+                                        lookup, val = ch
+                                        q.children.append((lookup, val))
+                                    elif isinstance(ch, dict):
+                                        q.children.append(deserialize_q(ch))
+                                return q
+
+                            qobj = deserialize_q(value['__q__'])
+                            qs = qs.filter(qobj)
+                            continue
+
+                        # Aplicar 'filter' si está presente
+                        filt = value.get('filter')
+                        if isinstance(filt, dict):
+                            qs = qs.filter(**filt)
+
+                        # Aplicar 'exclude' si está presente
+                        excl = value.get('exclude')
+                        if isinstance(excl, dict):
+                            qs = qs.exclude(**excl)
+
+                        # Aplicar 'extra_q' como una lista de lookups (AND)
+                        extra_q = value.get('extra_q')
+                        if isinstance(extra_q, list):
+                            for lookup in extra_q:
+                                if isinstance(lookup, dict):
+                                    qs = qs.filter(**lookup)
+                        continue
+
+                    # Para valores simples intentamos mapear al campo del modelo
                     model._meta.get_field(field_name)
                     # Si el valor es una lista, usar __in
                     if isinstance(value, list):
@@ -294,7 +351,7 @@ class ModelAutocompleteView(autocomplete.Select2QuerySetView):
                     else:
                         qs = qs.filter(**{field_name: value})
                 except Exception:
-                    # Si el campo no existe, ignorar silenciosamente
+                    # Si el campo no existe o la estructura no aplica, ignorar silenciosamente
                     pass
         
         # Aplicar búsqueda por texto
