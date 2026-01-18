@@ -797,8 +797,13 @@ class ModelCRUDView(ViewAdministracionBase):
         Permite múltiples palabras separadas por espacios.
         """
         queryset = self.model.objects.all()
-        # Fix: usar request.GET para búsqueda en lugar de self.data que puede no estar inicializado
-        search = self.request.GET.get("q", "").strip() if hasattr(self, 'request') else self.data.get("search", "") if hasattr(self, 'data') else ""
+
+        search = ""
+        if hasattr(self, 'request'):
+            search = (self.request.GET.get("search") or self.request.GET.get("q") or "").strip()
+        elif hasattr(self, 'data'):
+            search = (self.data.get("search") or self.data.get("q") or "").strip()
+
 
         # --- Búsqueda ---
         if search and self.search_fields:
