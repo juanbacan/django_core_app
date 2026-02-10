@@ -56,7 +56,9 @@
                 {% block formsuffix %}{% endblock formsuffix %}
 
                 <div class="modal-footer">
-                    {% if delete_obj %}
+                    {% if form.view_only %}
+                        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Cerrar</button>
+                    {% elif delete_obj %}
                         <button 
                             class="btn btn-danger" 
                             type="button" 

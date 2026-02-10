@@ -73,13 +73,15 @@ class BootstrapFieldsMixin:
     """
     # Diccionario para definir parámetros FK por campo: {'campo': 'param1=valor1&param2=valor2'}
     fk_params = {}
+    view_only = False
     
     def __init__(self, *args, **kwargs):
         # Extraer parámetros FK si se pasan como kwargs
         self.fk_params = kwargs.pop('fk_params', getattr(self.__class__, 'fk_params', {}))
+        self.view_only = kwargs.pop('view_only', getattr(self.__class__, 'view_only', False))
         super().__init__(*args, **kwargs)
 
-        if self.is_bound:
+        if self.is_bound and not self.view_only:
             return
 
         if hasattr(self.__class__, 'prepopulated_fields'):
@@ -109,6 +111,23 @@ class BootstrapFieldsMixin:
         if hasattr(self, 'helper') and self.helper:
             # El helper ya está configurado en la subclase
             pass
+
+        if self.view_only:
+            self.set_readonly_fields()
+
+    def set_readonly_fields(self):
+        for field in self.fields.values():
+            field.disabled = True
+            widget = field.widget
+            input_type = getattr(widget, 'input_type', '')
+            is_select_widget = isinstance(
+                widget,
+                (forms.Select, forms.SelectMultiple, Select2, Select2Multiple, ModelSelect2, ModelSelect2Multiple),
+            )
+            if input_type in ('checkbox', 'radio') or is_select_widget:
+                widget.attrs['disabled'] = 'disabled'
+            else:
+                widget.attrs['readonly'] = 'readonly'
 
     def configure_field(self, field, field_name):
         # Si el campo es un campo de búsqueda (raw_id_fields), se configura como input de texto
@@ -265,6 +284,12 @@ class ModelBaseForm(BootstrapFieldsMixin, forms.ModelForm):
             for inline in self.inlines:
                 formset = inline.get_formset(parent_instance=parent_instance, data=data, files=files)
                 self.inline_formsets.append(formset)
+
+            if getattr(self, 'view_only', False):
+                for formset in self.inline_formsets:
+                    for form in formset.forms:
+                        if hasattr(form, 'set_readonly_fields'):
+                            form.set_readonly_fields()
                 
         else:
             super(ModelBaseForm, self).__init__(*args, **kwargs)
