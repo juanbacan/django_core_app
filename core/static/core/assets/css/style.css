@@ -107,7 +107,19 @@ body {
 .modal .select2-container .select2-selection {
   width: 100% !important;
   max-width: 100% !important;
+  min-width: auto !important;
 }
 
+
+.select2-container {
+    width: 100% !important;
+    max-width: 100%;
+    min-width: auto!important;
+}
+
+/* Opcional: Asegura que el campo de búsqueda interno también se ajuste */
+.select2-search__field {
+    width: 100% !important;
+}
 
 
