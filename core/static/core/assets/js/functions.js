@@ -120,6 +120,116 @@ function hideErrorMessage() {
     document.getElementById( 'error-static' ).style.display = 'none';
 }
 
+function showToast({mensaje, tipo = 'success', duracion = 3000}) {
+    // Tipos: success, danger, info, warning
+    const iconos = {
+        'success': '<i class="fas fa-check-circle"></i>',
+        'danger': '<i class="fas fa-exclamation-circle"></i>',
+        'info': '<i class="fas fa-info-circle"></i>',
+        'warning': '<i class="fas fa-exclamation-triangle"></i>'
+    };
+    
+    const colores = {
+        'success': '#10b981',
+        'danger': '#ef4444',
+        'info': '#3b82f6',
+        'warning': '#f59e0b'
+    };
+    
+    // Crear contenedor si no existe
+    let contenedor = document.getElementById('toast-container');
+    if (!contenedor) {
+        contenedor = document.createElement('div');
+        contenedor.id = 'toast-container';
+        contenedor.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        `;
+        document.body.appendChild(contenedor);
+    }
+    
+    // Crear mensaje
+    const toast = document.createElement('div');
+    toast.className = 'custom-toast';
+    toast.style.cssText = `
+        background: white;
+        border-left: 4px solid ${colores[tipo] || colores['info']};
+        border-radius: 8px;
+        padding: 16px 20px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 300px;
+        max-width: 400px;
+        animation: slideIn 0.3s ease-out;
+    `;
+    
+    toast.innerHTML = `
+        <span style="color: ${colores[tipo] || colores['info']}; font-size: 1.2rem;">
+            ${iconos[tipo] || iconos['info']}
+        </span>
+        <span style="flex: 1; color: #333; font-weight: 500;">${mensaje}</span>
+        <button onclick="this.parentElement.remove()" style="
+            background: none;
+            border: none;
+            color: #999;
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 0;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        ">&times;</button>
+    `;
+    
+    // Agregar estilos de animación si no existen
+    if (!document.getElementById('toast-animations')) {
+        const style = document.createElement('style');
+        style.id = 'toast-animations';
+        style.textContent = `
+            @keyframes slideIn {
+                from {
+                    transform: translateX(400px);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+            @keyframes slideOut {
+                from {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+                to {
+                    transform: translateX(400px);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    contenedor.appendChild(toast);
+    
+    // Auto-remover después de la duración especificada
+    if (duracion > 0) {
+        setTimeout(() => {
+            toast.style.animation = 'slideOut 0.3s ease-out';
+            setTimeout(() => toast.remove(), 300);
+        }, duracion);
+    }
+}
+
 
 async function handleResponse(resp, data, modalName = 'modalEdicion') {
     if (!resp.ok) {
@@ -363,6 +473,14 @@ const submitModalForm1 = async (formid = 'modalForm1', showError = true) => {
                 const myModal = bootstrap.Modal.getInstance(document.getElementById('modalEdicion'));
                 if (myModal) myModal.hide();
                 desbloqueoInterfaz();
+                
+                // Mostrar mensaje de éxito si existe
+                if (data.mensaje) {
+                    setTimeout(() => {
+                        showToast({mensaje: data.mensaje, tipo: 'success', duracion: 4000});
+                    }, 300);
+                }
+                
                 return data;
             }
         } else if (data.result === "error") {
