@@ -54,6 +54,14 @@ def seconds_to_string(seconds):
 def seconds_to_string2(seconds, total):
     tiempo = total - seconds
     return seconds_to_string(tiempo)
+
+def seconds_to_string3(seconds):
+    """
+    Convertir segundos a formato legible.
+    NOTA: Ahora 'seconds' representa tiempo TRANSCURRIDO (no restante).
+    Ya no necesitamos calcular
+    """
+    return seconds_to_string(seconds)
     
 def add_class(field):
     # Check if it is a checkbox
@@ -422,6 +430,7 @@ register.filter("args", args)
 register.filter("to_char", to_char)
 register.filter("time_to_string", seconds_to_string)
 register.filter("time_to_string2", seconds_to_string2)
+register.filter("time_to_string3", seconds_to_string3)
 register.filter("add_class", add_class)
 register.filter("num_question", num_question)
 register.filter("get_minutes", get_minutes)
