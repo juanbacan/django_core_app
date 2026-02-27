@@ -445,3 +445,18 @@ class AgrupacionModulo(ModeloBase):
     def modulos_activos(self):
         return self.modulos.filter(activo=True).order_by('orden')
     
+
+class CredencialesAPI(ModeloBase):
+    # Publicar en Páginas de Facebook
+    facebook_page_id = models.CharField(max_length=255, blank=True, null=True)
+    facebook_token = models.CharField(max_length=255, blank=True, null=True)
+    # Token Bot Telegram
+    telegram_bot_token = models.CharField(max_length=255, blank=True, null=True, verbose_name="Token del Bot Telegram")
+    telegram_default_chat_id = models.CharField(max_length=255, blank=True, null=True, verbose_name="Chat/Canal por defecto Telegram")
+    
+    # Evolution API WhatsApp
+    evolution_api_url = models.URLField(blank=True, null=True, verbose_name="URL de Evolution API")
+    evolution_api_key = models.CharField(max_length=255, blank=True, null=True, verbose_name="API Key de Evolution")
+    evolution_instance_id = models.CharField(max_length=255, blank=True, null=True, verbose_name="ID de la Instancia")
+    evolution_instance_token = models.CharField(max_length=255, blank=True, null=True, verbose_name="Token de la Instancia")
+    evolution_channels = models.TextField(blank=True, null=True, verbose_name="Canales administrados (JSON)", help_text="JSON con los canales que administra esta instancia")

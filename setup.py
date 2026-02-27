@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="django-core-app",  # Nombre que tendrá en PyPI
-    version="0.2.52",         # Versión inicial (usa Semantic Versioning)
+    version="0.2.53",         # Versión inicial (usa Semantic Versioning)
     packages=find_packages(),
     include_package_data=True,  # Incluye archivos declarados en MANIFEST.in
     install_requires=[
@@ -21,9 +21,11 @@ setup(
         "django-webpush",
         "firebase-admin",
         "numpy",
+        "requests",
         "pandas",
         "pillow",
         "psycopg2-binary",
+        "evolutionapi"
     ],
     author="juanbacan",
     author_email="juan.ingaor@gmail.com",
