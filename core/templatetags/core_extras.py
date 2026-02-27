@@ -88,8 +88,15 @@ def num_question(page, num, questions = 5):
     return (page - 1) * questions + num
     
 
+def get_hours(seconds):
+    hours = seconds // 3600
+    if hours >= 10:
+        return hours
+    else:
+        return f"0{hours}"
+
 def get_minutes(seconds):
-    minutes =  seconds // 60
+    minutes = (seconds // 60) % 60
     if minutes >= 10:
         return minutes
     else:
@@ -433,6 +440,7 @@ register.filter("time_to_string2", seconds_to_string2)
 register.filter("time_to_string3", seconds_to_string3)
 register.filter("add_class", add_class)
 register.filter("num_question", num_question)
+register.filter("get_hours", get_hours)
 register.filter("get_minutes", get_minutes)
 register.filter("get_seconds", get_seconds)
 register.filter("get_photo_user", get_photo_user)
