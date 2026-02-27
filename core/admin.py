@@ -6,7 +6,7 @@ from django import forms
 from tinymce.widgets import TinyMCE
 
 from .models import CustomUser, AplicacionWeb, Alerta, EmailCredentials, ErrorApp, CorreoTemplate, \
-    LlamadoAccion, Modulo, GrupoModulo, AgrupacionModulo
+    LlamadoAccion, Modulo, GrupoModulo, AgrupacionModulo, CredencialesAPI
 
 class CustomUserAdmin(admin.ModelAdmin):
     list_display = ('username', 'first_name', 'last_name')
@@ -55,3 +55,35 @@ admin.site.register(FlatPage, PageAdmin)
 admin.site.register(Modulo)
 admin.site.register(GrupoModulo)
 admin.site.register(AgrupacionModulo)
+
+
+class CredencialesAPIAdmin(admin.ModelAdmin):
+    list_display = ('id', 'created_at', 'modified_at')
+    readonly_fields = ('created_by', 'modified_by', 'created_at', 'modified_at')
+    
+    fieldsets = (
+        ('Facebook', {
+            'fields': ('facebook_page_id', 'facebook_token'),
+            'classes': ('collapse',),
+        }),
+        ('Telegram', {
+            'fields': ('telegram_bot_token', 'telegram_default_chat_id'),
+            'classes': ('collapse',),
+        }),
+        ('WhatsApp - Evolution API', {
+            'fields': (
+                'evolution_api_url',
+                'evolution_api_key',
+                'evolution_instance_id',
+                'evolution_instance_token',
+                'evolution_channels'
+            ),
+            'classes': ('collapse',),
+        }),
+        ('Información de Registro', {
+            'fields': ('created_by', 'modified_by', 'created_at', 'modified_at'),
+            'classes': ('collapse',),
+        }),
+    )
+
+admin.site.register(CredencialesAPI, CredencialesAPIAdmin)
