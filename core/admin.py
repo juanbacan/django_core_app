@@ -58,7 +58,7 @@ admin.site.register(AgrupacionModulo)
 
 
 class CredencialesAPIAdmin(admin.ModelAdmin):
-    list_display = ('id', 'created_at', 'modified_at')
+    list_display = ('id', 'estado_facebook', 'estado_telegram', 'estado_whatsapp')
     readonly_fields = ('created_by', 'modified_by', 'created_at', 'modified_at')
     
     fieldsets = (
@@ -85,5 +85,23 @@ class CredencialesAPIAdmin(admin.ModelAdmin):
             'classes': ('collapse',),
         }),
     )
+    
+    def estado_facebook(self, obj):
+        if obj.facebook_page_id and obj.facebook_token:
+            return "✅ Configurado"
+        return "❌ No configurado"
+    estado_facebook.short_description = "ESTADO FACEBOOK"
+    
+    def estado_telegram(self, obj):
+        if obj.telegram_bot_token and obj.telegram_default_chat_id:
+            return "✅ Configurado"
+        return "❌ No configurado"
+    estado_telegram.short_description = "ESTADO TELEGRAM"
+    
+    def estado_whatsapp(self, obj):
+        if obj.evolution_api_url and obj.evolution_api_key and obj.evolution_instance_id:
+            return "✅ Configurado"
+        return "❌ No configurado"
+    estado_whatsapp.short_description = "ESTADO WHATSAPP"
 
 admin.site.register(CredencialesAPI, CredencialesAPIAdmin)
