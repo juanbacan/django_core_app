@@ -549,13 +549,11 @@ class ViewClassBase(ContextMixin, View):
                 response = super().dispatch(request, *args, **kwargs)
             except Exception as ex:
                 # Imprmir el error completo en la consola
-                import traceback
                 traceback.print_exc()
-
 
                 error_message = "Ha ocurrido un error inesperado"
                 if request.user.is_superuser:
-                    error_message = f"{error_message} | {ex}"
+                    error_message = f"{error_message} | {ex} | {traceback.format_exc()}"
                 if is_ajax:
                     response = JsonResponse({"mensaje": error_message, 'result': 'error'}, status=500)
                 else:
