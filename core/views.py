@@ -1,3 +1,4 @@
+import traceback
 import os, json, urllib.parse
 from datetime import date
 from urllib.parse import urlencode
@@ -530,9 +531,11 @@ class ViewClassBase(ContextMixin, View):
                     response = super().dispatch(request, *args, **kwargs)
 
             except Exception as ex:
-                error_message = "Intente Nuevamente"
+                error_message = "Ha ocurrido un error inesperado, consulte con el administrador"
                 if request.user.is_superuser:
-                    error_message = f"{error_message} | {ex}"
+                    traceback.print_exc()
+                    error_message = f"{error_message} | {traceback.format_exc()}"
+                
                 data = {"mensaje": error_message, 'result': 'error'}
 
                 if is_ajax:
