@@ -927,6 +927,22 @@ class ModelCRUDView(ViewAdministracionBase):
                 label, spec = item
             else:
                 label, spec = get_header(self.model, item), item
+
+                # Soporte para métodos definidos en la vista y declarados
+                # por nombre en list_display, p.ej. 'instrumento'.
+                if isinstance(item, str) and "__" not in item:
+                    is_model_field = True
+                    try:
+                        self.model._meta.get_field(item)
+                    except Exception:
+                        is_model_field = False
+
+                    if not is_model_field:
+                        view_method = getattr(self, item, None)
+                        if callable(view_method):
+                            method_for_header = getattr(self.__class__, item, view_method)
+                            label = get_header(self.model, method_for_header)
+                            spec = (lambda o, method=view_method: method(o))
             headers.append(label)
             specs.append(spec)
         return headers, specs

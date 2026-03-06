@@ -808,10 +808,16 @@ def get_header(model: models.Model, spec):
     Devuelve un encabezado legible para una columna.
     • Si spec es str y es campo directo → verbose_name.
     • Si spec es str con '__' → toma la última parte y la humaniza.
-    • Si spec es callable → busca .verbose_name o __doc__ o nombre.
+    • Si spec es callable → busca .short_description, .verbose_name, __doc__ o nombre.
     """
     if callable(spec):
-        return getattr(spec, "verbose_name", None) \
+        short_description = getattr(spec, "short_description", None)
+        if not short_description:
+            bound_func = getattr(spec, "__func__", None)
+            short_description = getattr(bound_func, "short_description", None) if bound_func else None
+
+        return short_description \
+               or getattr(spec, "verbose_name", None) \
                or (spec.__doc__ or "").strip() \
                or humanize(spec.__name__)
 
@@ -822,7 +828,9 @@ def get_header(model: models.Model, spec):
                 field = model._meta.get_field(spec)
                 return field.verbose_name.title()
             except Exception:
-                pass
+                model_attr = getattr(model, spec, None)
+                if callable(model_attr):
+                    return get_header(model, model_attr)
         return humanize(spec.split("__")[-1])
 
     # Tupla (label, spec) — el label llegará ya seteado arriba
