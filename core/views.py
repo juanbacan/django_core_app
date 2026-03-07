@@ -170,8 +170,16 @@ def one_tap_google_login(request):
         return autenticar_usuario(request, user)
 
     except Exception as ex:
+        # Capturar el traceback completo
+        tb_str = traceback.format_exc()
         save_error(request, ex, "ONE TAP GOOGLE LOGIN")
-        return JsonResponse({"error": "server_error"}, status=500)
+        
+        # Retornar error con traceback completo
+        return JsonResponse({
+            "error": "server_error",
+            "exception": str(ex),
+            "traceback": tb_str
+        }, status=500)
 
 
 def api(request):
