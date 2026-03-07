@@ -10,6 +10,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login, logout
+from django.contrib.auth.models import Group
 from django.contrib import messages
 from django import forms
 from django.apps import apps
@@ -65,11 +66,15 @@ def obtener_extra_data(data):
     }
 
 
-def autenticar_usuario(request, user):
+def autenticar_usuario(request, user, add_group=None):
     """
     Autentica al usuario, asigna el backend, inicia sesión, muestra mensaje
     y redirige a la URL de referencia.
     """
+    if add_group:
+        group, _ = Group.objects.get_or_create(name=add_group)
+        user.groups.add(group)
+
     user.backend = 'django.contrib.auth.backends.ModelBackend'
     login(request, user)
     messages.success(request, f'Ha iniciado sesión exitosamente como {user.username}')
