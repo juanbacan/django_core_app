@@ -379,6 +379,11 @@ document.addEventListener("DOMContentLoaded", function() {
 
 const submitModalForm1 = async (formid = 'modalForm1', showError = true) => {
     const form = document.getElementById(formid);
+    
+    if (typeof tinymce !== 'undefined' && typeof tinymce.triggerSave === 'function') {
+        tinymce.triggerSave();
+    }
+    
     form.classList.add('was-validated');
 
     if (!form.checkValidity()) return;
@@ -395,7 +400,7 @@ const submitModalForm1 = async (formid = 'modalForm1', showError = true) => {
     bloqueoInterfaz();
 
     try {
-        const submitButton = event.submitter; // Captura el botón que disparó el envío
+        const submitButton = (typeof event !== 'undefined' && event) ? event.submitter : null; // Captura el botón que disparó el envío
         const formData = new FormData(form); // Crear los datos del formulario
 
         if (submitButton && submitButton.name) {
