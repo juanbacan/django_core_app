@@ -1,58 +1,304 @@
 {% extends "core/modals/modal.html" %}
-{% block modalsize %}modal-md{% endblock modalsize %}
-{% block title %}<h2 class="mb-0">Inicia Sesión</h2>{% endblock title %}
+{% block modalsize %}modal-md modal-login-professional{% endblock modalsize %}
+{% block title %}<span class="login-modal-title">Inicia sesión</span>{% endblock title %}
 {% load account socialaccount %}
 {% load blog_extras %}
+{% load core_extras %}
+
+{% block extracss %}
+<style>
+	.modal-login-professional {
+		--login-primary: var(--primary, var(--bs-primary, #0d6efd));
+		--login-primary-rgb: var(--primary-rgb, var(--bs-primary-rgb, 13, 110, 253));
+		--login-body-bg: var(--bs-body-bg, #ffffff);
+		--login-body-color: var(--bs-body-color, #212529);
+		--login-secondary-color: var(--bs-secondary-color, #6c757d);
+		--login-border-color: var(--bs-border-color, #dee2e6);
+	}
+
+	.modal-login-professional .modal-content {
+		border: 0;
+		border-radius: 18px;
+		overflow: hidden;
+		background: linear-gradient(180deg, var(--login-body-bg) 0%, rgba(var(--login-primary-rgb), 0.03) 100%);
+		box-shadow: 0 20px 45px rgba(var(--login-primary-rgb), 0.16);
+	}
+
+	.modal-login-professional .modal-header {
+		background: linear-gradient(140deg, rgba(var(--login-primary-rgb), 0.04) 0%, rgba(var(--login-primary-rgb), 0.1) 100%);
+		padding: 1rem 1.25rem;
+		border-bottom: 1px solid var(--login-border-color);
+	}
+
+	.modal-login-professional .modal-body {
+		padding: 1.2rem 1.25rem 1.35rem;
+	}
+
+	.modal-login-professional .login-modal-title {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.55rem;
+		font-size: 1.15rem;
+		font-weight: 700;
+		color: var(--bs-heading-color, var(--login-body-color));
+		letter-spacing: 0.2px;
+	}
+
+	.modal-login-professional .login-modal-title::before {
+		content: "\f2f6";
+		font-family: "Font Awesome 6 Free";
+		font-weight: 900;
+		width: 1.9rem;
+		height: 1.9rem;
+		border-radius: 10px;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		color: var(--login-primary);
+		background: rgba(var(--login-primary-rgb), 0.12);
+		font-size: 0.92rem;
+	}
+
+	.modal-login-professional .login-info-banner {
+		padding: 0.85rem 1rem;
+		border-radius: 14px;
+		margin-bottom: 1rem;
+		border: 1px solid rgba(var(--login-primary-rgb), 0.2);
+		background: linear-gradient(135deg, rgba(var(--login-primary-rgb), 0.07) 0%, rgba(var(--login-primary-rgb), 0.03) 100%);
+	}
+
+	.modal-login-professional .login-info-banner p {
+		margin-bottom: 0;
+		text-align: center;
+		color: var(--login-body-color);
+		line-height: 1.45;
+	}
+
+	.modal-login-professional .login-info-banner p + p {
+		margin-top: 0.35rem;
+		font-size: 0.93rem;
+		color: var(--login-secondary-color);
+	}
+
+	.modal-login-professional .login-info-banner a,
+	.modal-login-professional .login-forgot-link {
+		color: var(--login-primary);
+		font-weight: 600;
+		text-decoration: none;
+	}
+
+	.modal-login-professional .login-info-banner a:hover,
+	.modal-login-professional .login-forgot-link:hover {
+		color: var(--login-primary);
+		text-decoration: underline;
+	}
+
+	.modal-login-professional .login-divider {
+		display: flex;
+		align-items: center;
+		margin: 0.8rem 0 0.95rem;
+	}
+
+	.modal-login-professional .login-divider::before,
+	.modal-login-professional .login-divider::after {
+		content: "";
+		flex: 1;
+		height: 1px;
+		background: var(--login-border-color);
+	}
+
+	.modal-login-professional .login-divider span {
+		padding: 0 0.75rem;
+		font-size: 0.74rem;
+		text-transform: uppercase;
+		letter-spacing: 0.85px;
+		font-weight: 700;
+		color: var(--login-secondary-color);
+	}
+
+	.modal-login-professional .socialaccount_providers {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 0.6rem;
+	}
+
+	.modal-login-professional .socialaccount_providers li {
+		margin: 0;
+	}
+
+	.modal-login-professional .socialaccount_providers a {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.4rem;
+		padding: 0.6rem 0.75rem;
+		border-radius: 12px;
+		border: 1px solid var(--login-border-color);
+		background: var(--login-body-bg);
+		color: var(--login-body-color);
+		font-size: 0.9rem;
+		font-weight: 600;
+		text-decoration: none;
+		transition: all 0.2s ease;
+	}
+
+	.modal-login-professional .socialaccount_providers a:hover {
+		border-color: rgba(var(--login-primary-rgb), 0.35);
+		background: rgba(var(--login-primary-rgb), 0.06);
+		transform: translateY(-1px);
+	}
+
+	.modal-login-professional .login-field {
+		margin-bottom: 0.85rem;
+	}
+
+	.modal-login-professional .login-field .form-label {
+		font-size: 0.86rem;
+		font-weight: 600;
+		color: var(--login-secondary-color);
+		margin-bottom: 0.38rem;
+	}
+
+	.modal-login-professional .login-field .form-control {
+		min-height: 44px;
+		border-radius: 12px;
+		border: 1px solid var(--login-border-color);
+		padding: 0.62rem 0.85rem;
+		font-size: 0.95rem;
+		box-shadow: none;
+		background: var(--login-body-bg);
+		color: var(--login-body-color);
+		transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+	}
+
+	.modal-login-professional .login-field .form-control:focus {
+		border-color: rgba(var(--login-primary-rgb), 0.55);
+		box-shadow: 0 0 0 0.2rem rgba(var(--login-primary-rgb), 0.12);
+		background-color: var(--login-body-bg);
+	}
+
+	.modal-login-professional .login-field-check {
+		margin: 0.2rem 0 0.9rem;
+	}
+
+	.modal-login-professional .login-field-check .form-check {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.modal-login-professional .login-field-check .form-check-input {
+		margin-top: 0;
+		border-color: var(--login-border-color);
+	}
+
+	.modal-login-professional .login-field-check .form-check-label {
+		font-size: 0.9rem;
+		color: var(--login-secondary-color);
+	}
+
+	.modal-login-professional .btn-login-submit {
+		border: 0;
+		border-radius: 12px;
+		padding: 0.72rem 0.95rem;
+		font-weight: 700;
+		font-size: 0.95rem;
+		letter-spacing: 0.2px;
+		color: var(--bs-btn-color, #ffffff);
+		background: linear-gradient(135deg, rgba(var(--login-primary-rgb), 0.9) 0%, var(--login-primary) 100%);
+		box-shadow: 0 10px 20px rgba(var(--login-primary-rgb), 0.24);
+		transition: transform 0.2s ease, box-shadow 0.2s ease;
+	}
+
+	.modal-login-professional .btn-login-submit:hover {
+		transform: translateY(-1px);
+		box-shadow: 0 14px 24px rgba(var(--login-primary-rgb), 0.32);
+	}
+
+	.modal-login-professional .login-forgot-link {
+		font-size: 0.9rem;
+		color: var(--login-secondary-color);
+		font-weight: 500;
+	}
+
+	.modal-login-professional .alert-danger {
+		border-radius: 12px;
+		font-size: 0.9rem;
+	}
+
+	@media (max-width: 575.98px) {
+		.modal-login-professional .modal-header,
+		.modal-login-professional .modal-body {
+			padding-left: 1rem;
+			padding-right: 1rem;
+		}
+
+		.modal-login-professional .socialaccount_providers {
+			grid-template-columns: 1fr;
+		}
+	}
+</style>
+{% endblock extracss %}
 
 {% block body %}
-	<div class="alert alert-primary" role="alert">
-		<p class="text-center mb-0">Debes iniciar sesión para poder realizar esta acción.</p>
-		<p class="text-center mb-0"><span style="margin-right: 5px;">¿No tienes una cuenta?</span> <a href="{% url 'account_signup' %}?next={{ request.META.HTTP_REFERER }}">Regístrate</a></p>
-	</div>
-
-	
-	{% get_providers as socialaccount_providers %}
-	{% if socialaccount_providers %}
-		<div class="socialaccount_ballot">
-			{% include "socialaccount/snippets/provider_list.html" with process="login" %}
-			<div class="mt-5 mb-3 text-center" style="color: #929292; font-size: 13px; font-weight: 600;">o puedes ingresar con:</div>
+	{% with next_url=redirect_field_value|default:request.META.HTTP_REFERER|default:'/' %}
+		<div class="login-info-banner" role="alert">
+			<p>Debes iniciar sesión para realizar esta acción.</p>
+			<p>¿No tienes una cuenta? <a href="{% url 'account_signup' %}?next={{ next_url|urlencode }}">Regístrate</a></p>
 		</div>
-		{% include "socialaccount/snippets/login_extra.html" %}
-	{% endif %}
 
-	<form class="login" method="POST" action="{% url 'account_login' %}">
-		{% csrf_token %}
-		<input type="hidden" name="next" value="{{ request.META.HTTP_REFERER }}">
-		<div class="row">
+		{% get_providers as socialaccount_providers %}
+		{% if socialaccount_providers %}
+			<div class="socialaccount_ballot mb-3">
+				<div class="login-divider"><span>Continúa con tus redes</span></div>
+				{% include "socialaccount/snippets/provider_list.html" with process="login" %}
+			</div>
+			{% include "socialaccount/snippets/login_extra.html" %}
+			<div class="login-divider"><span>o ingresa con tu correo</span></div>
+		{% endif %}
+
+		<form class="login login-modern-form" method="POST" action="{% url 'account_login' %}">
+			{% csrf_token %}
+
+			{% if redirect_field_value %}
+				<input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
+			{% else %}
+				<input type="hidden" name="next" value="{{ next_url }}" />
+			{% endif %}
+
 			{% for field in form %}
-				<div class="col-md-12 d-flex align-items-center mb-3 gap-1">
-					<div class="label-container-form" style="width: 160px;">
-						<label class="form-label form-label-text">{{ field.label }}:</label>
+				{% if field.field.widget.input_type == 'checkbox' %}
+					<div class="login-field login-field-check">
+						<div class="form-check m-0">
+							{{ field }}
+							<label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+						</div>
 					</div>
-					<div class="w-100">
+				{% else %}
+					<div class="login-field">
+						<label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
 						{{ field|add_class }}
 					</div>
-				</div>
+				{% endif %}
 			{% endfor %}
-		</div>
 
-		{% comment %} Form errors {% endcomment %}
-		{% if form.non_field_errors %}
-			<div class="alert alert-danger mt-3">
-				{% for error in form.non_field_errors %}
-					{{ error }}
-				{% endfor %}
+			{% if form.non_field_errors %}
+				<div class="alert alert-danger mt-3">
+					{% for error in form.non_field_errors %}
+						{{ error }}
+					{% endfor %}
+				</div>
+			{% endif %}
+
+			<div class="mt-2 d-grid">
+				<button class="btn btn-primary btn-login-submit" type="submit">Iniciar sesión</button>
 			</div>
-		{% endif %}
-
-		{% if redirect_field_value %}
-			<input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
-		{% endif %}
-		<div class="mb-2 text-center w-100 d-grid">
-			<button class="btn btn-secondary" type="submit">Iniciar Sesión</button>
-		</div>
-		<div class="mt-4 text-center">
-			<a class="text-center" style="color: #74788D; text-decoration: none" href="{% url 'account_reset_password' %}"><i class="fa-solid fa-lock fa-xs"></i>  ¿Olvidaste tu contraseña?</a>
-		</div>
-	</form>
+			<div class="mt-3 text-center">
+				<a class="login-forgot-link" href="{% url 'account_reset_password' %}"><i class="fa-solid fa-lock fa-xs"></i> ¿Olvidaste tu contraseña?</a>
+			</div>
+		</form>
+	{% endwith %}
 {% endblock body %}

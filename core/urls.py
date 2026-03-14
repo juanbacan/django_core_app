@@ -5,7 +5,7 @@ from .views_admin import *
 app_name = 'core'
 
 urlpatterns = [
-    path('loginModal/', LoginModalView.as_view(), name='loginModal'),
+    path('login_modal/', LoginModalView.as_view(), name='login_modal'),
     path('model_autocomplete/', ModelAutocompleteView.as_view(), name='model_autocomplete'),
     path('api/', api, name='api_administracion'), 
     path('upload_image/', upload_image, name='upload_image'),
