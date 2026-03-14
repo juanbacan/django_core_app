@@ -16,6 +16,7 @@ from django.db import connection, transaction
 from django.views.debug import ExceptionReporter
 from django.conf import settings
 from django.contrib.auth.models import Group
+from django.core.cache import cache
 from django.db import models
 from django.utils.html import strip_tags
 from django.utils.safestring import mark_safe
@@ -91,57 +92,186 @@ def db_table_exists(table_name):
                 except Exception:
                     return False
 
-def gestionar_modulos(urls_sistema):
+def _sincronizar_grupo_desarrollador():
     """
-    Crea o elimina los módulos y agrupaciones de módulos en la base de datos
-    :param urls_sistema: Lista de diccionarios con las URL de los módulos y agrupaciones
-    :return: None
+    Mantiene el grupo "Desarrollador" con acceso a todos los módulos
+    y agrega a los superusuarios a ese grupo.
     """
+    from .models import CustomUser, Modulo, GrupoModulo
 
-    from .models import CustomUser, Modulo, AgrupacionModulo, GrupoModulo
-    try:
-        if db_table_exists(Modulo._meta.db_table) and db_table_exists(AgrupacionModulo._meta.db_table) and db_table_exists(Group._meta.db_table):
-            nombres_agrupaciones_validas = [url['nombre'] for url in urls_sistema]
-            nombres_modulos_validos = [
-                url['url'] + sub_url['url']
-                for url in urls_sistema
-                for sub_url in url['sub_urls']
-            ]
-            with transaction.atomic():
-                for url in urls_sistema:
-                    agrupacion, _ = AgrupacionModulo.objects.get_or_create(
-                        url=url['url'],
-                        defaults={
-                            'nombre': url['nombre'],
-                        }
-                    )
-
-                    for sub_url in url['sub_urls']:
-                        modulo, _ = Modulo.objects.get_or_create(
-                            url=url['url'] + sub_url['url'],
-                            defaults={
-                                'nombre': sub_url['nombre'],
-                            }
-                        )
-                        agrupacion.modulos.add(modulo)
-
-                AgrupacionModulo.objects.exclude(nombre__in=nombres_agrupaciones_validas).delete()
-                Modulo.objects.exclude(url__in=nombres_modulos_validos).delete()
-
-            group, _ = Group.objects.get_or_create(name='Desarrollador')
-            try:
-                grupo_modulos, _ = GrupoModulo.objects.get_or_create(grupo=group)
-                grupo_modulos.modulos.set(Modulo.objects.all())
-            except GrupoModulo.MultipleObjectsReturned:
-                GrupoModulo.objects.filter(grupo=group).delete()
-                grupo_modulos, _ = GrupoModulo.objects.get_or_create(grupo=group)
-                grupo_modulos.modulos.set(Modulo.objects.all())
-
-            for user in CustomUser.objects.filter(is_superuser=True):
-                user.groups.add(group)
-    except Exception as ex:
-        print(ex)
+    if not (
+        db_table_exists(CustomUser._meta.db_table)
+        and db_table_exists(Modulo._meta.db_table)
+        and db_table_exists(GrupoModulo._meta.db_table)
+        and db_table_exists(Group._meta.db_table)
+    ):
         return
+
+    group, _ = Group.objects.get_or_create(name='Desarrollador')
+    try:
+        grupo_modulos, _ = GrupoModulo.objects.get_or_create(grupo=group)
+        grupo_modulos.modulos.set(Modulo.objects.all())
+    except GrupoModulo.MultipleObjectsReturned:
+        GrupoModulo.objects.filter(grupo=group).delete()
+        grupo_modulos, _ = GrupoModulo.objects.get_or_create(grupo=group)
+        grupo_modulos.modulos.set(Modulo.objects.all())
+
+    for user in CustomUser.objects.filter(is_superuser=True):
+        user.groups.add(group)
+
+
+def gestionar_modulos(urls_sistema, cache_key='gestionar_modulos_union', prefijo_url='administracion'):
+    """
+    Registra AgrupacionModulo y Modulo en la BD y ACUMULA las URLs válidas en cache.
+    NUNCA elimina automáticamente - usa finalizar_gestion_modulos() para eso.
+
+    Parámetros:
+    - urls_sistema: lista de dicts con 'url', 'nombre' y 'sub_urls'
+    - cache_key: clave donde acumular la unión de módulos válidos
+    - prefijo_url: prefijo de URL base para esta agrupación
+
+    Esta función solo CREA/ACTUALIZA módulos. Para eliminar los obsoletos,
+    llama finalizar_gestion_modulos() UNA VEZ después de cargar todos los módulos.
+    """
+
+    from .models import Modulo, AgrupacionModulo
+
+    try:
+        if not (
+            db_table_exists(Modulo._meta.db_table)
+            and db_table_exists(AgrupacionModulo._meta.db_table)
+            and db_table_exists(Group._meta.db_table)
+        ):
+            return
+
+        current_valid_urls = set()
+        current_agrupaciones = set()
+        current_agrupaciones_urls = set()
+
+        for url_data in urls_sistema:
+            base_url = url_data.get('url', '')
+            if not base_url:
+                continue
+
+            current_agrupaciones_urls.add(base_url)
+
+            nombre_agrupacion = url_data.get('nombre')
+            if nombre_agrupacion:
+                current_agrupaciones.add(nombre_agrupacion)
+
+            for sub_url in url_data.get('sub_urls', []):
+                full_url = base_url + sub_url.get('url', '')
+                current_valid_urls.add(full_url)
+
+        union_urls = set(cache.get(cache_key, set()) or set())
+        union_urls |= current_valid_urls
+        cache.set(cache_key, union_urls, timeout=None)
+
+        cache_key_agrupaciones = f'{cache_key}_agrupaciones'
+        union_agrupaciones = set(cache.get(cache_key_agrupaciones, set()) or set())
+        union_agrupaciones |= current_agrupaciones
+        cache.set(cache_key_agrupaciones, union_agrupaciones, timeout=None)
+
+        cache_key_agrupaciones_urls = f'{cache_key}_agrupaciones_urls'
+        union_agrupaciones_urls = set(cache.get(cache_key_agrupaciones_urls, set()) or set())
+        union_agrupaciones_urls |= current_agrupaciones_urls
+        cache.set(cache_key_agrupaciones_urls, union_agrupaciones_urls, timeout=None)
+
+        has_prefijo_url = any(field.name == 'prefijo_url' for field in AgrupacionModulo._meta.fields)
+
+        with transaction.atomic():
+            for url_data in urls_sistema:
+                base_url = url_data.get('url', '')
+                if not base_url:
+                    continue
+
+                defaults_agrupacion = {
+                    'nombre': url_data.get('nombre', ''),
+                }
+                if has_prefijo_url:
+                    defaults_agrupacion['prefijo_url'] = prefijo_url
+
+                agrupacion, _ = AgrupacionModulo.objects.get_or_create(
+                    url=base_url,
+                    defaults=defaults_agrupacion,
+                )
+
+                campos_a_actualizar = []
+                nombre_agrupacion = url_data.get('nombre', '')
+                if nombre_agrupacion and agrupacion.nombre != nombre_agrupacion:
+                    agrupacion.nombre = nombre_agrupacion
+                    campos_a_actualizar.append('nombre')
+
+                if has_prefijo_url and getattr(agrupacion, 'prefijo_url', None) != prefijo_url:
+                    agrupacion.prefijo_url = prefijo_url
+                    campos_a_actualizar.append('prefijo_url')
+
+                if campos_a_actualizar:
+                    agrupacion.save(update_fields=campos_a_actualizar)
+
+                modulos_a_vincular = []
+                for sub_url in url_data.get('sub_urls', []):
+                    full_url = base_url + sub_url.get('url', '')
+                    modulo = Modulo.objects.filter(url=full_url).first()
+                    if not modulo:
+                        modulo = Modulo.objects.create(
+                            url=full_url,
+                            nombre=sub_url.get('nombre', ''),
+                        )
+                    elif sub_url.get('nombre') and modulo.nombre != sub_url.get('nombre'):
+                        modulo.nombre = sub_url.get('nombre')
+                        modulo.save(update_fields=['nombre'])
+
+                    modulos_a_vincular.append(modulo)
+
+                agrupacion.modulos.set(modulos_a_vincular)
+
+        _sincronizar_grupo_desarrollador()
+    except Exception as ex:
+        print('Error en gestionar_modulos:', ex)
+
+
+def finalizar_gestion_modulos(cache_key='gestionar_modulos_union', limpiar_cache=True):
+    """
+    Elimina módulos y agrupaciones obsoletos usando lo acumulado en cache.
+    Esta función debe llamarse una sola vez al terminar de ejecutar gestionar_modulos().
+    """
+    from .models import Modulo, AgrupacionModulo
+
+    try:
+        if not (
+            db_table_exists(Modulo._meta.db_table)
+            and db_table_exists(AgrupacionModulo._meta.db_table)
+        ):
+            return
+
+        union_urls = set(cache.get(cache_key, set()) or set())
+        union_agrupaciones = set(cache.get(f'{cache_key}_agrupaciones', set()) or set())
+        union_agrupaciones_urls = set(cache.get(f'{cache_key}_agrupaciones_urls', set()) or set())
+
+        # Protección para evitar borrar todo si no hubo carga previa
+        if not union_urls and not union_agrupaciones and not union_agrupaciones_urls:
+            return
+
+        with transaction.atomic():
+            if union_agrupaciones_urls:
+                AgrupacionModulo.objects.exclude(url__in=union_agrupaciones_urls).delete()
+            elif union_agrupaciones:
+                AgrupacionModulo.objects.exclude(nombre__in=union_agrupaciones).delete()
+
+            if union_urls:
+                Modulo.objects.exclude(url__in=union_urls).delete()
+
+        _sincronizar_grupo_desarrollador()
+
+        if limpiar_cache:
+            cache.delete_many([
+                cache_key,
+                f'{cache_key}_agrupaciones',
+                f'{cache_key}_agrupaciones_urls',
+            ])
+    except Exception as ex:
+        print('Error en finalizar_gestion_modulos:', ex)
 
 
 def null_safe_float_to_int(value):
