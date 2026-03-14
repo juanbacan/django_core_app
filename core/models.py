@@ -460,3 +460,14 @@ class CredencialesAPI(ModeloBase):
     evolution_instance_id = models.CharField(max_length=255, blank=True, null=True, verbose_name="ID de la Instancia")
     evolution_instance_token = models.CharField(max_length=255, blank=True, null=True, verbose_name="Token de la Instancia")
     evolution_channels = models.TextField(blank=True, null=True, verbose_name="Canales administrados (JSON)", help_text="JSON con los canales que administra esta instancia")
+
+
+class UserNotificationSetting(ModeloBase):
+    notificacion_email = models.BooleanField(default=True)
+    notificacion_interna = models.BooleanField(default=True)
+    notificacion_push = models.BooleanField(default=True)
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
+
+    class Meta:
+        verbose_name = "Configuración de Notificación de Usuario"
+        verbose_name_plural = "Configuraciones de Notificación de Usuarios"
