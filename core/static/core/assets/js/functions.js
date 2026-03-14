@@ -716,3 +716,36 @@ ready(function(){
 });
 
 
+let resetNotificacionesV = true;
+let num_notificaciones = parseInt("{{num_notificaciones}}") || 0;
+async function resetNotificaciones() {
+    if (resetNotificaciones && num_notificaciones > 0) {
+        try{
+            resetNotificacionesV = false;
+            const notificaciones = document.getElementById('num_notificaciones');
+            notificaciones.style.display = 'none';
+            fetchRequest({
+                url: `/core/api/?action=reset_notificacion`,
+                method: 'POST',
+                data: {user_id: '{{ request.user.id }}'},
+            });
+        } catch (error) {
+            console.log(error);
+        }
+    }
+}
+async function verNotificacion(url, id, visto) {
+    try{
+        const nVisto = visto == 'True' ? true : false;
+        if (!nVisto){
+            fetchRequest({
+                url: `/core/api/?action=ver_notificacion`,
+                method: 'POST',
+                data: {id: id},
+            });
+        }
+        window.location.href = url;
+    } catch(error){
+        console.log(error);
+    }
+}
