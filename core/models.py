@@ -385,7 +385,7 @@ class Modulo(ModeloBase):
 
 
 class GrupoModulo(ModeloBase):
-    grupo = models.ForeignKey(Group, on_delete=models.CASCADE, unique=True)
+    grupo = models.OneToOneField(Group, on_delete=models.CASCADE)
     modulos = models.ManyToManyField(Modulo)
 
     def __str__(self):
