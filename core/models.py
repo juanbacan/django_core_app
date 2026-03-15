@@ -432,7 +432,8 @@ class AgrupacionModulo(ModeloBase):
     icono = models.CharField('Ícono', max_length=100, null=True, blank=True)
     modulos = models.ManyToManyField(Modulo, verbose_name='Urls del Sistema')
     orden = models.IntegerField('Orden de Prioridad', default=1)
-
+    prefijo_url = models.CharField('Prefijo URL', max_length=100, default='administracion', blank=True)
+                                   
     def __str__(self):
         return '{} {}'.format(self.nombre, self.orden)
 
@@ -444,7 +445,13 @@ class AgrupacionModulo(ModeloBase):
     @cached_property
     def modulos_activos(self):
         return self.modulos.filter(activo=True).order_by('orden')
-    
+
+    @property
+    def url_completa_base(self):
+        """Retorna la URL completa base incluyendo el prefijo"""
+        if self.prefijo_url:
+            return f"/{self.prefijo_url.strip('/')}/"
+        return "/"
 
 class CredencialesAPI(ModeloBase):
     # Publicar en Páginas de Facebook
