@@ -4,11 +4,7 @@ from django.contrib import admin
 from django import forms
 import csv
 import json
-from io import StringIO
 from django.http import HttpResponse
-from django.urls import path
-from django.shortcuts import render
-from django.contrib import messages
 
 from tinymce.widgets import TinyMCE
 from allauth.account.models import EmailAddress
@@ -40,138 +36,6 @@ class CustomUserAdmin(admin.ModelAdmin):
     list_display = ('username', 'first_name', 'last_name', 'email', 'premium_display')
     search_fields = ('username', 'first_name', 'last_name', 'id', 'email')
     list_filter = (PremiumFilter, 'is_active', 'is_staff')
-    actions = ['import_users_from_csv']
-
-    def get_urls(self):
-        urls = super().get_urls()
-        custom_urls = [
-            path('import-csv/', self.admin_site.admin_view(self.import_csv_view), name='customuser_import_csv'),
-        ]
-        return custom_urls + urls
-
-    def import_csv_view(self, request):
-        """Vista para mostrar el formulario de importación de CSV"""
-        if request.method == 'POST' and request.FILES.get('csv_file'):
-            csv_file = request.FILES['csv_file']
-            try:
-                # Decodificar el archivo
-                decoded_file = csv_file.read().decode('utf-8')
-                reader = csv.DictReader(StringIO(decoded_file))
-                
-                if not reader.fieldnames or 'email' not in reader.fieldnames:
-                    messages.error(request, 'El archivo CSV debe contener la columna "email"')
-                    return render(request, 'admin/import_csv.html', {
-                        'error': 'El archivo CSV debe contener la columna "email"'
-                    })
-                
-                created = 0
-                updated = 0
-                errors = []
-                row_num = 1
-                
-                for row_num, row in enumerate(reader, start=2):  # start=2 porque row 1 es header
-                    try:
-                        email = row.get('email', '').strip()
-                        name = row.get('name', '').strip()
-                        attributes_str = row.get('attributes', '{}').strip()
-                        
-                        if not email:
-                            errors.append(f"Fila {row_num}: Email requerido")
-                            continue
-                        
-                        # Validar formato de email
-                        if '@' not in email:
-                            errors.append(f"Fila {row_num}: Email inválido")
-                            continue
-                        
-                        # Parsear los atributos JSON
-                        attributes = {}
-                        if attributes_str and attributes_str != '{}':
-                            try:
-                                attributes = json.loads(attributes_str)
-                                if not isinstance(attributes, dict):
-                                    errors.append(f"Fila {row_num}: Atributos deben ser un objeto JSON")
-                                    continue
-                            except json.JSONDecodeError as je:
-                                errors.append(f"Fila {row_num}: JSON inválido - {str(je)}")
-                                continue
-                        
-                        # Crear o actualizar usuario
-                        username = email.split('@')[0]
-                        user, user_created = CustomUser.objects.get_or_create(
-                            email=email,
-                            defaults={
-                                'username': username,
-                                'first_name': name.split()[0] if name else '',
-                                'last_name': ' '.join(name.split()[1:]) if name and len(name.split()) > 1 else '',
-                            }
-                        )
-                        
-                        if not user_created:
-                            # Actualizar el usuario existente
-                            if name:
-                                parts = name.split()
-                                user.first_name = parts[0]
-                                user.last_name = ' '.join(parts[1:]) if len(parts) > 1 else ''
-                                user.save()
-                        
-                        # Crear o actualizar EmailAddress
-                        email_address, email_created = EmailAddress.objects.get_or_create(
-                            user=user,
-                            email=email,
-                            defaults={
-                                'verified': True,
-                                'primary': True,
-                            }
-                        )
-                        
-                        # Nota sobre atributos: 
-                        # Los atributos JSON se procesan pero allauth.account.models.EmailAddress 
-                        # no tiene un campo dedicado por defecto. 
-                        # Considere crear un modelo de extensión o usar cache/signals para guardar atributos adicionales.
-                        # Ejemplo:
-                        # from django.core.cache import cache
-                        # cache.set(f'user_attributes_{user.id}_{email}', attributes, timeout=None)
-                        
-                        if user_created:
-                            created += 1
-                        else:
-                            updated += 1
-                            
-                    except Exception as e:
-                        errors.append(f"Fila {row_num}: Error inesperado - {str(e)}")
-                
-                # Mostrar resultados
-                context = {
-                    'created': created,
-                    'updated': updated,
-                    'errors': errors,
-                    'total_rows': row_num - 1 if row_num > 1 else 0,
-                }
-                
-                if created > 0:
-                    messages.success(request, f"✅ {created} usuarios creados exitosamente")
-                if updated > 0:
-                    messages.success(request, f"✅ {updated} usuarios actualizados exitosamente")
-                
-                if errors:
-                    for error in errors[:10]:  # Mostrar máximo 10 errores
-                        messages.warning(request, error)
-                    if len(errors) > 10:
-                        messages.warning(request, f"⚠️ ... y {len(errors) - 10} errores más")
-                
-                return render(request, 'admin/import_csv.html', context)
-                
-            except UnicodeDecodeError:
-                messages.error(request, "Error: El archivo debe estar en formato UTF-8")
-                return render(request, 'admin/import_csv.html', {
-                    'error': 'El archivo debe estar codificado en UTF-8'
-                })
-            except Exception as e:
-                messages.error(request, f"Error al procesar el archivo: {str(e)}")
-                return render(request, 'admin/import_csv.html', {'error': str(e)})
-        
-        return render(request, 'admin/import_csv.html')
 
     def premium_display(self, obj):
         """Muestra si el usuario es premium"""
@@ -179,11 +43,6 @@ class CustomUserAdmin(admin.ModelAdmin):
             return '✅'
         return '❌'
     premium_display.short_description = 'Premium'
-
-    def import_users_from_csv(self, request, queryset):
-        """Acción para acceder al formulario de importación"""
-        return HttpResponse("Use the Import CSV option from the admin menu")
-    import_users_from_csv.short_description = "Importar usuarios desde CSV"
 
 
 admin.site.register(CustomUser, CustomUserAdmin)
@@ -234,7 +93,7 @@ class EmailAddressAdmin(admin.ModelAdmin):
     user_email.short_description = 'Email Usuario'
 
     def export_emails_to_csv(self, request, queryset):
-        """Exporta los emails seleccionados a CSV en formato importable"""
+        """Exporta los emails seleccionados a CSV"""
         import datetime
         
         response = HttpResponse(content_type='text/csv; charset=utf-8')
@@ -243,7 +102,7 @@ class EmailAddressAdmin(admin.ModelAdmin):
         
         writer = csv.writer(response)
         
-        # Encabezados - Mismo formato que importación
+        # Encabezados
         writer.writerow(['email', 'name', 'attributes'])
         
         # Datos
