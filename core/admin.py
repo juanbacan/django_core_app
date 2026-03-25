@@ -41,7 +41,6 @@ class CustomUserAdmin(admin.ModelAdmin):
     search_fields = ('username', 'first_name', 'last_name', 'id', 'email')
     list_filter = (PremiumFilter, 'is_active', 'is_staff')
     actions = ['import_users_from_csv']
-    change_list_template = 'admin/custom_user_change_list.html'
 
     def get_urls(self):
         urls = super().get_urls()
