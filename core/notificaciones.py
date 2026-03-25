@@ -1,11 +1,18 @@
 import json
+import logging
+from threading import Thread
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 from django.conf import settings
+from django.core.mail import send_mail
 from django.forms.models import model_to_dict
 from pywebpush import WebPushException, webpush
+
 from webpush.models import Group
-from threading import Thread
 from .models import CustomUser
-from concurrent.futures import ThreadPoolExecutor
+
+
+logger = logging.getLogger(__name__)
 
 
 def _process_subscription_info(subscription):
@@ -38,49 +45,152 @@ def _get_vapid_data():
     return {}
 
 
-def _send_push_notification(recipient, payload, ttl=0):
+def _dispatch_webpush(recipient, payload_json, vapid_data, ttl=0):
     """
-    Envía una notificación Web Push a una suscripción.
+    Lógica central de envío y manejo de suscripciones inválidas.
     """
-    vapid_data = _get_vapid_data()
-    payload = json.dumps(payload)
-
     subscription_data = _process_subscription_info(recipient.subscription)
     try:
-        webpush(subscription_info=subscription_data, data=payload, ttl=ttl, **vapid_data)
-        print(f"[WebPush OK] Notificación enviada a: {recipient}")
+        webpush(
+            subscription_info=subscription_data,
+            data=payload_json,
+            ttl=ttl,
+            **vapid_data,
+        )
+        logger.info("[WebPush OK] %s", recipient)
+        return "sent"
     except WebPushException as e:
-        status = e.response.status_code if e.response else "No response"
-        print(f"[WebPush ERROR] Usuario: {recipient}, Endpoint: {subscription_data.get('endpoint')}, Status: {status}")
-        if e.response.status_code == 410:
+        if e.response and e.response.status_code == 410:
+            logger.warning("[WebPush 410] Borrando suscripción muerta: %s", recipient)
             recipient.subscription.delete()
+            return "deleted"
         else:
-            print(f"Error al enviar la notificación: {e}")
+            status = e.response.status_code if e.response else "No response"
+            logger.error("[WebPush ERROR] Usuario: %s, Status: %s", recipient, status)
+            logger.exception("Error al enviar la notificación")
+            return "failed"
     except Exception as e:
-        print(f"Error al enviar la notificación *******************************")
+        logger.exception("[WebPush Error] Error inesperado")
+        return "failed"
+
+
+def _build_report_recipients(report_email=None):
+    recipients = []
+    if report_email:
+        recipients.append(report_email)
+
+    configured_recipients = getattr(settings, "WEBPUSH_REPORT_EMAILS", [])
+    if isinstance(configured_recipients, str):
+        configured_recipients = [email.strip() for email in configured_recipients.split(",") if email.strip()]
+    recipients.extend(configured_recipients)
+
+    if not recipients:
+        superusers = (
+            CustomUser.objects
+            .filter(is_superuser=True)
+            .exclude(email__isnull=True)
+            .exclude(email="")
+            .values_list("email", flat=True)
+        )
+        recipients.extend(list(superusers))
+
+    if not recipients and getattr(settings, "EMAIL_HOST_USER", None):
+        recipients.append(settings.EMAIL_HOST_USER)
+
+    # Deduplicar conservando orden.
+    return list(dict.fromkeys(recipients))
+
+
+def _send_massive_report(report, report_context, report_email=None):
+    recipients = _build_report_recipients(report_email=report_email)
+    if not recipients:
+        logger.warning("[WebPush WARN] No hay destinatarios para el reporte de envio masivo")
+        return
+
+    group_name = report_context.get("group_name", "N/A")
+    notification_head = report_context.get("head", "N/A")
+    notification_url = report_context.get("url", "N/A")
+    total = report.get("total", 1) or 1
+    exito_pct = (report.get("sent", 0) / total) * 100
+
+    subject = f"[WebPush] Reporte envio masivo - Grupo {group_name}"
+    body = (
+        "Se ha completado el envio masivo de notificaciones push.\n\n"
+        f"Grupo: {group_name}\n"
+        f"Titulo notificacion: {notification_head}\n"
+        f"URL destino: {notification_url}\n\n"
+        f"Total procesadas: {report.get('total', 0)}\n"
+        f"Enviadas OK: {report.get('sent', 0)}\n"
+        f"Suscripciones eliminadas (410): {report.get('deleted', 0)}\n"
+        f"Fallidas: {report.get('failed', 0)}\n"
+        f"Porcentaje de éxito: {exito_pct:.2f}%\n"
+    )
+
+    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", None) or getattr(settings, "EMAIL_HOST_USER", None)
+    try:
+        send_mail(subject, body, from_email, recipients, fail_silently=False)
+        logger.info("[WebPush REPORT] Reporte enviado a: %s", ", ".join(recipients))
+    except Exception as e:
+        logger.exception("[WebPush ERROR] No se pudo enviar el reporte")
 
 
 class NotificationThread(Thread):
     """
     Clase base para enviar notificaciones en un hilo.
     """
-    def __init__(self, recipients, payload, ttl=0):
+    def __init__(self, recipients, payload, ttl=0, report_enabled=False, report_context=None, report_email=None):
         self.recipients = recipients
-        self.payload = payload
+        self.payload_json = json.dumps(payload)
+        self.vapid_data = _get_vapid_data()
         self.ttl = ttl
+        self.report_enabled = report_enabled
+        self.report_context = report_context or {}
+        self.report_email = report_email
         super().__init__()
 
     def run(self):
         """
         Enviar notificaciones a todos los destinatarios.
         """
-        for recipient in self.recipients:
-            _send_push_notification(recipient, self.payload, self.ttl)
-        # with ThreadPoolExecutor(max_workers=10) as executor:
-        #     for recipient in self.recipients:
-        #         executor.submit(_send_push_notification, recipient, self.payload, self.ttl)
+        report = {
+            "total": len(self.recipients),
+            "sent": 0,
+            "deleted": 0,
+            "failed": 0,
+        }
 
+        with ThreadPoolExecutor(max_workers=15) as executor:
+            futures = []
+            for recipient in self.recipients:
+                future = executor.submit(
+                    _dispatch_webpush,
+                    recipient,
+                    self.payload_json,
+                    self.vapid_data,
+                    self.ttl,
+                )
+                futures.append(future)
 
+            for future in as_completed(futures):
+                try:
+                    status = future.result()
+                except Exception:
+                    report["failed"] += 1
+                    continue
+
+                if status == "sent":
+                    report["sent"] += 1
+                elif status == "deleted":
+                    report["deleted"] += 1
+                else:
+                    report["failed"] += 1
+
+        if self.report_enabled:
+            _send_massive_report(
+                report=report,
+                report_context=self.report_context,
+                report_email=self.report_email,
+            )
 
 # ************************************************************************************************
 # Funciones
@@ -101,12 +211,44 @@ def send_notification_to_user(user, payload, ttl=0):
 # *********************************************************************************
 # Envia una notificación Webpush a todo un Grupo
 # *********************************************************************************
-def send_notification_to_group(group_name, payload, ttl=0):
+def send_notification_to_group(group_name, payload, ttl=0, report_email=None):
     """
     Envía una notificación a un grupo.
     """
-    recipients = Group.objects.get(name=group_name).webpush_info.select_related("subscription").order_by("-id")
-    NotificationThread(recipients, payload, ttl).start()
+    try:
+        group = Group.objects.get(name=group_name)
+    except Group.DoesNotExist:
+        logger.warning("[WebPush WARN] No existe el grupo '%s'", group_name)
+        return False
+    except Group.MultipleObjectsReturned:
+        group = Group.objects.filter(name=group_name).order_by("id").first()
+        if not group:
+            logger.warning("[WebPush WARN] No se pudo resolver el grupo '%s'", group_name)
+            return False
+
+    recipients = list(
+        group.webpush_info
+        .select_related("subscription")
+        .filter(subscription__isnull=False)
+        .order_by("-id")
+    )
+    if not recipients:
+        logger.warning("[WebPush WARN] El grupo '%s' no tiene suscripciones activas", group_name)
+        return False
+
+    NotificationThread(
+        recipients,
+        payload,
+        ttl,
+        report_enabled=True,
+        report_context={
+            "group_name": group_name,
+            "head": payload.get("head", ""),
+            "url": payload.get("url", ""),
+        },
+        report_email=report_email,
+    ).start()
+    return True
 
 
 # *********************************************************************************
@@ -165,6 +307,6 @@ def notify_push_app_user(usuario_notificado: CustomUser, usuario_notifica: Custo
         send_notification_to_user(usuario_notificado, payload)
         
     except Exception as e:
-        print(e)
+        logger.exception("Error al enviar notificación push app")
         return
     

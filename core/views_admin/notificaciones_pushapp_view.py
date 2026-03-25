@@ -7,7 +7,7 @@ from core.views import ViewAdministracionBase
 from core.administracion_forms import NotificacionPushUsuarioForm, NotificacionAppUsuarioForm, \
     NotificacionPushAppUsuarioForm, NotificacionPushMasivaForm, NotificacionAndroidMasivaForm
 
-from core.utils import success_json, bad_json
+from core.utils import success_json, error_json
 from core.notificaciones import send_notification_to_group, send_notification_to_user
 from core.notificaciones  import notify_user, notify_push_app_user
 
@@ -19,7 +19,7 @@ class NotificacionesPushAppView(ViewAdministracionBase):
         if self.action and hasattr(self, f'post_{self.action}'):
             return getattr(self, f'post_{self.action}')(request, context, *args, **kwargs)
         
-        return bad_json(mensaje="Acción no permitida")
+        return error_json(mensaje="Acción no permitida")
     
     def post_notificaciones_push_usuario(self, request, context, *args, **kwargs):
         logo_url = AplicacionWeb.objects.first().logo.url
@@ -37,7 +37,7 @@ class NotificacionesPushAppView(ViewAdministracionBase):
             send_notification_to_user(user=user, payload=payload)
             return success_json(mensaje="Notificación enviada correctamente")
         else:
-            return bad_json(mensaje=str(form.errors))
+            return error_json(mensaje=str(form.errors))
         
     def post_notificaciones_app_usuario(self, request, context, *args, **kwargs):
         form = NotificacionAppUsuarioForm(request.POST)
@@ -55,7 +55,7 @@ class NotificacionesPushAppView(ViewAdministracionBase):
             )
             return success_json(mensaje="Notificación enviada correctamente")
         else:
-            return bad_json(mensaje=str(form.errors))
+            return error_json(mensaje=str(form.errors))
         
     def post_notificaciones_pushapp_usuario(self, request, context, *args, **kwargs):
         form = NotificacionPushAppUsuarioForm(request.POST)
@@ -74,7 +74,9 @@ class NotificacionesPushAppView(ViewAdministracionBase):
             return success_json(mensaje="Notificación enviada correctamente")
 
     def post_notificaciones_push_masiva(self, request, context, *args, **kwargs):
-        logo_url = AplicacionWeb.objects.first().logo.url
+        application = AplicacionWeb.objects.first()
+        logo_url = application.logo.url if application and application.logo else ''
+        group_name = application.group_name_webpush if application and application.group_name_webpush else 'Main'
         form = NotificacionPushMasivaForm(request.POST)
         if form.is_valid():
             URL_BASE = settings.URL_BASE
@@ -84,10 +86,16 @@ class NotificacionesPushAppView(ViewAdministracionBase):
                 'icon': f"{URL_BASE}{logo_url}",
                 'url': form.cleaned_data['url'],
             }
-            send_notification_to_group(group_name="precavidos", payload=payload) 
+            sent = send_notification_to_group(
+                group_name=group_name,
+                payload=payload,
+                report_email=getattr(request.user, "email", None),
+            )
+            if not sent:
+                return error_json(mensaje="No se pudo enviar la notificacion: revisa el grupo o las suscripciones webpush")
             return success_json(mensaje="Notificación enviada correctamente")
         else:
-            return bad_json(mensaje=str(form.errors))
+            return error_json(mensaje=str(form.errors))
         
 
     def get(self, request, *args, **kwargs):

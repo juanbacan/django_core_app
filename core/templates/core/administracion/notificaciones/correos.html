@@ -1,71 +1,80 @@
 {% extends 'layout/base_admin.html' %}
 {% block content %}
-  <div class="row">
+  <div class="row g-4">
     <div class="col-md-12">
-        <div class="card shadow border-0">
-            <h5 class="card-header">
-                <i class="fa-solid fa-envelope"></i> Opciones de Envio de Correos
-            </h5>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-3">
-                        <a class="link d-flex h-100 formmodal" nhref="{{ request.path }}?action=notificaciones_correo_masivo">
-                            <div class="card text-bg-primary mb-3" style="max-width: 18rem;">
-                                <div class="card-body">
-                                  <h5 class="card-title">Masivo</h5>
-                                  <p class="card-text">
-                                    Envia correos a todos los usuarios
-                                  </p>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-                    <div class="col-md-3">
-                        <a class="link d-flex h-100 formmodal" nhref="{{ request.path }}?action=notificaciones_correo_usuario">
-                            <div class="card text-bg-secondary text-white mb-3" style="max-width: 18rem;">
-                                <div class="card-body">
-                                  <h5 class="card-title">Usuario</h5>
-                                  <p class="card-text">
-                                    Envia correos a un usuario en específico
-                                  </p>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-                    <div class="col-md-3">
-                        <a class="link d-flex h-100 formmodal" nhref="{{ request.path }}?action=notificaciones_correo_personalizado">
-                            <div class="card text-bg-success text-white mb-3" style="max-width: 18rem;">
-                                <div class="card-body">
-                                  <h5 class="card-title">Personalizado</h5>
-                                  <p class="card-text">
-                                    Envia correos a un email en específico
-                                  </p>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-                    <div class="col-md-3">
-                        <a class="link d-flex h-100 formmodal" nhref="{{ request.path }}?action=notificaciones_correo_template">
-                            <div class="card text-bg-danger mb-3" style="max-width: 18rem;">
-                                <div class="card-body">
-                                  <h5 class="card-title">Template</h5>
-                                  <p class="card-text">
-                                    Muestra los templates de correos
-                                  </p>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-                </div>
-
+        <div class="bg-light rounded-4 p-2 p-md-3">
+          <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body p-3 p-md-4">
+              <p class="text-uppercase text-primary small fw-semibold mb-2" style="letter-spacing: .08em;">Notificaciones por Correo</p>
+              <h2 class="h4 fw-bold text-dark mb-2">Opciones de Envio</h2>
+              <p class="text-secondary mb-0">Selecciona el tipo de envio y administra tus templates desde un solo panel.</p>
             </div>
+          </div>
+
+          <div class="row g-4">
+            <div class="col-xl-3 col-md-6">
+              <a class="link d-flex h-100 formmodal text-decoration-none" nhref="{{ request.path }}?action=notificaciones_correo_masivo">
+                <div class="card h-100 border-0 shadow-sm w-100">
+                  <div class="card-body d-flex flex-column gap-2 p-3">
+                    <span class="badge text-bg-danger align-self-start">Masivo</span>
+                    <h5 class="card-title h6 fw-bold text-dark mb-0">Correo Masivo</h5>
+                    <p class="card-text text-secondary small mb-0">
+                      Envia correos a todos los usuarios.
+                    </p>
+                  </div>
+                </div>
+              </a>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+              <a class="link d-flex h-100 formmodal text-decoration-none" nhref="{{ request.path }}?action=notificaciones_correo_usuario">
+                <div class="card h-100 border-0 shadow-sm w-100">
+                  <div class="card-body d-flex flex-column gap-2 p-3">
+                    <span class="badge text-bg-primary align-self-start">Usuario</span>
+                    <h5 class="card-title h6 fw-bold text-dark mb-0">Correo a Usuario</h5>
+                    <p class="card-text text-secondary small mb-0">
+                      Envia correos a un usuario en especifico.
+                    </p>
+                  </div>
+                </div>
+              </a>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+              <a class="link d-flex h-100 formmodal text-decoration-none" nhref="{{ request.path }}?action=notificaciones_correo_personalizado">
+                <div class="card h-100 border-0 shadow-sm w-100">
+                  <div class="card-body d-flex flex-column gap-2 p-3">
+                    <span class="badge text-bg-success align-self-start">Personalizado</span>
+                    <h5 class="card-title h6 fw-bold text-dark mb-0">Correo Personalizado</h5>
+                    <p class="card-text text-secondary small mb-0">
+                      Envia correos a un email en especifico.
+                    </p>
+                  </div>
+                </div>
+              </a>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+              <a class="link d-flex h-100 formmodal text-decoration-none" nhref="{{ request.path }}?action=notificaciones_correo_template">
+                <div class="card h-100 border-0 shadow-sm w-100">
+                  <div class="card-body d-flex flex-column gap-2 p-3">
+                    <span class="badge text-bg-warning align-self-start">Template</span>
+                    <h5 class="card-title h6 fw-bold text-dark mb-0">Ver Templates</h5>
+                    <p class="card-text text-secondary small mb-0">
+                      Muestra los templates de correos disponibles.
+                    </p>
+                  </div>
+                </div>
+              </a>
+            </div>
+          </div>
         </div>
     </div>
 
     <div class="col-md-12 mt-4">
       <div class="card shadow border-0">
-        <h5 class="card-header">
-          <i class="fa-solid fa-envelope"></i> Administrador de Templates de Correos Electrónicos
+        <h5 class="card-header bg-white border-bottom-0 py-3">
+          <i class="fa-solid fa-envelope text-primary"></i> Administrador de Templates de Correos Electronicos
         </h5>
         <div class="card-body">
 
@@ -76,9 +85,9 @@
           </div>
 
           <div class="table-responsive">
-            <table class="table table-bordered ">
+            <table class="table table-bordered table-hover align-middle mb-0">
               <thead>
-                <tr class="table-primary">
+                <tr class="table-light">
                   <th>Título</th>
                   <th>Subject</th>
                   <th>Acciones</th>
@@ -114,57 +123,8 @@
 
     <div class="col-md-12 mt-4">
       <div class="card shadow border-0">
-        <h5 class="card-header">
-          <i class="fa-solid fa-envelope"></i> Administrador de Correos Inscripciones Curso
-        </h5>
-        <div class="card-body">
-          <div class="col-md-12 mb-3">
-            <a class="btn btn-sm btn-dark formmodal" nhref="{{ request.path }}?action=notificaciones_correo_template_crear&tipo=inscripciones">
-              <i class="fa-solid fa-plus"></i> Crear Template
-            </a>
-          </div>
-
-          <div class="table-responsive">
-            <table class="table table-bordered ">
-              <thead>
-                <tr class="table-primary">
-                  <th>Título</th>
-                  <th>Subject</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for template in inscripciones %}
-                  <tr>
-                    <td>{{ template.nombre }}</td>
-                    <td>{{ template.subject }}</td>
-                    <td>
-                      <a class="btn btn-xs btn-primary formmodal" data-bs-toggle="tooltip" title="Editar Template" data-bs-custom-class="custom-tooltip" nhref="{{ request.path }}?action=notificaciones_correo_template_editar&id={{ template.id }}">
-                        <i class="fa-solid fa-edit"></i>
-                      </a>
-                      <a class="btn btn-xs btn-info formmodal" data-bs-toggle="tooltip" title="Ver Template" data-bs-custom-class="custom-tooltip" nhref="{{ request.path }}?action=notificaciones_correo_template_ver&id={{ template.id }}">
-                        <i class="fa-solid fa-eye"></i>
-                      </a>
-                      <a class="btn btn-xs btn-dark formmodal" data-bs-toggle="tooltip" title="Enviar correo" data-bs-custom-class="custom-tooltip" nhref="{{ request.path }}?action=notificaciones_correo_template_enviar&id={{ template.id }}">
-                        <i class="fa-solid fa-envelope"></i>
-                      </a>
-                      <a class="btn btn-xs btn-danger formmodal" data-bs-toggle="tooltip" title="Eliminar Template" data-bs-custom-class="custom-tooltip" nhref="{{ request.path }}?action=notificaciones_correo_template_eliminar&id={{ template.id }}">
-                        <i class="fa-solid fa-trash"></i>
-                      </a>
-                    </td>
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-md-12 mt-4">
-      <div class="card shadow border-0">
-        <h5 class="card-header">
-          <i class="fa-solid fa-envelope"></i> Administrador de Notificaciones Usuarios Premium
+        <h5 class="card-header bg-white border-bottom-0 py-3">
+          <i class="fa-solid fa-envelope text-primary"></i> Administrador de Notificaciones Usuarios Premium
         </h5>
         <div class="card-body">
           <div class="col-md-12 mb-3">
@@ -174,9 +134,9 @@
           </div>
 
           <div class="table-responsive">
-            <table class="table table-bordered ">
+            <table class="table table-bordered table-hover align-middle mb-0">
               <thead>
-                <tr class="table-primary">
+                <tr class="table-light">
                   <th>Título</th>
                   <th>Subject</th>
                   <th>Acciones</th>
