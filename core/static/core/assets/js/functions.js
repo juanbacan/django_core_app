@@ -732,7 +732,7 @@ async function resetNotificaciones() {
             const badgeVisual = document.getElementById('num_notificaciones');
             if (badgeVisual) badgeVisual.style.display = 'none';
 
-            await fetchRequest({
+            await fetchRequest2({
                 url: `/core/api/?action=reset_notificacion`,
                 method: 'POST',
                 data: { user_id: userId },
@@ -749,7 +749,7 @@ async function verNotificacion(url, id, visto) {
 
     if (!yaVisto) {
         try {
-            await fetchRequest({
+            await fetchRequest2({
                 url: `/core/api/?action=ver_notificacion`,
                 method: 'POST',
                 data: { id: id },
