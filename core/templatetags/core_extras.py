@@ -529,6 +529,24 @@ def linkfy(value):
     replaced = re.sub(pattern, r'<a href="\1" target="_blank" rel="noopener noreferrer">\1</a>', str(value))
     return mark_safe(replaced)
 
+@register.filter
+def tiempo_formateado(segundos):
+    """Formatea segundos a formato legible (Xh Ym, Xm Ys, o Xs)."""
+    try:
+        segundos = int(segundos)
+        if segundos >= 3600:
+            horas = segundos // 3600
+            minutos = (segundos % 3600) // 60
+            return f"{horas}h {minutos}m"
+        elif segundos >= 60:
+            minutos = segundos // 60
+            segs = segundos % 60
+            return f"{minutos}m {segs}s"
+        else:
+            return f"{segundos}s"
+    except (ValueError, TypeError):
+        return "0s"
+
 register.filter("call", callmethod)
 register.filter("args", args)
 register.filter("to_char", to_char)
@@ -557,3 +575,4 @@ register.filter("fecha_es", fecha_es)
 register.filter("number_to_price", number_to_price)
 register.filter("convert_youtube_url", convert_youtube_url)
 register.filter("linkfy", linkfy)
+register.filter("tiempo_formateado", tiempo_formateado)
