@@ -717,35 +717,46 @@ ready(function(){
 
 
 let resetNotificacionesV = true;
-let num_notificaciones = parseInt("{{num_notificaciones}}") || 0;
+
 async function resetNotificaciones() {
-    if (resetNotificaciones && num_notificaciones > 0) {
-        try{
+    const elemento = document.getElementById('notificaciones-badge');
+    if (!elemento) return;
+
+    const cantidad = parseInt(elemento.dataset.cantidad) || 0;
+    const userId = elemento.dataset.userId;
+
+    if (resetNotificacionesV && cantidad > 0) {
+        try {
             resetNotificacionesV = false;
-            const notificaciones = document.getElementById('num_notificaciones');
-            notificaciones.style.display = 'none';
-            fetchRequest({
+            
+            const badgeVisual = document.getElementById('num_notificaciones');
+            if (badgeVisual) badgeVisual.style.display = 'none';
+
+            await fetchRequest({
                 url: `/core/api/?action=reset_notificacion`,
                 method: 'POST',
-                data: {user_id: '{{ request.user.id }}'},
+                data: { user_id: userId },
             });
         } catch (error) {
-            console.log(error);
+            console.error("Error al resetear:", error);
+            resetNotificacionesV = true;
         }
     }
 }
+
 async function verNotificacion(url, id, visto) {
-    try{
-        const nVisto = visto == 'True' ? true : false;
-        if (!nVisto){
-            fetchRequest({
+    const yaVisto = String(visto).toLowerCase() === 'true';
+
+    if (!yaVisto) {
+        try {
+            await fetchRequest({
                 url: `/core/api/?action=ver_notificacion`,
                 method: 'POST',
-                data: {id: id},
+                data: { id: id },
             });
+        } catch (error) {
+            console.error("Error al marcar como visto:", error);
         }
-        window.location.href = url;
-    } catch(error){
-        console.log(error);
     }
+    window.location.href = url;
 }
