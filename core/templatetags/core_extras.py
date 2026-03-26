@@ -1,4 +1,4 @@
-import random, math, datetime
+import random, math, datetime, re
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse, parse_qs
 
@@ -108,6 +108,24 @@ def get_seconds(seconds):
         return seconds
     else:
         return f"0{seconds}"
+
+@register.filter
+def multiply(value, arg):
+    """Multiplica el valor por el argumento."""
+    try:
+        return float(value) * float(arg)
+    except (ValueError, TypeError):
+        return 0
+
+@register.filter
+def minimo(value, arg):
+    """Retorna el minimo entre value y arg."""
+    try:
+        val = float(value)
+        limite = float(arg)
+        return val if val < limite else limite
+    except (ValueError, TypeError):
+        return 0
     
 @register.simple_tag
 def random_number(a, b=None):
@@ -369,8 +387,62 @@ def replace(value, args):
 
 @register.filter
 def get_item(d, key):
-    """request.GET|get_item:'campo'  →  valor o None"""
-    return d.get(key)
+    """Filtro para acceder a items de un diccionario en templates Django."""
+    if d and key:
+        return d.get(key)
+    return None
+
+@register.filter(name='fecha_es', expects_localtime=True)
+def fecha_es(value, format_string="l j de F"):
+    """Formatea una fecha en espanol."""
+    if not value:
+        return ""
+
+    dias = {
+        'Monday': 'Lunes',
+        'Tuesday': 'Martes',
+        'Wednesday': 'Miercoles',
+        'Thursday': 'Jueves',
+        'Friday': 'Viernes',
+        'Saturday': 'Sabado',
+        'Sunday': 'Domingo',
+    }
+    meses = {
+        'January': 'Enero',
+        'February': 'Febrero',
+        'March': 'Marzo',
+        'April': 'Abril',
+        'May': 'Mayo',
+        'June': 'Junio',
+        'July': 'Julio',
+        'August': 'Agosto',
+        'September': 'Septiembre',
+        'October': 'Octubre',
+        'November': 'Noviembre',
+        'December': 'Diciembre',
+    }
+
+    try:
+        if isinstance(value, datetime.datetime):
+            if timezone.is_aware(value):
+                local_dt = value.astimezone(timezone.get_current_timezone())
+            else:
+                local_dt = timezone.make_aware(value, timezone.get_current_timezone())
+            dia_ingles = local_dt.strftime('%A')
+            mes_ingles = local_dt.strftime('%B')
+            day_num = local_dt.day
+        elif isinstance(value, datetime.date):
+            dia_ingles = value.strftime('%A')
+            mes_ingles = value.strftime('%B')
+            day_num = value.day
+        else:
+            return ''
+    except Exception:
+        return ''
+
+    if 'l' in format_string:
+        return f"{dias.get(dia_ingles, dia_ingles)} {day_num} de {meses.get(mes_ingles, mes_ingles)}"
+    return f"{day_num} de {meses.get(mes_ingles, mes_ingles)}"
 
 @register.simple_tag
 def querystring(request, key, value):
@@ -432,12 +504,38 @@ def youtube_embed_id(url):
     except Exception:
         return ''
 
+@register.filter
+def convert_youtube_url(url):
+    """Convierte una URL de YouTube a formato embed."""
+    video_id = youtube_embed_id(url)
+    if not video_id:
+        return ''
+    return f"https://www.youtube.com/embed/{video_id}"
+
+@register.filter
+def number_to_price(value):
+    """Formatea un numero como precio con dos decimales."""
+    try:
+        return f"${float(value):,.2f}"
+    except (ValueError, TypeError):
+        return "$0.00"
+
+@register.filter
+def linkfy(value):
+    """Convierte URLs en links HTML simples."""
+    if not value:
+        return ""
+    pattern = r"(https?://[^\s<]+)"
+    replaced = re.sub(pattern, r'<a href="\1" target="_blank" rel="noopener noreferrer">\1</a>', str(value))
+    return mark_safe(replaced)
+
 register.filter("call", callmethod)
 register.filter("args", args)
 register.filter("to_char", to_char)
 register.filter("time_to_string", seconds_to_string)
 register.filter("time_to_string2", seconds_to_string2)
 register.filter("time_to_string3", seconds_to_string3)
+register.filter("tiempo_formato", seconds_to_string)
 register.filter("add_class", add_class)
 register.filter("num_question", num_question)
 register.filter("get_hours", get_hours)
@@ -454,3 +552,8 @@ register.filter("fecha_con_mes", fecha_con_mes)
 register.filter("descripcion_corta", descripcion_corta)
 register.filter("descripcion", descripcion)
 register.filter("wrap_images", wrap_images)
+register.filter("get_item", get_item)
+register.filter("fecha_es", fecha_es)
+register.filter("number_to_price", number_to_price)
+register.filter("convert_youtube_url", convert_youtube_url)
+register.filter("linkfy", linkfy)
