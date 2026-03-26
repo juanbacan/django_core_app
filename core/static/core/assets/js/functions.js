@@ -1,9 +1,17 @@
 // Obtiene el CSRF token desde cookie, meta tags o variables globales
 function getCSRFToken() {
-    // 1) cookie 'csrftoken'
+    // 1) cookie 'csrftoken' (si hay múltiples, usar el último valor)
     try {
-        const match = document.cookie.match(/(?:^|; )csrftoken=([^;]+)/);
-        if (match) return decodeURIComponent(match[1]);
+        const cookies = document.cookie ? document.cookie.split(';') : [];
+        let cookieToken = '';
+        for (const cookie of cookies) {
+            const [rawName, ...rawValue] = cookie.split('=');
+            if (!rawName) continue;
+            if (rawName.trim() === 'csrftoken') {
+                cookieToken = decodeURIComponent(rawValue.join('=').trim());
+            }
+        }
+        if (cookieToken) return cookieToken;
     } catch (e) {}
 
     // 2) meta tags comunes
@@ -12,6 +20,10 @@ function getCSRFToken() {
         const m = document.querySelector(`meta[name="${name}"]`);
         if (m && m.getAttribute('content')) return m.getAttribute('content');
     }
+
+    // 2.1) hidden input del formulario (por si no existe meta)
+    const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+    if (csrfInput && csrfInput.value) return csrfInput.value;
 
     // 3) variables globales que puedan existir
     if (window.csrftoken) return window.csrftoken;
@@ -46,13 +58,17 @@ async function fetchRequest(url, params, csrftoken = getCSRFToken()) {
 function fetchRequest2(options) {
     return new Promise((resolve, reject) => {
         let url = options.url;
-        headers = {
+        let headers = {
             'Content-Type': 'application/json', 
             'X-CSRFToken': getCSRFToken(),
             'X-Requested-With': 'XMLHttpRequest'
         };
         if (options.headers) headers = Object.assign(headers, options.headers);
-        let init = { method: options.method || 'GET', headers: headers };
+        let init = {
+            method: options.method || 'GET',
+            headers: headers,
+            credentials: 'same-origin'
+        };
         
         if (options.data) {
             if (init.method === 'GET') {
