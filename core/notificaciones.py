@@ -46,7 +46,14 @@ def _get_vapid_data():
     return {}
 
 
-def _dispatch_webpush(recipient, payload_json, vapid_data, ttl=0, es_reintento=False):
+def _dispatch_webpush(
+    recipient,
+    payload_json,
+    vapid_data,
+    ttl=0,
+    es_reintento=False,
+    transient_attempt=0,
+):
     """
     Lógica central de envío con manejo de limpieza (404/410) y bloqueos (429).
     """
@@ -97,9 +104,59 @@ def _dispatch_webpush(recipient, payload_json, vapid_data, ttl=0, es_reintento=F
                 # Volvemos a intentar enviar a este mismo usuario una vez más
                 return _dispatch_webpush(recipient, payload_json, vapid_data, ttl, es_reintento=True)
 
+            # 3. ERRORES TRANSITORIOS DEL PROVEEDOR (5xx): reintento corto con backoff.
+            elif status_code in [500, 502, 503, 504]:
+                max_attempts = getattr(settings, "WEBPUSH_TRANSIENT_MAX_ATTEMPTS", 3)
+                if transient_attempt < max_attempts - 1:
+                    wait_seconds = min(2 ** transient_attempt, 8)
+                    logger.warning(
+                        "[WebPush %s] Error transitorio para %s. Reintento %s/%s en %ss",
+                        status_code,
+                        recipient,
+                        transient_attempt + 1,
+                        max_attempts - 1,
+                        wait_seconds,
+                    )
+                    time.sleep(wait_seconds)
+                    return _dispatch_webpush(
+                        recipient,
+                        payload_json,
+                        vapid_data,
+                        ttl,
+                        es_reintento=es_reintento,
+                        transient_attempt=transient_attempt + 1,
+                    )
+
         # Cualquier otro error (500, etc)
         status = exc.response.status_code if exc.response else "No response"
-        logger.error("[WebPush ERROR] Usuario: %s, Status: %s", recipient, status)
+        if exc.response is None:
+            max_attempts = getattr(settings, "WEBPUSH_TRANSIENT_MAX_ATTEMPTS", 3)
+            if transient_attempt < max_attempts - 1:
+                wait_seconds = min(2 ** transient_attempt, 8)
+                logger.warning(
+                    "[WebPush WARN] Sin respuesta para %s. Reintento %s/%s en %ss. Detalle: %s",
+                    recipient,
+                    transient_attempt + 1,
+                    max_attempts - 1,
+                    wait_seconds,
+                    exc,
+                )
+                time.sleep(wait_seconds)
+                return _dispatch_webpush(
+                    recipient,
+                    payload_json,
+                    vapid_data,
+                    ttl,
+                    es_reintento=es_reintento,
+                    transient_attempt=transient_attempt + 1,
+                )
+
+        logger.error(
+            "[WebPush ERROR] Usuario: %s, Status: %s, Detalle: %s",
+            recipient,
+            status,
+            exc,
+        )
         return "failed"
         
     except Exception:
