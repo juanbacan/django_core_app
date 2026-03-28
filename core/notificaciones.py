@@ -1,5 +1,8 @@
 import json
 import logging
+import time
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 
 from celery import shared_task
 from django.conf import settings
@@ -43,9 +46,9 @@ def _get_vapid_data():
     return {}
 
 
-def _dispatch_webpush(recipient, payload_json, vapid_data, ttl=0):
+def _dispatch_webpush(recipient, payload_json, vapid_data, ttl=0, es_reintento=False):
     """
-    Lógica central de envío y manejo de suscripciones inválidas.
+    Lógica central de envío con manejo de limpieza (404/410) y bloqueos (429).
     """
     subscription_data = _process_subscription_info(recipient.subscription)
     try:
@@ -57,16 +60,48 @@ def _dispatch_webpush(recipient, payload_json, vapid_data, ttl=0):
         )
         logger.info("[WebPush OK] %s", recipient)
         return "sent"
+        
     except WebPushException as exc:
-        if exc.response and exc.response.status_code == 410:
-            logger.warning("[WebPush 410] Borrando suscripción muerta: %s", recipient)
-            recipient.subscription.delete()
-            return "deleted"
+        if exc.response is not None:
+            status_code = exc.response.status_code
+            
+            # 1. LIMPIEZA: 410 (Gone) o 404 (Not Found) -> Borramos la suscripción
+            if status_code in [404, 410]:
+                logger.warning("[WebPush %s] Borrando suscripción muerta: %s", status_code, recipient)
+                recipient.subscription.delete()
+                return "deleted"
+                
+            # 2. BLOQUEO (RATE LIMITING): 429 (Too Many Requests) -> Pausamos
+            elif status_code == 429 and not es_reintento:
+                # Retry-After puede venir en segundos o como fecha HTTP.
+                retry_after_raw = exc.response.headers.get("Retry-After", "5")
+                retry_after = 5
+                try:
+                    retry_after = int(retry_after_raw)
+                except (TypeError, ValueError):
+                    try:
+                        retry_after_dt = parsedate_to_datetime(retry_after_raw)
+                        if retry_after_dt.tzinfo is None:
+                            retry_after_dt = retry_after_dt.replace(tzinfo=timezone.utc)
+                        retry_after = int(
+                            (retry_after_dt - datetime.now(timezone.utc)).total_seconds()
+                        )
+                    except Exception:
+                        retry_after = 5
 
+                max_retry_after = getattr(settings, "WEBPUSH_RETRY_AFTER_MAX_SECONDS", 60)
+                retry_after = max(1, min(retry_after, max_retry_after))
+                logger.warning("[WebPush 429] Google nos frena. Pausando %s segundos...", retry_after)
+                time.sleep(retry_after)
+                
+                # Volvemos a intentar enviar a este mismo usuario una vez más
+                return _dispatch_webpush(recipient, payload_json, vapid_data, ttl, es_reintento=True)
+
+        # Cualquier otro error (500, etc)
         status = exc.response.status_code if exc.response else "No response"
         logger.error("[WebPush ERROR] Usuario: %s, Status: %s", recipient, status)
-        logger.exception("Error al enviar la notificación")
         return "failed"
+        
     except Exception:
         logger.exception("[WebPush Error] Error inesperado")
         return "failed"
@@ -120,7 +155,7 @@ def _send_massive_report(report, report_context, report_email=None):
         f"URL destino: {notification_url}\n\n"
         f"Total procesadas: {report.get('total', 0)}\n"
         f"Enviadas OK: {report.get('sent', 0)}\n"
-        f"Suscripciones eliminadas (410): {report.get('deleted', 0)}\n"
+        f"Suscripciones eliminadas (404/410): {report.get('deleted', 0)}\n"
         f"Fallidas: {report.get('failed', 0)}\n"
         f"Porcentaje de éxito: {exito_pct:.2f}%\n"
     )
@@ -158,23 +193,26 @@ def send_notification_to_user_task(user_id, payload, ttl=0):
 
 @shared_task
 def send_notification_to_group_task(group_name, payload, ttl=0, report_email=None):
-    """Tarea asíncrona masiva para grupos."""
+    """Tarea asíncrona masiva optimizada para miles de registros."""
     try:
         group = Group.objects.get(name=group_name)
     except (Group.DoesNotExist, Group.MultipleObjectsReturned):
         logger.warning("[WebPush WARN] Problema resolviendo el grupo '%s'", group_name)
         return
 
-    recipients = group.webpush_info.select_related("subscription").filter(
+    # No evaluamos el queryset aquí, solo lo preparamos
+    recipients_queryset = group.webpush_info.select_related("subscription").filter(
         subscription__isnull=False
     )
 
     payload_json = json.dumps(payload)
     vapid_data = _get_vapid_data()
 
-    report = {"total": recipients.count(), "sent": 0, "deleted": 0, "failed": 0}
+    report = {"total": recipients_queryset.count(), "sent": 0, "deleted": 0, "failed": 0}
 
-    for recipient in recipients:
+    # EL SECRETO PARA NO QUEDARSE SIN RAM: .iterator(chunk_size=2000)
+    # Esto trae lotes de 2000 de la base de datos en vez de los 300,000 de golpe.
+    for recipient in recipients_queryset.iterator(chunk_size=2000):
         status = _dispatch_webpush(recipient, payload_json, vapid_data, ttl)
         if status == "sent":
             report["sent"] += 1
