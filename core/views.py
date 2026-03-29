@@ -69,7 +69,7 @@ def obtener_extra_data(data):
 def autenticar_usuario(request, user, add_group=None):
     """
     Autentica al usuario, asigna el backend, inicia sesión, muestra mensaje
-    y redirige a la URL de referencia.
+    y redirige a la URL configurada en LOGIN_REDIRECT_URL.
     """
     if add_group:
         group, _ = Group.objects.get_or_create(name=add_group)
@@ -78,7 +78,8 @@ def autenticar_usuario(request, user, add_group=None):
     user.backend = 'django.contrib.auth.backends.ModelBackend'
     login(request, user)
     messages.success(request, f'Ha iniciado sesión exitosamente como {user.username}')
-    return redirect(request.META.get('HTTP_REFERER', '/'))
+    redirect_url = getattr(settings, 'LOGIN_REDIRECT_URL', '/')
+    return redirect(redirect_url)
 
 
 @csrf_exempt          # no hay token csrf en el POST que llega desde el widget
