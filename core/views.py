@@ -15,6 +15,7 @@ from django.contrib import messages
 from django import forms
 from django.apps import apps
 from django.conf import settings
+from django.core.files.storage import FileSystemStorage
 from django.views.generic.base import ContextMixin
 from django.db import transaction
 from django.db.models import Q
@@ -444,29 +445,24 @@ def upload_image(request, series: str=None, article: str=None):
         return JsonResponse({"Error Message": f"Wrong file suffix ({file_name_suffix}), supported are .jpg, .png, .gif, .webp, .jpeg"})
 
     if not settings.HABILITADO_FIREBASE:
-        file_path = os.path.join(settings.MEDIA_ROOT, 'cargadas_tiny', file_obj.name)
-        try:
-            with open(file_path, 'wb+') as f:
-                for chunk in file_obj.chunks():
-                    f.write(chunk)
-        except Exception as ex:
-            # Crear carpeta si no existe
-            os.makedirs(os.path.join(settings.MEDIA_ROOT, 'cargadas_tiny'), exist_ok=True)
-            with open(file_path, 'wb+') as f:
-                for chunk in file_obj.chunks():
-                    f.write(chunk)
+        storage = FileSystemStorage(location=settings.MEDIA_ROOT, base_url=settings.MEDIA_URL)
+        file_name = storage.save(os.path.join('cargadas_tiny', file_obj.name), file_obj)
+        return JsonResponse({
+            'message': 'Image uploaded successfully',
+            'location': storage.url(file_name)
+        })
 
-        return JsonResponse({
-            'message': 'Image uploaded successfully',
-            'location': os.path.join(settings.MEDIA_URL, 'cargadas_tiny', file_obj.name)
-        })
-    else: 
-        url = upload_image_to_firebase_storage(file_obj)        
-        
-        return JsonResponse({
-            'message': 'Image uploaded successfully',
-            'location': url
-        })
+    url = upload_image_to_firebase_storage(file_obj)
+
+    if not url:
+        storage = FileSystemStorage(location=settings.MEDIA_ROOT, base_url=settings.MEDIA_URL)
+        file_name = storage.save(os.path.join('cargadas_tiny', file_obj.name), file_obj)
+        url = storage.url(file_name)
+
+    return JsonResponse({
+        'message': 'Image uploaded successfully',
+        'location': url
+    })
 
 ALLOWED_PREFIXES = (
     settings.URL_BASE,

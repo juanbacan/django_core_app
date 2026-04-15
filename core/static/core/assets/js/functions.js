@@ -402,7 +402,10 @@ const submitModalForm1 = async (formid = 'modalForm1', showError = true) => {
     
     form.classList.add('was-validated');
 
-    if (!form.checkValidity()) return;
+    if (!form.checkValidity()) {
+        desbloqueoInterfaz();
+        return;
+    }
 
     if (typeof beforeSubmitModalForm1 === 'function') {
         desbloqueoInterfaz();
