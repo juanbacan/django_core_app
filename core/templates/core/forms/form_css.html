@@ -37,4 +37,168 @@
     .fk-raw small {
         margin-top: 0.25rem;
     }
+
+    /* Inline cards: compact look inspired by Django admin */
+    .core-inline-card {
+        border-color: var(--bs-border-color);
+    }
+
+    .core-inline-header {
+        background-color: var(--bs-primary-bg-subtle);
+        border-color: var(--bs-primary-border-subtle);
+        color: var(--bs-primary-text-emphasis);
+        font-size: 0.9rem;
+        font-weight: 600;
+        padding: 0.31rem 1.25rem;
+    }
+
+    .core-inline-body {
+        padding: 0.85rem;
+    }
+
+    .core-inline-footer {
+        background: var(--bs-tertiary-bg);
+        padding: 0.5rem 0.75rem;
+        border-top: 1px solid var(--bs-border-color);
+    }
+
+    .core-inline-table {
+        margin-bottom: 0;
+    }
+
+    .core-inline-table thead th {
+        background: var(--bs-tertiary-bg);
+        color: inherit;
+        font-size: 0.78rem;
+        font-weight: 600;
+        padding-top: 0.4rem;
+        padding-bottom: 0.4rem;
+        border-bottom: 1px solid var(--bs-border-color);
+    }
+
+    .core-inline-table td {
+        padding-top: 0.45rem;
+        padding-bottom: 0.45rem;
+        vertical-align: top;
+    }
+
+    .core-inline-field-row .form-label {
+        margin-bottom: 0.2rem;
+        font-size: 0.82rem;
+    }
+
+    .core-inline-field-grid {
+        display: grid;
+        grid-template-columns: 210px minmax(0, 1fr);
+        gap: 0.6rem 0.9rem;
+        align-items: start;
+    }
+
+    .core-inline-field-label {
+        padding-top: 0.35rem;
+        margin-bottom: 0;
+    }
+
+    .core-inline-field-value {
+        min-width: 0;
+    }
+
+    .core-inline-field-value .form-control,
+    .core-inline-field-value .form-select,
+    .core-inline-field-value .form-control-plaintext,
+    .core-inline-field-value .select2,
+    .core-inline-field-value .select2-container {
+        width: 100% !important;
+        max-width: 100%;
+    }
+
+    @media (max-width: 768px) {
+        .core-inline-field-grid {
+            grid-template-columns: 1fr;
+            gap: 0.2rem;
+        }
+
+        .core-inline-field-label {
+            padding-top: 0;
+        }
+    }
+
+    .core-inline-add-btn {
+        font-size: 0.78rem;
+        padding: 0.2rem 0.55rem;
+    }
+
+    /* Regular form (non-inline) compact spacing */
+    .core-form-compact .core-form-row {
+        margin-bottom: 0.45rem !important;
+    }
+
+    .core-form-compact .core-form-label-col {
+        padding-top: 0.35rem;
+    }
+
+    .core-form-compact .form-label {
+        margin-bottom: 0.15rem;
+        font-size: 0.86rem;
+    }
+
+    .core-form-compact .core-form-input-col .form-control,
+    .core-form-compact .core-form-input-col .form-select,
+    .core-form-compact .core-form-input-col .select2,
+    .core-form-compact .core-form-input-col .select2-container {
+        width: 100% !important;
+    }
+
+    .core-form-compact .core-form-input-col .form-text,
+    .core-form-compact .core-form-input-col .invalid-feedback,
+    .core-form-compact .core-form-input-col .field-error-message {
+        margin-top: 0.2rem;
+    }
+
+    @media (max-width: 768px) {
+        .core-form-compact .core-form-label-col {
+            padding-top: 0;
+        }
+    }
+
+    .core-fieldset-details {
+        border: 1px solid var(--bs-border-color);
+        border-radius: 0.25rem;
+        background: #fff;
+        margin-bottom: 0.55rem;
+    }
+
+    .core-fieldset-summary {
+        cursor: pointer;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--bs-primary-text-emphasis);
+        padding: 0.31rem 1.25rem;
+        background: var(--bs-primary-bg-subtle);
+        border-bottom: 1px solid var(--bs-primary-border-subtle);
+        list-style: none;
+    }
+
+    .core-fieldset-summary::-webkit-details-marker {
+        display: none;
+    }
+
+    .core-fieldset-summary::before {
+        content: '▸';
+        display: inline-block;
+        margin-right: 0.4rem;
+        transition: transform 0.15s ease;
+    }
+
+    .core-fieldset-details[open] .core-fieldset-summary::before {
+        transform: rotate(90deg);
+    }
+
+    .core-fieldset-content {
+        padding: 0.55rem 0.65rem 0.35rem;
+    }
+
+    .core-fieldset-block {
+        margin-bottom: 0.6rem !important;
+    }
 </style>

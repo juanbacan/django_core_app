@@ -1,72 +1,174 @@
 <hr class="my-4">
 {% for formset in form.inline_formsets %}
-    <div class="card mb-4" id="inline-container-{{ formset.prefix }}">
-        <div class="card-header text-white bg-primary bg-soft">
+    <div class="card mb-3 core-inline-card" id="inline-container-{{ formset.prefix }}">
+        <div class="card-header core-inline-header" role="alert">
             {{ formset.verbose_name_plural }}
         </div>
-        <div class="card-body">
+        <div class="card-body core-inline-body">
             {{ formset.management_form }}
-            <div class="table-responsive">
-                <table data-sortable class="table table-bordered table-hover" id="formset-table-{{ formset.prefix }}">
-                    <thead>
-                        <tr style="vertical-align: middle;">
-                            {% for fields in formset.empty_form.visible_fields %}
-                                <th id="col-{{ formset.prefix }}-{{ fields.name }}" style="font-size: 14px;">{{ fields.label }}</th>
+            {% if formset.inline_layout == 'stacked' %}
+                <div class="d-flex flex-column gap-2" data-inline-items="{{ formset.prefix }}">
+                    {% for form in formset %}
+                        <div id="{{ formset.prefix }}-{{ forloop.counter0 }}" class="inline-form">
+                            {% for fields in form.hidden_fields %}
+                                {{ fields }}
                             {% endfor %}
-                            <th id="col-{{ formset.prefix }}-DELETE"></th>
-                        </tr>
-                    </thead>
-                    <tbody id="tbody-{{ formset.prefix }}">
-                        {% for form in formset %}
-                            <tr id="{{ formset.prefix }}-{{ forloop.counter0 }}" class="inline-form">
-                                {% for fields in form.hidden_fields %}
-                                    {{ fields }}
-                                {% endfor %}
-                                {% for fields in form.visible_fields %}
-                                    <td>
-                                        {% include 'core/forms/field_widget_render.html' with field=fields %}
-                                    </td>
-                                {% endfor %}
-                                <td class="text-center">
-                                    {% if not form.instance.pk %}
-                                        <a href="#" class="remove-inline" onclick="removeInline(this)">
-                                            <i class="fa-solid fa-circle-xmark" style="color: #888;"></i>
-                                        </a>
+                            {% if form.fieldset_bound %}
+                                {% for title, bound_fields in form.fieldset_bound %}
+                                    {% if title and formset.show_fieldset_titles and form.fieldset_bound|length > 1 %}
+                                        <div class="mt-2 mb-2">
+                                            <h6 class="text-uppercase small text-muted mb-1">{{ title }}</h6>
+                                            <hr class="my-1" />
+                                        </div>
                                     {% endif %}
-                                </td>
+                                    {% for fields in bound_fields %}
+                                        <div class="mb-2 core-inline-field-row">
+                                            <div class="core-inline-field-grid">
+                                                <label class="form-label small fw-bold text-muted core-inline-field-label">{{ fields.label }}</label>
+                                                <div class="core-inline-field-value">
+                                                    {% include 'core/forms/field_widget_render.html' with field=fields %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                {% endfor %}
+                            {% else %}
+                                {% for fields in form.visible_fields %}
+                                    <div class="mb-2 core-inline-field-row">
+                                        <div class="core-inline-field-grid">
+                                            <label class="form-label small fw-bold text-muted core-inline-field-label">{{ fields.label }}</label>
+                                            <div class="core-inline-field-value">
+                                                {% include 'core/forms/field_widget_render.html' with field=fields %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                            {% if not form.view_only and not form.instance.pk %}
+                                <div class="text-end">
+                                    <a href="#" class="remove-inline" onclick="removeInline(this)">
+                                        <i class="fa-solid fa-circle-xmark" style="color: #888;"></i>
+                                    </a>
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="table-responsive">
+                    <table data-sortable class="table table-bordered table-hover core-inline-table" id="formset-table-{{ formset.prefix }}">
+                        <thead>
+                            <tr style="vertical-align: middle;">
+                                {% for fields in formset.empty_form.visible_fields %}
+                                    <th id="col-{{ formset.prefix }}-{{ fields.name }}" style="font-size: 14px;">{{ fields.label }}</th>
+                                {% endfor %}
+                                <th id="col-{{ formset.prefix }}-DELETE"></th>
                             </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+                        </thead>
+                        <tbody id="tbody-{{ formset.prefix }}" data-inline-items="{{ formset.prefix }}">
+                            {% for form in formset %}
+                                <tr id="{{ formset.prefix }}-{{ forloop.counter0 }}" class="inline-form">
+                                    {% for fields in form.hidden_fields %}
+                                        {{ fields }}
+                                    {% endfor %}
+                                    {% for fields in form.visible_fields %}
+                                        <td>
+                                            {% include 'core/forms/field_widget_render.html' with field=fields %}
+                                        </td>
+                                    {% endfor %}
+                                    <td class="text-center">
+                                        {% if not form.view_only and not form.instance.pk %}
+                                            <a href="#" class="remove-inline" onclick="removeInline(this)">
+                                                <i class="fa-solid fa-circle-xmark" style="color: #888;"></i>
+                                            </a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
         </div>
-        <div class="card-footer">
+        <div class="card-footer core-inline-footer">
             <div class="d-flex justify-content-end">
-                <button type="button" class="btn btn-dark btn-sm" id="add-inline-{{ formset.prefix }}">
+                {% if formset.can_add_inline %}
+                <button type="button" class="btn btn-outline-secondary btn-sm core-inline-add-btn" id="add-inline-{{ formset.prefix }}">
                     <i class="fa-solid fa-plus"></i>
                     Agregar {{ formset.verbose_name }}
                 </button>
+                {% endif %}
             </div>
         </div>
     </div>
 {% endfor %}
 
 {% for formset in form.inline_formsets %}
-    <table id="empty-inline-{{ formset.prefix }}" style="display: none;">
-        <tr id="{{ formset.prefix }}-__prefix__" class="inline-form">
-            {% for fields in formset.empty_form.hidden_fields %}
-                {{ fields }}
-            {% endfor %}
-            {% for fields in formset.empty_form.visible_fields %}
-                <td>
-                    {% include 'core/forms/field_widget_render.html' with field=fields %}
+    {% if formset.inline_layout == 'stacked' %}
+        <div id="empty-inline-{{ formset.prefix }}" style="display: none;">
+            <div id="{{ formset.prefix }}-__prefix__" class="inline-form">
+                {% for fields in formset.empty_form.hidden_fields %}
+                    {{ fields }}
+                {% endfor %}
+                {% if formset.empty_form.fieldset_bound %}
+                    {% for title, bound_fields in formset.empty_form.fieldset_bound %}
+                        {% if title and formset.show_fieldset_titles and formset.empty_form.fieldset_bound|length > 1 %}
+                            <div class="mt-2 mb-2">
+                                <h6 class="text-uppercase small text-muted mb-1">{{ title }}</h6>
+                                <hr class="my-1" />
+                            </div>
+                        {% endif %}
+                        {% for fields in bound_fields %}
+                            <div class="mb-2 core-inline-field-row">
+                                <div class="core-inline-field-grid">
+                                    <label class="form-label small fw-bold text-muted core-inline-field-label">{{ fields.label }}</label>
+                                    <div class="core-inline-field-value">
+                                        {% include 'core/forms/field_widget_render.html' with field=fields %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% endfor %}
+                {% else %}
+                    {% for fields in formset.empty_form.visible_fields %}
+                        <div class="mb-2 core-inline-field-row">
+                            <div class="core-inline-field-grid">
+                                <label class="form-label small fw-bold text-muted core-inline-field-label">{{ fields.label }}</label>
+                                <div class="core-inline-field-value">
+                                    {% include 'core/forms/field_widget_render.html' with field=fields %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+                {% if not form.view_only %}
+                    <div class="text-end">
+                        <a href="#" class="remove-inline" onclick="removeInline(this)">
+                            <i class="fa-solid fa-circle-xmark" style="color: #888;"></i>
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    {% else %}
+        <table id="empty-inline-{{ formset.prefix }}" style="display: none;">
+            <tr id="{{ formset.prefix }}-__prefix__" class="inline-form">
+                {% for fields in formset.empty_form.hidden_fields %}
+                    {{ fields }}
+                {% endfor %}
+                {% for fields in formset.empty_form.visible_fields %}
+                    <td>
+                        {% include 'core/forms/field_widget_render.html' with field=fields %}
+                    </td>
+                {% endfor %}
+                <td class="text-center">
+                    {% if not form.view_only %}
+                        <a href="#" class="remove-inline" onclick="removeInline(this)">
+                            <i class="fa-solid fa-circle-xmark" style="color: #888;"></i>
+                        </a>
+                    {% endif %}
                 </td>
-            {% endfor %}
-            <td class="text-center">
-                <a href="#" class="remove-inline" onclick="removeInline(this)">
-                    <i class="fa-solid fa-circle-xmark" style="color: #888;"></i>
-                </a>
-            </td>
-        </tr>
-    </table>
+            </tr>
+        </table>
+    {% endif %}
 {% endfor %}

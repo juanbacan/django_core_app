@@ -1,4 +1,20 @@
 <script>
+    function refreshInlineAddButton(prefix) {
+        var addButton = document.getElementById("add-inline-" + prefix);
+        var totalFormsInput = document.querySelector("input[name='" + prefix + "-TOTAL_FORMS']");
+        var maxFormsInput = document.querySelector("input[name='" + prefix + "-MAX_NUM_FORMS']");
+        if (!addButton || !totalFormsInput || !maxFormsInput) {
+            return;
+        }
+
+        var total = parseInt(totalFormsInput.value, 10);
+        var max = parseInt(maxFormsInput.value, 10);
+        var canAdd = Number.isNaN(max) || max <= 0 || max === 1000 || total < max;
+
+        addButton.style.display = canAdd ? "" : "none";
+        addButton.disabled = !canAdd;
+    }
+
     // Función para eliminar un inline
     function removeInline(button) {
         var inlineDiv = button.closest('.inline-form');
@@ -21,10 +37,16 @@
         // Actualizar el total de formularios
         var totalFormsInput = document.querySelector("input[name$='" + formsetPrefix + "-TOTAL_FORMS']");
         totalFormsInput.value = parseInt(totalFormsInput.value, 10) - 1;
+
+        var inlineItemsContainer = document.querySelector("[data-inline-items='" + formsetPrefix + "']");
+        if (!inlineItemsContainer) {
+            refreshInlineAddButton(formsetPrefix);
+            return;
+        }
         
         // Actualizar los índices de los formularios restantes
         var formIndex = 0;
-        var formRows = document.querySelectorAll("#tbody-" + formsetPrefix + " .inline-form");
+        var formRows = inlineItemsContainer.querySelectorAll(".inline-form");
         formRows.forEach(function(row) {
             var inputs = row.querySelectorAll("input, select, textarea");
             inputs.forEach(function(input) {
@@ -38,23 +60,45 @@
             row.id = formsetPrefix + "-" + formIndex;
             formIndex++;
         });
+
+        refreshInlineAddButton(formsetPrefix);
     }
 
     function initInlineFormset(prefix) {
         let addButton = document.getElementById("add-inline-" + prefix);
+        if (!addButton) {
+            return;
+        }
+
         let totalFormsInput = document.querySelector("input[name='" + prefix + "-TOTAL_FORMS']");
+        let maxFormsInput = document.querySelector("input[name='" + prefix + "-MAX_NUM_FORMS']");
         let emptyInlineDiv = document.getElementById("empty-inline-" + prefix);
+        let inlineItemsContainer = document.querySelector("[data-inline-items='" + prefix + "']");
+        if (!totalFormsInput || !emptyInlineDiv) {
+            return;
+        }
+        if (!inlineItemsContainer) {
+            return;
+        }
     
         let emptyFormHtml = emptyInlineDiv.querySelector(".inline-form").outerHTML;
+
+        refreshInlineAddButton(prefix);
     
         addButton.addEventListener("click", function() {
             let formCount = parseInt(totalFormsInput.value, 10);
+            let maxCount = maxFormsInput ? parseInt(maxFormsInput.value, 10) : NaN;
+            if (!Number.isNaN(maxCount) && maxCount > 0 && maxCount !== 1000 && formCount >= maxCount) {
+                refreshInlineAddButton(prefix);
+                return;
+            }
+
             let newFormHtml = emptyFormHtml.replace(/__prefix__/g, formCount);
             let template = document.createElement("template");
             template.innerHTML = newFormHtml.trim();
             let newRow = template.content.firstElementChild;
     
-            document.getElementById("tbody-" + prefix).appendChild(newRow);
+            inlineItemsContainer.appendChild(newRow);
             totalFormsInput.value = formCount + 1;
     
             // Inicializar tinymce solo si está disponible
@@ -69,6 +113,8 @@
                     }
                 });
             }
+
+            refreshInlineAddButton(prefix);
         });
     }
     

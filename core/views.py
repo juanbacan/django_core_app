@@ -26,6 +26,7 @@ from django.forms import modelform_factory
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage, InvalidPage
 from django.utils.safestring import mark_safe
 from django.utils.html import format_html
+from django.utils.dateparse import parse_date, parse_datetime
 import datetime
 from django.utils import timezone
 
@@ -660,6 +661,10 @@ class ModelCRUDView(ViewAdministracionBase):
     raw_id_fields = []
     auto_complete_fields = []
     ordering = ['-id']  # Ordenamiento por defecto
+    form_fields = None
+    inlines = None
+    readonly_fields = ()
+    fieldsets = None
 
     # ATRIBUTOS PARA EXPORTACIÓN A EXCEL
     export_headers = None  # ['Código', 'Descripción']
@@ -690,6 +695,10 @@ class ModelCRUDView(ViewAdministracionBase):
             },
         },
     ]
+
+    def get_readonly_fields(self, obj=None):
+        """Hook declarativo estilo admin para campos readonly en formularios CRUD."""
+        return tuple(self.readonly_fields or ())
 
     def get_row_actions(self, obj):
         """
@@ -766,11 +775,32 @@ class ModelCRUDView(ViewAdministracionBase):
             raise ValueError("Debes definir el atributo 'model'")
         
         if not self.form_class:
+            form_factory_kwargs = {
+                'form': ModelBaseForm,
+            }
+            if self.form_fields is not None:
+                form_factory_kwargs['fields'] = self.form_fields
+            else:
+                form_factory_kwargs['exclude'] = self.exclude_fields
+
             self.form_class = modelform_factory(
                 self.model,
-                exclude=self.exclude_fields,
-                form=ModelBaseForm
+                **form_factory_kwargs,
             )
+
+            if self.inlines is not None:
+                setattr(self.form_class, 'inlines', self.inlines)
+            if self.fieldsets is not None:
+                setattr(self.form_class, 'fieldsets', self.fieldsets)
+            if self.readonly_fields:
+                setattr(self.form_class, 'readonly_fields', self.readonly_fields)
+
+            def _view_driven_get_readonly_fields(form_instance):
+                form_readonly = tuple(getattr(self.form_class, 'readonly_fields', ()) or ())
+                view_readonly = tuple(self.get_readonly_fields(getattr(form_instance, 'instance', None)) or ())
+                return tuple(dict.fromkeys(form_readonly + view_readonly))
+
+            setattr(self.form_class, 'get_readonly_fields', _view_driven_get_readonly_fields)
 
         if self.raw_id_fields:
             setattr(self.form_class, "raw_id_fields", self.raw_id_fields)
@@ -983,6 +1013,19 @@ class ModelCRUDView(ViewAdministracionBase):
                     # datetime.date (sin hora)
                     elif isinstance(value, datetime.date):
                         value = value.strftime("%d/%m/%Y")
+                    elif isinstance(value, str):
+                        parsed_datetime = parse_datetime(value)
+                        if parsed_datetime is not None:
+                            if settings.USE_TZ:
+                                try:
+                                    parsed_datetime = timezone.localtime(parsed_datetime)
+                                except Exception:
+                                    pass
+                            value = parsed_datetime.strftime("%d/%m/%Y %H:%M")
+                        else:
+                            parsed_date = parse_date(value)
+                            if parsed_date is not None:
+                                value = parsed_date.strftime("%d/%m/%Y")
                 except Exception:
                     # Si cualquier cosa falla al formatear, caeremos al str(value)
                     pass
