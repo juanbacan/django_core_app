@@ -528,15 +528,9 @@ def upload_image_to_firebase_storage(image, bucket_name=settings.FIREBASE_BUCKET
         from firebase_admin import storage
         bucket = storage.bucket(bucket_name)
         tipo_archivo = get_image_type(image)
-        if not tipo_archivo and hasattr(image, 'name') and '.' in image.name:
-            tipo_archivo = image.name.rsplit('.', 1)[-1].lower()
-        if not tipo_archivo and hasattr(image, 'content_type') and '/' in image.content_type:
-            tipo_archivo = image.content_type.split('/', 1)[-1].lower()
-        if not tipo_archivo:
-            tipo_archivo = 'png'
         blob = bucket.blob(folder + "/" + str(bson.ObjectId()) + "." + tipo_archivo)
         image.seek(0)   # Pone el cursor al inicio del archivo
-        content_type = image.content_type if hasattr(image, 'content_type') and image.content_type else f"image/{tipo_archivo}"
+        content_type = image.content_type if hasattr(image, 'content_type') else "image/" + tipo_archivo
 
         blob.upload_from_file(image, content_type=content_type)
         blob.make_public()

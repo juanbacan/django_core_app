@@ -3,108 +3,50 @@
 </div>
 
 {% if form %}
-    <div class="row core-form-compact">
+    <div class="row">
         {% for field in form.hidden_fields %}
             {{ field }}
         {% endfor %}
-        {% if form.fieldset_bound_metadata %}
-            {% for fs in form.fieldset_bound_metadata %}
-                {% if fs.bound_fields %}
-                    {% with fs.options.classes|default:'' as fieldset_classes %}
-                        {% if 'collapse' in fieldset_classes %}
-                            <div class="col-12 mb-3 core-fieldset-block">
-                                <details class="core-fieldset-details">
-                                    <summary class="core-fieldset-summary">{{ fs.title }}</summary>
-                                    <div class="core-fieldset-content">
-                                        {% for field in fs.bound_fields %}
-                                            <div class="mb-2 col-md-12 core-form-row" style="display:flex" id="fieldset_{{ field.name }}">
-                                                <div class="row w-100">
-                                                    <div class="col-md-4 col-lg-3 col-xl-2 core-form-label-col">
-                                                        <label id="label_{{ field.name }}" class="form-label form-label-text small w-100" style="font-weight: 500;">{{ field.label }}:</label>
-                                                    </div>
-                                                    <div 
-                                                        class="col-md-8 col-lg-9 col-xl-10 core-form-input-col" 
-                                                        style="max-width:
-                                                            {% if field.field.widget.attrs.inputwidth %}
-                                                                {{ field.field.widget.attrs.inputwidth }}
-                                                            {% else %}
-                                                                600px;
-                                                            {% endif %}"
-                                                    >
-                                                        {% include 'core/forms/fieldRender.html' %}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        {% endfor %}
-                                    </div>
-                                </details>
-                            </div>
-                        {% else %}
-                            {% if fs.title %}
-                                <div class="col-12 mb-2 core-fieldset-block">
-                                    <div class="alert alert-primary" role="alert" style="font-size:0.9rem; padding: 5px 20px; margin-bottom: 4px">
-                                        {{ fs.title }}
-                                    </div>
-                                </div>
-                            {% endif %}
-                            {% for field in fs.bound_fields %}
-                                <div class="mb-2 col-md-12 core-form-row" style="display:flex" id="fieldset_{{ field.name }}">
-                                    <div class="row w-100">
-                                        <div class="col-md-4 col-lg-3 col-xl-2 core-form-label-col">
-                                            <label id="label_{{ field.name }}" class="form-label form-label-text small w-100" style="font-weight: 500;">{{ field.label }}:</label>
-                                        </div>
-                                        <div 
-                                            class="col-md-8 col-lg-9 col-xl-10 core-form-input-col" 
-                                            style="max-width:
-                                                {% if field.field.widget.attrs.inputwidth %}
-                                                    {{ field.field.widget.attrs.inputwidth }}
-                                                {% else %}
-                                                    600px;
-                                                {% endif %}"
-                                        >
-                                            {% include 'core/forms/fieldRender.html' %}
-                                        </div>
-                                    </div>
-                                </div>
-                            {% endfor %}
-                        {% endif %}
-                    {% endwith %}
-                {% endif %}
-            {% endfor %}
-        {% else %}
-            {% for field in form.visible_fields %}
-                {% if field.field.widget.attrs.separator %}
-                    <div class="col-12 mb-2" id="fieldset_separator_{{ field.name }}">
-                        <div class="alert alert-primary" role="alert" style="font-size:0.9rem; padding: 5px 20px; margin-bottom: 4px">
-                            {{ field.field.widget.attrs.separator }}
-                        </div>
+        {% for field in form.visible_fields %}
+            {% if field.field.widget.attrs.separator %}
+                <div class="col-12 mb-3" id="fieldset_separator_{{ field.name }}">
+                    <div class="alert alert-primary" role="alert" style="font-size:0.9rem; padding: 5px 20px; margin-bottom: 4px">
+                        {{ field.field.widget.attrs.separator }}
                     </div>
-                {% endif %}
+                </div>
+            {% endif %}
 
-                {% if field.field.widget.attrs.labelwidth %}
-                    <div class="mb-2 col-md-{{ field.field.widget.attrs.labelwidth }} core-form-row" style="display:flex" id="fieldset_{{ field.name }}">
-                {% else %}
-                    <div class="mb-2 col-md-12 core-form-row" style="display:flex" id="fieldset_{{ field.name }}">
-                {% endif %}
-                        <div class="row w-100">
-                            <div class="col-md-4 col-lg-3 col-xl-2 core-form-label-col">
-                                <label id="label_{{ field.name }}" class="form-label form-label-text small w-100" style="font-weight: 500;">{{ field.label }}:</label>
-                            </div>
-                            <div 
-                                class="col-md-8 col-lg-9 col-xl-10 core-form-input-col" 
-                                style="max-width:
-                                    {% if field.field.widget.attrs.inputwidth %}
-                                        {{ field.field.widget.attrs.inputwidth }}
-                                    {% else %}
-                                        600px;
-                                    {% endif %}"
-                            >
-                                {% include 'core/forms/fieldRender.html' %}
-                            </div>
+            {% if field.field.widget.attrs.labelwidth %}
+                <div class="mb-3 col-md-{{ field.field.widget.attrs.labelwidth }}" style="display:flex" id="fieldset_{{ field.name }}">
+            {% else %}
+                <div class="mb-3 col-md-12" style="display:flex" id="fieldset_{{ field.name }}">
+            {% endif %}
+                    <div class="row w-100">
+                        <div class="col-md-4 col-lg-3 col-xl-2">
+                            <label id="label_{{ field.name }}" class="form-label form-label-text small w-100" style="font-weight: 500;">{{ field.label }}:</label>
+                            {% comment %} <label id="label_{{ field.name }}" class="form-label form-label-text small w-100" style="font-weight: 500;">
+                                {{ field.label }}{% if field.field.required %}<span class="text-danger ms-1">*</span>{% endif %}:
+                            </label> {% endcomment %}
+                        </div>
+                        <div 
+                            class="col-md-8 col-lg-9 col-xl-10" 
+                            style="max-width:
+                                {% if field.field.widget.attrs.inputwidth %}
+                                    {{ field.field.widget.attrs.inputwidth }}
+                                {% else %}
+                                    600px;
+                                {% endif %}"
+                        >
+                            {% include 'core/forms/fieldRender.html' %}
                         </div>
                     </div>
-            {% endfor %}
-        {% endif %}
+                </div>
+            
+            {% if not forloop.last %}
+                <hr id="separator_{{ field.name }}" class="my-3" style="border-top: 1px solid #e9ecef; width: 100%">
+            {% endif %}
+        
+        {% endfor %}
     </div>
     {% if form.non_field_errors %}
         <div class="alert alert-danger mt-3" id="error_{{ field.name }}">

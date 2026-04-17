@@ -15,7 +15,6 @@ from django.contrib import messages
 from django import forms
 from django.apps import apps
 from django.conf import settings
-from django.core.files.storage import FileSystemStorage
 from django.views.generic.base import ContextMixin
 from django.db import transaction
 from django.db.models import Q
@@ -26,7 +25,6 @@ from django.forms import modelform_factory
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage, InvalidPage
 from django.utils.safestring import mark_safe
 from django.utils.html import format_html
-from django.utils.dateparse import parse_date, parse_datetime
 import datetime
 from django.utils import timezone
 
@@ -446,24 +444,29 @@ def upload_image(request, series: str=None, article: str=None):
         return JsonResponse({"Error Message": f"Wrong file suffix ({file_name_suffix}), supported are .jpg, .png, .gif, .webp, .jpeg"})
 
     if not settings.HABILITADO_FIREBASE:
-        storage = FileSystemStorage(location=settings.MEDIA_ROOT, base_url=settings.MEDIA_URL)
-        file_name = storage.save(os.path.join('cargadas_tiny', file_obj.name), file_obj)
+        file_path = os.path.join(settings.MEDIA_ROOT, 'cargadas_tiny', file_obj.name)
+        try:
+            with open(file_path, 'wb+') as f:
+                for chunk in file_obj.chunks():
+                    f.write(chunk)
+        except Exception as ex:
+            # Crear carpeta si no existe
+            os.makedirs(os.path.join(settings.MEDIA_ROOT, 'cargadas_tiny'), exist_ok=True)
+            with open(file_path, 'wb+') as f:
+                for chunk in file_obj.chunks():
+                    f.write(chunk)
+
         return JsonResponse({
             'message': 'Image uploaded successfully',
-            'location': storage.url(file_name)
+            'location': os.path.join(settings.MEDIA_URL, 'cargadas_tiny', file_obj.name)
         })
-
-    url = upload_image_to_firebase_storage(file_obj)
-
-    if not url:
-        storage = FileSystemStorage(location=settings.MEDIA_ROOT, base_url=settings.MEDIA_URL)
-        file_name = storage.save(os.path.join('cargadas_tiny', file_obj.name), file_obj)
-        url = storage.url(file_name)
-
-    return JsonResponse({
-        'message': 'Image uploaded successfully',
-        'location': url
-    })
+    else: 
+        url = upload_image_to_firebase_storage(file_obj)        
+        
+        return JsonResponse({
+            'message': 'Image uploaded successfully',
+            'location': url
+        })
 
 ALLOWED_PREFIXES = (
     settings.URL_BASE,
@@ -661,10 +664,6 @@ class ModelCRUDView(ViewAdministracionBase):
     raw_id_fields = []
     auto_complete_fields = []
     ordering = ['-id']  # Ordenamiento por defecto
-    form_fields = None
-    inlines = None
-    readonly_fields = ()
-    fieldsets = None
 
     # ATRIBUTOS PARA EXPORTACIÓN A EXCEL
     export_headers = None  # ['Código', 'Descripción']
@@ -695,10 +694,6 @@ class ModelCRUDView(ViewAdministracionBase):
             },
         },
     ]
-
-    def get_readonly_fields(self, obj=None):
-        """Hook declarativo estilo admin para campos readonly en formularios CRUD."""
-        return tuple(self.readonly_fields or ())
 
     def get_row_actions(self, obj):
         """
@@ -775,32 +770,11 @@ class ModelCRUDView(ViewAdministracionBase):
             raise ValueError("Debes definir el atributo 'model'")
         
         if not self.form_class:
-            form_factory_kwargs = {
-                'form': ModelBaseForm,
-            }
-            if self.form_fields is not None:
-                form_factory_kwargs['fields'] = self.form_fields
-            else:
-                form_factory_kwargs['exclude'] = self.exclude_fields
-
             self.form_class = modelform_factory(
                 self.model,
-                **form_factory_kwargs,
+                exclude=self.exclude_fields,
+                form=ModelBaseForm
             )
-
-            if self.inlines is not None:
-                setattr(self.form_class, 'inlines', self.inlines)
-            if self.fieldsets is not None:
-                setattr(self.form_class, 'fieldsets', self.fieldsets)
-            if self.readonly_fields:
-                setattr(self.form_class, 'readonly_fields', self.readonly_fields)
-
-            def _view_driven_get_readonly_fields(form_instance):
-                form_readonly = tuple(getattr(self.form_class, 'readonly_fields', ()) or ())
-                view_readonly = tuple(self.get_readonly_fields(getattr(form_instance, 'instance', None)) or ())
-                return tuple(dict.fromkeys(form_readonly + view_readonly))
-
-            setattr(self.form_class, 'get_readonly_fields', _view_driven_get_readonly_fields)
 
         if self.raw_id_fields:
             setattr(self.form_class, "raw_id_fields", self.raw_id_fields)
@@ -965,6 +939,21 @@ class ModelCRUDView(ViewAdministracionBase):
         for item in list_display:
             if isinstance(item, (list, tuple)) and len(item) == 2:
                 label, spec = item
+
+                # Soporte extra en tuplas: ("Label", "metodo_en_vista")
+                # Si spec es string no-campo del modelo y existe método en la vista,
+                # convertirlo a callable para renderizar celda custom.
+                if isinstance(spec, str) and "__" not in spec:
+                    is_model_field = True
+                    try:
+                        self.model._meta.get_field(spec)
+                    except Exception:
+                        is_model_field = False
+
+                    if not is_model_field:
+                        view_method = getattr(self, spec, None)
+                        if callable(view_method):
+                            spec = (lambda o, method=view_method: method(o))
             else:
                 label, spec = get_header(self.model, item), item
 
@@ -997,7 +986,11 @@ class ModelCRUDView(ViewAdministracionBase):
         for o in objs:
             cells = []
             for spec in specs:
-                value = spec(o) if callable(spec) else resolve_attr(o, spec)
+                try:
+                    value = spec(o) if callable(spec) else resolve_attr(o, spec)
+                except Exception:
+                    # Evitar que una celda custom rompa todo el listado.
+                    value = "-"
 
                 # Formatear fechas/hora a zona local antes de renderizar
                 try:
@@ -1013,19 +1006,31 @@ class ModelCRUDView(ViewAdministracionBase):
                     # datetime.date (sin hora)
                     elif isinstance(value, datetime.date):
                         value = value.strftime("%d/%m/%Y")
+                    # Strings ISO (p.ej. "2026-04-12T21:31:32.777085+00:00")
                     elif isinstance(value, str):
-                        parsed_datetime = parse_datetime(value)
-                        if parsed_datetime is not None:
-                            if settings.USE_TZ:
+                        raw = value.strip()
+                        if raw:
+                            parsed_dt = None
+                            parsed_date = None
+                            try:
+                                parsed_dt = datetime.datetime.fromisoformat(raw.replace("Z", "+00:00"))
+                            except Exception:
+                                parsed_dt = None
+
+                            if parsed_dt is not None:
+                                if settings.USE_TZ and parsed_dt.tzinfo is not None:
+                                    try:
+                                        parsed_dt = timezone.localtime(parsed_dt)
+                                    except Exception:
+                                        pass
+                                value = parsed_dt.strftime("%d/%m/%Y %H:%M")
+                            else:
                                 try:
-                                    parsed_datetime = timezone.localtime(parsed_datetime)
+                                    parsed_date = datetime.date.fromisoformat(raw)
                                 except Exception:
-                                    pass
-                            value = parsed_datetime.strftime("%d/%m/%Y %H:%M")
-                        else:
-                            parsed_date = parse_date(value)
-                            if parsed_date is not None:
-                                value = parsed_date.strftime("%d/%m/%Y")
+                                    parsed_date = None
+                                if parsed_date is not None:
+                                    value = parsed_date.strftime("%d/%m/%Y")
                 except Exception:
                     # Si cualquier cosa falla al formatear, caeremos al str(value)
                     pass

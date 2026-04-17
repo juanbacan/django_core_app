@@ -3,11 +3,7 @@ Template parcial para renderizar un campo con sus widgets especiales.
 Uso: {% include 'core/forms/field_widget_render.html' with field=fields %}
 {% endcomment %}
 
-{% if field.field.disabled and field.field.widget.attrs.readonly_display_text %}
-    <div class="form-control-plaintext py-1">{{ field.field.widget.attrs.readonly_display_text }}</div>
-    {{ field.as_hidden }}
-{% elif field.field.widget.attrs.widget == 'number' %}
-
+{% if field.field.widget.attrs.widget == 'number' %}
     <div class="d-flex justify-content-start">
         <div class="input-group" style="width: 150px;">
             <button type="button" class="input-group-text text-center" id="btnMinus-{{ field.name }}">&nbsp;-&nbsp;</button>
