@@ -366,21 +366,56 @@ def error_json(mensaje=None, error=None, forms=[], extradata=None, request=None,
 
         if forms:
             errors = {}
-            for form in forms:
+
+            def _collect_form_errors(form, base_key=""):
                 # Errores del formulario principal
                 if form.errors:
                     for field, error_list in form.errors.items():
-                        errors[field] = list(error_list)
-                        mensajes_error.extend([f"{field}: {strip_tags(str(e))}" for e in error_list])
+                        key = f"{base_key}{field}" if base_key else field
+                        errors[key] = list(error_list)
+                        mensajes_error.extend([f"{key}: {strip_tags(str(e))}" for e in error_list])
+
+                # Errores no asociados a un campo del formulario principal
+                try:
+                    non_field_errors = form.non_field_errors()
+                except Exception:
+                    non_field_errors = []
+                if non_field_errors:
+                    key = f"{base_key}__all__" if base_key else "__all__"
+                    errors[key] = list(non_field_errors)
+                    mensajes_error.extend([f"{key}: {strip_tags(str(e))}" for e in non_field_errors])
 
                 # Errores de los formsets inline (si hay)
                 for formset in getattr(form, 'inline_formsets', []):
+                    # Errores del management form del formset
+                    try:
+                        management_errors = formset.management_form.errors
+                    except Exception:
+                        management_errors = {}
+
+                    if management_errors:
+                        for field, error_list in management_errors.items():
+                            key = f"{base_key}{formset.prefix}-management-{field}" if base_key else f"{formset.prefix}-management-{field}"
+                            errors[key] = list(error_list)
+                            mensajes_error.extend([f"{key}: {strip_tags(str(e))}" for e in error_list])
+
+                    # Errores no asociados a formulario específico del formset
+                    try:
+                        fs_non_form_errors = formset.non_form_errors()
+                    except Exception:
+                        fs_non_form_errors = []
+
+                    if fs_non_form_errors:
+                        key = f"{base_key}{formset.prefix}-__all__" if base_key else f"{formset.prefix}-__all__"
+                        errors[key] = list(fs_non_form_errors)
+                        mensajes_error.extend([f"{key}: {strip_tags(str(e))}" for e in fs_non_form_errors])
+
                     for index, inline_form in enumerate(formset):
-                        if inline_form.errors:
-                            for field, error_list in inline_form.errors.items():
-                                key = f"{formset.prefix}-{index}-{field}"
-                                errors[key] = list(error_list)
-                                mensajes_error.extend([f"{key}: {strip_tags(str(e))}" for e in error_list])
+                        inline_base = f"{base_key}{formset.prefix}-{index}-" if base_key else f"{formset.prefix}-{index}-"
+                        _collect_form_errors(inline_form, inline_base)
+
+            for form in forms:
+                _collect_form_errors(form)
 
             if errors:
                 data['forms'] = errors
@@ -528,9 +563,15 @@ def upload_image_to_firebase_storage(image, bucket_name=settings.FIREBASE_BUCKET
         from firebase_admin import storage
         bucket = storage.bucket(bucket_name)
         tipo_archivo = get_image_type(image)
+        if not tipo_archivo and hasattr(image, 'name') and '.' in image.name:
+            tipo_archivo = image.name.rsplit('.', 1)[-1].lower()
+        if not tipo_archivo and hasattr(image, 'content_type') and '/' in image.content_type:
+            tipo_archivo = image.content_type.split('/', 1)[-1].lower()
+        if not tipo_archivo:
+            tipo_archivo = 'png'
         blob = bucket.blob(folder + "/" + str(bson.ObjectId()) + "." + tipo_archivo)
         image.seek(0)   # Pone el cursor al inicio del archivo
-        content_type = image.content_type if hasattr(image, 'content_type') else "image/" + tipo_archivo
+        content_type = image.content_type if hasattr(image, 'content_type') and image.content_type else f"image/{tipo_archivo}"
 
         blob.upload_from_file(image, content_type=content_type)
         blob.make_public()

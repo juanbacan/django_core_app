@@ -403,8 +403,6 @@ const submitModalForm1 = async (formid = 'modalForm1', showError = true) => {
     form.classList.add('was-validated');
 
     if (!form.checkValidity()) {
-        // El listener global de submit bloquea la interfaz; si no es válido,
-        // debemos desbloquear antes de salir.
         desbloqueoInterfaz();
         return;
     }
@@ -459,7 +457,6 @@ const submitModalForm1 = async (formid = 'modalForm1', showError = true) => {
                             }
                         }
                     }
-
                     form.classList.remove('was-validated');
                 }
                 if (showError) showErrorMessage(errorData.mensaje || 'Error de validación en el formulario');

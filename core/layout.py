@@ -30,7 +30,6 @@ Uso básico:
 """
 
 from django.template.loader import render_to_string
-from django.utils.html import escape
 from django.utils.safestring import mark_safe
 
 
@@ -190,37 +189,14 @@ class Field(LayoutObject):
             html += '</div>'
             html += '</div>'
         elif self.label_position == 'right':
-            # Label a la derecha (para checkboxes/radios) sin mezclar help_text inline.
-            input_type = getattr(field.field.widget, 'input_type', '')
-            if input_type in ('checkbox', 'radio'):
-                label_class = f"form-check-label {self.label_class}".strip()
-                html += '<div class="form-check d-flex align-items-center gap-2">'
-                html += str(field)
-                if field.label:
-                    html += f'<label for="id_{field.name}" class="{label_class}">{field.label}</label>'
-                html += '</div>'
-
-                if field.help_text:
-                    html += (
-                        '<small class="form-text text-muted d-block mt-1">'
-                        f'<i class="fas fa-info-circle me-1"></i>{escape(field.help_text)}</small>'
-                    )
-
-                if field.errors:
-                    html += '<div class="field-error-message text-danger mt-1">'
-                    for error in field.errors:
-                        html += (
-                            '<small class="fw-bold">'
-                            f'<i class="fas fa-exclamation-circle me-1"></i>{escape(error)}</small>'
-                        )
-                    html += '</div>'
-            else:
-                html += '<div class="d-flex align-items-center gap-2">'
-                field_html = render_to_string('core/forms/fieldRender.html', {'field': field})
-                html += field_html
-                if field.label:
-                    html += f'<label for="id_{field.name}" class="{self.label_class}">{field.label}</label>'
-                html += '</div>'
+            # Label a la derecha (para checkboxes)
+            html += '<div class="d-flex align-items-center gap-2">'
+            # Renderizar campo con fieldRender.html
+            field_html = render_to_string('core/forms/fieldRender.html', {'field': field})
+            html += field_html
+            if field.label:
+                html += f'<label for="id_{field.name}" class="{self.label_class}">{field.label}</label>'
+            html += '</div>'
         
         html += '</div>'
         return mark_safe(html)

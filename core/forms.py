@@ -5,6 +5,7 @@ from dal_select2.widgets import ModelSelect2, Select2, Select2Multiple, ModelSel
 from dal import autocomplete as dal_autocomplete, forward as dal_forward
 from django.db.models import Q
 import json
+from collections import OrderedDict
 from django.apps import apps
 from django.conf import settings
 from core.crud_registry import crud_registry
@@ -100,12 +101,18 @@ class BootstrapFieldsMixin:
         # Si el formulario define fieldsets, precomputamos los bound fields
         if hasattr(self, 'fieldsets'):
             self.fieldset_bound = []
+            self.fieldset_bound_metadata = []
             for title, options in self.fieldsets:
                 # Obtenemos la lista de nombres de campos definidos en el fieldset
                 field_names = options.get('fields', [])
                 # Creamos una lista con los bound fields, comprobando que existan en self.fields
                 bound_fields = [self[field_name] for field_name in field_names if field_name in self.fields]
                 self.fieldset_bound.append((title, bound_fields))
+                self.fieldset_bound_metadata.append({
+                    'title': title,
+                    'bound_fields': bound_fields,
+                    'options': options or {},
+                })
         
         # Soporte para el sistema de layout
         if hasattr(self, 'helper') and self.helper:
@@ -116,8 +123,13 @@ class BootstrapFieldsMixin:
             self.set_readonly_fields()
 
     def set_readonly_fields(self):
+        self.readonly_display = {}
         for field in self.fields.values():
             field.disabled = True
+        for field_name, field in self.fields.items():
+            readonly_value = self.get_readonly_display_value(field_name, field)
+            self.readonly_display[field_name] = readonly_value
+            field.widget.attrs['readonly_display_text'] = readonly_value
             widget = field.widget
             input_type = getattr(widget, 'input_type', '')
             is_select_widget = isinstance(
@@ -128,6 +140,49 @@ class BootstrapFieldsMixin:
                 widget.attrs['disabled'] = 'disabled'
             else:
                 widget.attrs['readonly'] = 'readonly'
+
+    def get_readonly_display_value(self, field_name, field):
+        value = self.initial.get(field_name, None)
+        if value in (None, '', []):
+            value = field.initial
+        if value in (None, '', []):
+            value = getattr(self.instance, field_name, None) if hasattr(self, 'instance') else None
+
+        # ModelChoiceField / FK-like display
+        if isinstance(field, forms.ModelChoiceField):
+            obj = None
+            if value not in (None, ''):
+                try:
+                    obj = field.queryset.filter(pk=value).first()
+                except Exception:
+                    obj = None
+            return str(obj) if obj is not None else "-"
+
+        # ModelMultipleChoiceField display
+        if isinstance(field, forms.ModelMultipleChoiceField):
+            values = value
+            if values in (None, ''):
+                return "-"
+            if not isinstance(values, (list, tuple, set)):
+                values = [values]
+            try:
+                labels = [str(obj) for obj in field.queryset.filter(pk__in=list(values))]
+            except Exception:
+                labels = []
+            return ", ".join(labels) if labels else "-"
+
+        # ChoiceField display by label
+        if isinstance(field, forms.ChoiceField):
+            try:
+                choices = dict(field.choices)
+            except Exception:
+                choices = {}
+            return str(choices.get(value, value if value not in (None, '') else "-"))
+
+        if isinstance(value, bool):
+            return "Sí" if value else "No"
+
+        return str(value) if value not in (None, '') else "-"
 
     def configure_field(self, field, field_name):
         # Si el campo es un campo de búsqueda (raw_id_fields), se configura como input de texto
@@ -171,7 +226,7 @@ class BootstrapFieldsMixin:
             self.iconpicker = True
 
 
-        if hasattr(field, 'queryset') and field.queryset is not None:
+        if hasattr(field, 'queryset') and field.queryset is not None and not self.view_only and not field.disabled:
             model = field.queryset.model
             if model in crud_registry:
                 fk_conf = crud_registry[model]
@@ -263,6 +318,88 @@ class FilterForm(FilterFieldsMixin, forms.Form):
 
 
 class ModelBaseForm(BootstrapFieldsMixin, forms.ModelForm):
+
+    def get_readonly_fields(self):
+        """Hook estilo Django admin para declarar campos readonly.
+
+        Puede sobreescribirse en subclases para lógica dinámica según self.instance.
+        """
+        return tuple(getattr(self, 'readonly_fields', ()) or ())
+
+    def _rebuild_fieldset_bound(self):
+        if hasattr(self, 'fieldsets'):
+            self.fieldset_bound = []
+            self.fieldset_bound_metadata = []
+            for title, options in self.fieldsets:
+                field_names = options.get('fields', [])
+                bound_fields = [self[field_name] for field_name in field_names if field_name in self.fields]
+                self.fieldset_bound.append((title, bound_fields))
+                self.fieldset_bound_metadata.append({
+                    'title': title,
+                    'bound_fields': bound_fields,
+                    'options': options or {},
+                })
+
+    def _apply_fieldset_metadata(self):
+        if not hasattr(self, 'fieldsets'):
+            return
+
+        ordered_names = []
+        for title, options in self.fieldsets:
+            field_names = options.get('fields', [])
+            first_existing = None
+            for field_name in field_names:
+                if field_name in self.fields:
+                    ordered_names.append(field_name)
+                    if first_existing is None:
+                        first_existing = field_name
+
+            if title and first_existing in self.fields:
+                self.fields[first_existing].widget.attrs.setdefault('separator', title)
+
+        for field_name in list(self.fields.keys()):
+            if field_name not in ordered_names:
+                ordered_names.append(field_name)
+
+        self.fields = OrderedDict((name, self.fields[name]) for name in ordered_names if name in self.fields)
+
+    def _inject_virtual_readonly_field(self, field_name):
+        if field_name in self.fields:
+            return
+        if not hasattr(self, 'instance'):
+            return
+        if not getattr(self.instance, 'pk', None):
+            return
+        if not hasattr(self.instance, field_name):
+            return
+
+        label = field_name.replace('_', ' ').capitalize()
+        display_value = getattr(self.instance, field_name, None)
+        display_value = '-' if display_value in (None, '') else str(display_value)
+
+        self.fields[field_name] = forms.CharField(label=label, required=False, disabled=True)
+        self.initial[field_name] = display_value
+        self.fields[field_name].widget.attrs['readonly_display_text'] = display_value
+
+    def _apply_declarative_readonly_fields(self):
+        readonly_fields = self.get_readonly_fields()
+        for field_name in readonly_fields:
+            if field_name not in self.fields:
+                self._inject_virtual_readonly_field(field_name)
+
+            if field_name in self.fields:
+                field = self.fields[field_name]
+                field.disabled = True
+                field.widget.attrs['readonly_display_text'] = self.get_readonly_display_value(field_name, field)
+                input_type = getattr(field.widget, 'input_type', '')
+                is_select_widget = isinstance(
+                    field.widget,
+                    (forms.Select, forms.SelectMultiple, Select2, Select2Multiple, ModelSelect2, ModelSelect2Multiple),
+                )
+                if input_type in ('checkbox', 'radio') or is_select_widget:
+                    field.widget.attrs['disabled'] = 'disabled'
+                else:
+                    field.widget.attrs['readonly'] = 'readonly'
     
     def __init__(self, *args, **kwargs):
         if hasattr(self.__class__, 'inlines'):
@@ -271,6 +408,9 @@ class ModelBaseForm(BootstrapFieldsMixin, forms.ModelForm):
             definido en la propiedad "inlines" y se asignan a self.inline_formsets.
             """
             super(ModelBaseForm, self).__init__(*args, **kwargs)
+            self._apply_declarative_readonly_fields()
+            self._apply_fieldset_metadata()
+            self._rebuild_fieldset_bound()
             data = kwargs.get('data')
             files = kwargs.get('files')
 
@@ -282,7 +422,16 @@ class ModelBaseForm(BootstrapFieldsMixin, forms.ModelForm):
             self.inline_formsets = []
             parent_instance =  self.instance if self.instance.pk else self.Meta.model()
             for inline in self.inlines:
-                formset = inline.get_formset(parent_instance=parent_instance, data=data, files=files)
+                inline_form_kwargs = inline.get_form_kwargs(
+                    parent_instance=parent_instance,
+                    parent_view_only=getattr(self, 'view_only', False),
+                )
+                formset = inline.get_formset(
+                    parent_instance=parent_instance,
+                    data=data,
+                    files=files,
+                    form_kwargs=inline_form_kwargs,
+                )
                 self.inline_formsets.append(formset)
 
             if getattr(self, 'view_only', False):
@@ -293,6 +442,9 @@ class ModelBaseForm(BootstrapFieldsMixin, forms.ModelForm):
                 
         else:
             super(ModelBaseForm, self).__init__(*args, **kwargs)
+            self._apply_declarative_readonly_fields()
+            self._apply_fieldset_metadata()
+            self._rebuild_fieldset_bound()
 
 
     def is_valid(self):
@@ -300,6 +452,7 @@ class ModelBaseForm(BootstrapFieldsMixin, forms.ModelForm):
         for formset in getattr(self, 'inline_formsets', []):
             if not formset.is_valid():
                 valid = False
+
         return valid
 
     def save(self, commit=True):
@@ -422,9 +575,38 @@ class BaseInline:
     verbose_name = None
     verbose_name_plural = None
     fields = None
+    layout = "tabular"
+    show_fieldset_titles = False
+    view_only_on_update = False
+
+    def get_form_kwargs(self, parent_instance, parent_view_only=False):
+        """Kwargs para formularios inline con política de solo lectura.
+
+        - parent_view_only: hereda modo solo lectura del formulario padre.
+        - view_only_on_update: bloquea inline cuando el padre ya existe.
+        """
+        is_update = bool(getattr(parent_instance, 'pk', None))
+        return {
+            'view_only': bool(parent_view_only or (self.view_only_on_update and is_update)),
+        }
+
+    def _get_parent_link_field(self, parent_model, child_model):
+        """Retorna el campo relacional del hijo que apunta al padre (FK/OneToOne), si existe."""
+        for field in child_model._meta.get_fields():
+            if getattr(field, 'is_relation', False) and getattr(field, 'related_model', None) == parent_model:
+                return field
+        return None
 
     def get_formset(self, parent_instance, data=None, files=None, **kwargs):
         parent_model = parent_instance.__class__
+        child_model = self.form.Meta.model if self.form is not None and hasattr(self.form, 'Meta') and hasattr(self.form.Meta, 'model') else self.model
+        parent_link_field = self._get_parent_link_field(parent_model, child_model)
+        is_one_to_one = bool(parent_link_field and getattr(parent_link_field, 'one_to_one', False))
+
+        effective_max_num = self.max_num
+        if effective_max_num is None and is_one_to_one:
+            effective_max_num = 1
+
         formset_params = {
             "parent_model": parent_model,
             "model": self.model,
@@ -435,12 +617,12 @@ class BaseInline:
         # Agregar parámetros opcionales si están definidos
         if self.min_num is not None:
             formset_params["min_num"] = self.min_num
-        if self.max_num is not None:
-            formset_params["max_num"] = self.max_num
+        if effective_max_num is not None:
+            formset_params["max_num"] = effective_max_num
         if self.validate_min:
             formset_params["validate_min"] = self.validate_min
-        if self.validate_max:
-            formset_params["validate_max"] = self.validate_max
+        if self.validate_max or is_one_to_one:
+            formset_params["validate_max"] = True
         
         if self.form is not None:
             if not hasattr(self.form, 'Meta') or not hasattr(self.form.Meta, 'model'):
@@ -469,8 +651,34 @@ class BaseInline:
         # Crear instancia del FormSet
         formset_instance = FormSet(instance=parent_instance, data=data, files=files, prefix=self.prefix, **kwargs)
 
+        # Metadatos para template/JS: controlan botón "Agregar" como en admin.
+        max_num_for_template = effective_max_num
+        if max_num_for_template is None:
+            max_num_for_template = getattr(formset_instance, 'max_num', None)
+        formset_instance.max_num_limit = max_num_for_template
+        try:
+            current_total = formset_instance.total_form_count()
+        except Exception:
+            current_total = 0
+        formset_instance.can_add_inline = (
+            not bool(kwargs.get('form_kwargs', {}).get('view_only', False))
+            and (max_num_for_template is None or current_total < max_num_for_template)
+        )
+
         # Asignar verbose_name y verbose_name_plural al formset_instance
         formset_instance.verbose_name = self.verbose_name or self.model._meta.verbose_name
         formset_instance.verbose_name_plural = self.verbose_name_plural or self.model._meta.verbose_name_plural
+        formset_instance.inline_layout = self.layout if self.layout in ("tabular", "stacked") else "tabular"
+        formset_instance.show_fieldset_titles = bool(getattr(self, 'show_fieldset_titles', False))
 
         return formset_instance
+
+
+class TabularInline(BaseInline):
+    """Inline con presentación tabular (equivalente a admin.TabularInline)."""
+    layout = "tabular"
+
+
+class StackedInline(BaseInline):
+    """Inline con presentación apilada (equivalente a admin.StackedInline)."""
+    layout = "stacked"
