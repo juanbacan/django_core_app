@@ -27,6 +27,7 @@ from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage, Invali
 from django.utils.safestring import mark_safe
 from django.utils.html import format_html
 from django.utils.dateparse import parse_date, parse_datetime
+from django.utils.http import url_has_allowed_host_and_scheme
 import datetime
 from django.utils import timezone
 
@@ -68,7 +69,7 @@ def obtener_extra_data(data):
     }
 
 
-def autenticar_usuario(request, user, add_group=None):
+def autenticar_usuario(request, user, add_group=None, next_url=None):
     """
     Autentica al usuario, asigna el backend, inicia sesión, muestra mensaje
     y redirige a la URL configurada en LOGIN_REDIRECT_URL.
@@ -81,6 +82,12 @@ def autenticar_usuario(request, user, add_group=None):
     login(request, user)
     messages.success(request, f'Ha iniciado sesión exitosamente como {user.username}')
     redirect_url = getattr(settings, 'LOGIN_REDIRECT_URL', '/')
+    if next_url and url_has_allowed_host_and_scheme(
+        url=next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        redirect_url = next_url
     return redirect(redirect_url)
 
 
@@ -96,6 +103,7 @@ def one_tap_google_login(request):
     4. Autentica al usuario en la sesión y responde.
     """
     try:
+        next_url = (request.POST.get("next") or request.GET.get("next") or "").strip()
         token = request.POST.get("credential")
         if not token:
             return JsonResponse({"error": "missing_token"}, status=400)
@@ -132,7 +140,7 @@ def one_tap_google_login(request):
                 uid=uid, provider="google"
             )
             user = social.user
-            return autenticar_usuario(request, user, add_group='Estudiante')
+            return autenticar_usuario(request, user, add_group='Estudiante', next_url=next_url)
 
         except SocialAccount.DoesNotExist:
             # ── 3) ¿Existe EmailAddress con el mismo email? ────────────────────
@@ -175,7 +183,7 @@ def one_tap_google_login(request):
                 defaults={"extra_data": extra_data},
             )
 
-        return autenticar_usuario(request, user)
+        return autenticar_usuario(request, user, next_url=next_url)
 
     except Exception as ex:
         # Capturar el traceback completo
