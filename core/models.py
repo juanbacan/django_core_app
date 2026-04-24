@@ -323,6 +323,58 @@ class NotificacionUsuarioCount(ModeloBase):
         verbose_name_plural = "Notificaciones Usuarios Count"
 
 
+class AvisoMasivo(ModeloBase):
+    """
+    Un registro por campaña/avisos masivo. Los usuarios no leen vía filas
+    de NotificacionUsuario; la lectura se registra en AvisoMasivoLectura.
+    """
+    titulo = models.CharField(max_length=255)
+    mensaje = models.TextField(max_length=4000, blank=True)
+    url = models.CharField(
+        max_length=500, blank=True, default='',
+        help_text="Destino al hacer clic. Si está vacío, al marcar visto se recarga la página.",
+    )
+    activo = models.BooleanField(default=True, db_index=True)
+    publicado_en = models.DateTimeField(
+        null=True, blank=True,
+        help_text="Solo se muestra a usuarios con fecha actual ≥ esta. Vacío = no se muestra.",
+    )
+    vigente_hasta = models.DateTimeField(
+        null=True, blank=True,
+        help_text="Dejar de mostrar después de esta fecha (opcional).",
+    )
+
+    class Meta:
+        ordering = ['-publicado_en', '-id']
+        verbose_name = "Aviso masivo"
+        verbose_name_plural = "Avisos masivos"
+
+    def __str__(self):
+        return self.titulo
+
+
+class AvisoMasivoLectura(models.Model):
+    """Lectura por (aviso, usuario) — O(1) filas por usuario, no N avisos completos replicados."""
+    aviso = models.ForeignKey(
+        AvisoMasivo, on_delete=models.CASCADE, related_name='lecturas',
+    )
+    usuario = models.ForeignKey(
+        CustomUser, on_delete=models.CASCADE, related_name='avisos_masivos_lectura',
+    )
+    leido_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = (('aviso', 'usuario'),)
+        verbose_name = "Lectura de aviso masivo"
+        verbose_name_plural = "Lecturas de avisos masivos"
+        indexes = [
+            models.Index(fields=['usuario', 'aviso']),
+        ]
+
+    def __str__(self):
+        return f"{self.usuario_id} → {self.aviso_id}"
+
+
 class ErrorApp(ModeloBase):
     path = models.CharField(max_length=255)
     url = models.CharField(max_length=255)

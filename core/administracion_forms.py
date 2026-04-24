@@ -214,6 +214,46 @@ class NotificacionPushMasivaForm(BaseForm):
     url = forms.CharField(required=True, label="URL")
 
 
+class AvisoMasivoEnviarForm(BaseForm):
+    """Publica un aviso de campaña (campana) en el sitio; opcionalmente dispara Web Push masivo."""
+    titulo = forms.CharField(
+        required=True, label="Título",
+        help_text="Título en el menú de notificaciones y en el push (si aplica).",
+    )
+    mensaje = forms.CharField(
+        required=False, label="Mensaje",
+        widget=forms.Textarea(attrs={'rows': 4}),
+        help_text="Texto del aviso; puede quedar en blanco si solo usas título y enlace.",
+    )
+    url = forms.CharField(
+        required=False, label="URL al hacer clic", initial="",
+        help_text="Ruta o URL absoluta. Opcional: si queda vacío, al abrir se recarga la página.",
+    )
+    publicado_en = forms.DateTimeField(
+        required=False, label="Publicar a partir de",
+        input_formats=['%Y-%m-%dT%H:%M', '%Y-%m-%dT%H:%M:%S', '%Y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M'],
+        widget=forms.DateTimeInput(
+            format='%Y-%m-%dT%H:%M',
+            attrs={'type': 'datetime-local'},
+        ),
+        help_text="Vacío: se publica de inmediato (hora del servidor).",
+    )
+    vigente_hasta = forms.DateTimeField(
+        required=False, label="Vigente hasta",
+        input_formats=['%Y-%m-%dT%H:%M', '%Y-%m-%dT%H:%M:%S', '%Y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M'],
+        widget=forms.DateTimeInput(
+            format='%Y-%m-%dT%H:%M',
+            attrs={'type': 'datetime-local'},
+        ),
+        help_text="Opcional. Después de esta fecha el aviso deja de mostrarse.",
+    )
+    omitir_webpush = forms.BooleanField(
+        required=False,
+        label="Solo publicar en el sitio (no enviar Web Push al navegador)",
+        help_text="Si marcas esto, el aviso aparece en la campana pero no se envia notificacion push.",
+    )
+
+
 class NotificacionAndroidMasivaForm(BaseForm):
     title = forms.CharField(required=True, label="Título")
     body = forms.CharField(required=True, label="Cuerpo", widget=forms.Textarea(attrs={'rows': 3}))

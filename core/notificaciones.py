@@ -228,12 +228,11 @@ def _send_massive_report(report, report_context, report_email=None):
 
 
 # ************************************************************************************************
-# TAREAS DE CELERY (Reemplazan a NotificationThread)
+# Envío real (síncrono) — reutilizable sin Celery
 # ************************************************************************************************
 
-@shared_task
-def send_notification_to_user_task(user_id, payload, ttl=0):
-    """Tarea asíncrona para notificar a un solo usuario."""
+def _run_send_notification_to_user(user_id, payload, ttl=0):
+    """Notificación push a un usuario (mismo proceso, sin cola)."""
     try:
         user = CustomUser.objects.get(id=user_id)
         recipients = user.webpush_info.select_related("subscription").order_by("-id")
@@ -248,16 +247,14 @@ def send_notification_to_user_task(user_id, payload, ttl=0):
         logger.error("[WebPush] Usuario %s no encontrado", user_id)
 
 
-@shared_task
-def send_notification_to_group_task(group_name, payload, ttl=0, report_email=None):
-    """Tarea asíncrona masiva optimizada para miles de registros."""
+def _run_send_notification_to_group(group_name, payload, ttl=0, report_email=None):
+    """Notificación push masiva (mismo proceso, sin cola)."""
     try:
         group = Group.objects.get(name=group_name)
     except (Group.DoesNotExist, Group.MultipleObjectsReturned):
         logger.warning("[WebPush WARN] Problema resolviendo el grupo '%s'", group_name)
         return
 
-    # No evaluamos el queryset aquí, solo lo preparamos
     recipients_queryset = group.webpush_info.select_related("subscription").filter(
         subscription__isnull=False
     )
@@ -267,8 +264,6 @@ def send_notification_to_group_task(group_name, payload, ttl=0, report_email=Non
 
     report = {"total": recipients_queryset.count(), "sent": 0, "deleted": 0, "failed": 0}
 
-    # EL SECRETO PARA NO QUEDARSE SIN RAM: .iterator(chunk_size=2000)
-    # Esto trae lotes de 2000 de la base de datos en vez de los 300,000 de golpe.
     for recipient in recipients_queryset.iterator(chunk_size=2000):
         status = _dispatch_webpush(recipient, payload_json, vapid_data, ttl)
         if status == "sent":
@@ -290,17 +285,46 @@ def send_notification_to_group_task(group_name, payload, ttl=0, report_email=Non
 
 
 # ************************************************************************************************
+# TAREAS DE CELERY (Reemplazan a NotificationThread)
+# ************************************************************************************************
+
+@shared_task
+def send_notification_to_user_task(user_id, payload, ttl=0):
+    """Tarea asíncrona para notificar a un solo usuario."""
+    _run_send_notification_to_user(user_id, payload, ttl)
+
+
+@shared_task
+def send_notification_to_group_task(group_name, payload, ttl=0, report_email=None):
+    """Tarea asíncrona masiva optimizada para miles de registros."""
+    _run_send_notification_to_group(group_name, payload, ttl, report_email)
+
+
+# ************************************************************************************************
 # TUS FUNCIONES ENVOLTORIO (Las que llamas desde tus vistas/signals)
 # ************************************************************************************************
 
 
 def send_notification_to_user(user, payload, ttl=0):
-    """Encola una notificación push para un usuario."""
-    send_notification_to_user_task.delay(user.id, payload, ttl)
+    """
+    Encola con Celery si el broker responde; si no, envía en el mismo proceso.
+    Nada que configurar en settings por proyecto.
+    """
+    uid = user.id
+    try:
+        send_notification_to_user_task.delay(uid, payload, ttl)
+    except Exception as exc:
+        logger.info(
+            "WebPush: cola no disponible, envio sincrono (usuario %s): %s",
+            uid, exc
+        )
+        _run_send_notification_to_user(uid, payload, ttl)
 
 
 def send_notification_to_group(group_name, payload, ttl=0, report_email=None):
-    """Encola una notificación push para un grupo y valida precondiciones mínimas."""
+    """
+    Misma lógica que `send_notification_to_user`: prueba cola, si falla, envío sincrono.
+    """
     try:
         group = Group.objects.get(name=group_name)
     except Group.DoesNotExist:
@@ -317,7 +341,18 @@ def send_notification_to_group(group_name, payload, ttl=0, report_email=None):
         logger.warning("[WebPush WARN] El grupo '%s' no tiene suscripciones activas", group_name)
         return False
 
-    send_notification_to_group_task.delay(group_name, payload, ttl, report_email)
+    try:
+        send_notification_to_group_task.delay(
+            group_name, payload, ttl, report_email
+        )
+    except Exception as exc:
+        logger.info(
+            "WebPush: cola no disponible, envio sincrono (grupo %s): %s",
+            group_name, exc
+        )
+        _run_send_notification_to_group(
+            group_name, payload, ttl, report_email
+        )
     return True
 
 

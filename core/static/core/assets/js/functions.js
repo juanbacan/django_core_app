@@ -745,17 +745,21 @@ async function resetNotificaciones() {
     const userId = elemento.dataset.userId;
 
     if (resetNotificacionesV && cantidad > 0) {
+        const badgeVisual = document.getElementById('num_notificaciones');
         try {
             resetNotificacionesV = false;
-            
-            const badgeVisual = document.getElementById('num_notificaciones');
-            if (badgeVisual) badgeVisual.style.display = 'none';
-
-            await fetchRequest2({
+            // bad_json/errores suelen ser HTTP 200: hay que comprobar result
+            const data = await fetchRequest2({
                 url: `/core/api/?action=reset_notificacion`,
                 method: 'POST',
                 data: { user_id: userId },
             });
+            if (data && data.result === 'ok') {
+                if (badgeVisual) badgeVisual.style.display = 'none';
+            } else {
+                resetNotificacionesV = true;
+                if (data && data.mensaje) console.error('Reset notificaciones:', data.mensaje);
+            }
         } catch (error) {
             console.error("Error al resetear:", error);
             resetNotificacionesV = true;
@@ -778,4 +782,24 @@ async function verNotificacion(url, id, visto) {
         }
     }
     window.location.href = url;
+}
+
+/**
+ * Aviso masivo (campaña): marca lectura y navega a url si la hay; si no, recarga.
+ */
+async function verAvisoMasivo(url, id) {
+    try {
+        await fetchRequest2({
+            url: `/core/api/?action=ver_aviso_masivo`,
+            method: 'POST',
+            data: { aviso_id: id },
+        });
+    } catch (error) {
+        console.error("Error al marcar aviso masivo como visto:", error);
+    }
+    if (url) {
+        window.location.href = url;
+    } else {
+        location.reload();
+    }
 }

@@ -44,7 +44,8 @@ from google.auth.transport import requests as g_requests
 import urllib
 
 from .mixins import SecureModuleMixin
-from .models import NotificacionUsuario, NotificacionUsuarioCount, CustomUser, AgrupacionModulo, Modulo
+from .models import NotificacionUsuario, NotificacionUsuarioCount, CustomUser, AgrupacionModulo, Modulo, AvisoMasivoLectura
+from .avisos_masivos import marcar_todos_avisos_masivos_vistos
 from .forms import ModelBaseForm
 from .forms import configure_auto_complete_widgets
 
@@ -209,9 +210,20 @@ def api(request):
     if request.method == 'POST':
         try:    
             if action == 'reset_notificacion':
-                user_id = data.get('user_id', None)
-                if user_id:
-                    NotificacionUsuarioCount.objects.filter(usuario_id=user_id).update(numero=0)
+                if request.user.is_authenticated:
+                    # Contador: siempre el usuario de la sesion (no depender de user_id en el JSON)
+                    u = request.user
+                    nup = NotificacionUsuarioCount.objects.filter(usuario=u).update(numero=0)
+                    if nup == 0:
+                        NotificacionUsuarioCount.objects.get_or_create(
+                            usuario=u,
+                            defaults={
+                                'numero': 0,
+                                'created_by': u,
+                                'modified_by': u,
+                            },
+                        )
+                    marcar_todos_avisos_masivos_vistos(request.user)
                 return success_json(mensaje="Notificacion reseteada")
             
             elif action == 'ver_notificacion':
@@ -219,6 +231,14 @@ def api(request):
                 if id:
                     NotificacionUsuario.objects.filter(id=id).update(visto=True)
                 return success_json(mensaje="Notificacion vista")
+
+            elif action == 'ver_aviso_masivo':
+                aviso_id = data.get('aviso_id') or data.get('id')
+                if aviso_id:
+                    AvisoMasivoLectura.objects.get_or_create(
+                        aviso_id=aviso_id, usuario=request.user
+                    )
+                return success_json(mensaje="Aviso visto")
 
 
             return bad_json(mensaje="No se encuentra la accion")

@@ -10,7 +10,7 @@ from tinymce.widgets import TinyMCE
 from allauth.account.models import EmailAddress
 
 from .models import CustomUser, AplicacionWeb, Alerta, EmailCredentials, ErrorApp, CorreoTemplate, \
-    LlamadoAccion, Modulo, GrupoModulo, AgrupacionModulo, CredencialesAPI
+    LlamadoAccion, Modulo, GrupoModulo, AgrupacionModulo, CredencialesAPI, AvisoMasivo, AvisoMasivoLectura
 
 
 class PremiumFilter(admin.SimpleListFilter):
@@ -232,3 +232,23 @@ class CredencialesAPIAdmin(admin.ModelAdmin):
     estado_whatsapp.short_description = "ESTADO WHATSAPP"
 
 admin.site.register(CredencialesAPI, CredencialesAPIAdmin)
+
+
+class AvisoMasivoLecturaAdmin(admin.ModelAdmin):
+    list_display = ('id', 'aviso', 'usuario', 'leido_en')
+    list_filter = ('leido_en',)
+    search_fields = ('aviso__titulo', 'usuario__email', 'usuario__username')
+    raw_id_fields = ('aviso', 'usuario')
+    readonly_fields = ('leido_en',)
+
+
+class AvisoMasivoAdmin(admin.ModelAdmin):
+    list_display = ('id', 'titulo', 'activo', 'publicado_en', 'vigente_hasta')
+    list_filter = ('activo',)
+    search_fields = ('titulo', 'mensaje')
+    date_hierarchy = 'publicado_en'
+    readonly_fields = ('created_by', 'modified_by', 'created_at', 'modified_at')
+
+
+admin.site.register(AvisoMasivo, AvisoMasivoAdmin)
+admin.site.register(AvisoMasivoLectura, AvisoMasivoLecturaAdmin)
