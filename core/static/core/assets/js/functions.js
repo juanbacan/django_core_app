@@ -58,6 +58,8 @@ async function fetchRequest(url, params, csrftoken = getCSRFToken()) {
 function fetchRequest2(options) {
     return new Promise((resolve, reject) => {
         let url = options.url;
+        let timeoutId = null;
+        const controller = new AbortController();
         let headers = {
             'Content-Type': 'application/json', 
             'X-CSRFToken': getCSRFToken(),
@@ -67,7 +69,8 @@ function fetchRequest2(options) {
         let init = {
             method: options.method || 'GET',
             headers: headers,
-            credentials: 'same-origin'
+            credentials: 'same-origin',
+            signal: controller.signal
         };
         
         if (options.data) {
@@ -78,10 +81,13 @@ function fetchRequest2(options) {
                 init.headers['Content-Type'] = 'application/json';
             }
         }
-        if (options.timeout) init.timeout = options.timeout;
+        if (options.timeout) {
+            timeoutId = setTimeout(() => controller.abort(), options.timeout);
+        }
 
         fetch(url, init)
             .then(response => {
+                if (timeoutId) clearTimeout(timeoutId);
                 if (!response.ok) {
                     return response.json().then(data => Promise.reject(data));
                 }
@@ -95,6 +101,10 @@ function fetchRequest2(options) {
                 }
             })
             .catch(error => {
+                if (timeoutId) clearTimeout(timeoutId);
+                if (error && error.name === 'AbortError') {
+                    error = { mensaje: 'La solicitud tardó demasiado tiempo y fue cancelada.' };
+                }
                 if (options.error) {
                     options.error(error);
                 } else {
@@ -127,13 +137,160 @@ function desbloqueoInterfaz() {
 }
 
 function showErrorMessage(mensaje="Ha ocurrido un error inesperado en el servidor", titulo="Error") {
-    document.getElementById('error-title').innerHTML = titulo;
-    document.getElementById('error-message').innerHTML = mensaje;
+    document.getElementById('error-title').textContent = titulo;
+    document.getElementById('error-message').textContent = mensaje;
     document.getElementById( 'error-static' ).style.display = 'flex';
 }
 
 function hideErrorMessage() {
     document.getElementById( 'error-static' ).style.display = 'none';
+}
+
+function getModalTinyMCEInstance() {
+    return window.tinyMCE || window.tinymce || null;
+}
+
+function initModalTinyMCEEditor(area, tiny) {
+    if (!area || area.closest('.empty-form') !== null) return;
+
+    let mceConf = {};
+    try {
+        mceConf = area.dataset && area.dataset.mceConf ? JSON.parse(area.dataset.mceConf) : {};
+    } catch (error) {
+        console.warn('No se pudo parsear mceConf del textarea', error);
+        mceConf = {};
+    }
+
+    const callbackNames = [
+        'color_picker_callback',
+        'file_browser_callback',
+        'file_picker_callback',
+        'images_dataimg_filter',
+        'images_upload_handler',
+        'paste_postprocess',
+        'paste_preprocess',
+        'setup',
+        'urlconverter_callback',
+    ];
+
+    callbackNames.forEach((fnName) => {
+        if (typeof mceConf[fnName] === 'string') {
+            try {
+                if (mceConf[fnName].includes('(')) {
+                    mceConf[fnName] = eval('(' + mceConf[fnName] + ')');
+                } else {
+                    mceConf[fnName] = window[mceConf[fnName]];
+                }
+            } catch (error) {
+                console.warn('No se pudo resolver callback TinyMCE', fnName, error);
+            }
+        }
+    });
+
+    const id = area.id;
+    if (!id) return;
+
+    const existingEditor = tiny.get(id);
+    if (existingEditor) {
+        tiny.remove('#' + id);
+    }
+
+    if ('elements' in mceConf && mceConf.mode === 'exact') {
+        mceConf.elements = id;
+    }
+
+    if (area.dataset && area.dataset.mceGzConf && window.tinyMCE_GZ) {
+        try {
+            window.tinyMCE_GZ.init(JSON.parse(area.dataset.mceGzConf));
+        } catch (error) {
+            console.warn('No se pudo inicializar tinyMCE_GZ', error);
+        }
+    }
+
+    const originalSetup = mceConf.setup;
+    mceConf.setup = function(editor) {
+        if (typeof originalSetup === 'function') {
+            originalSetup(editor);
+        }
+        editor.on('change', function() {
+            editor.save();
+        });
+    };
+
+    if (!tiny.get(id)) {
+        tiny.init(mceConf);
+    }
+}
+
+function initModalTinyMCEInContainer(container, retries = 8) {
+    if (!container) return;
+    const areas = Array.from(container.querySelectorAll('.tinymce'));
+    if (!areas.length) return;
+
+    // Si la librería publica un inicializador propio, usarlo primero.
+    if (typeof window.initializeTinyMCE === 'function') {
+        window.initializeTinyMCE(container);
+        return;
+    }
+    if (typeof window.initTinyMCE === 'function') {
+        areas.forEach((area) => window.initTinyMCE(area));
+        return;
+    }
+
+    const tiny = getModalTinyMCEInstance();
+    if (!tiny || typeof tiny.init !== 'function') {
+        if (retries > 0) {
+            setTimeout(() => initModalTinyMCEInContainer(container, retries - 1), 120);
+        }
+        return;
+    }
+
+    areas.forEach((area) => initModalTinyMCEEditor(area, tiny));
+}
+
+function destroyModalTinyMCEInContainer(container) {
+    if (!container) return;
+    const tiny = getModalTinyMCEInstance();
+
+    // Cerrar UI auxiliar flotante (menús/overflow) para evitar artefactos visibles
+    const closeTinyAuxUi = function () {
+        const auxRoots = document.querySelectorAll('.tox-tinymce-aux, .tox-silver-sink');
+        auxRoots.forEach((root) => {
+            root.querySelectorAll('.tox-pop, .tox-dialog-wrap, .tox-menu, .tox-collection').forEach((el) => el.remove());
+            if (!root.children.length) {
+                root.style.display = 'none';
+            }
+        });
+    };
+
+    if (!tiny || typeof tiny.remove !== 'function') {
+        closeTinyAuxUi();
+        return;
+    }
+
+    try {
+        if (tiny.activeEditor) {
+            if (typeof tiny.activeEditor.dispatch === 'function') tiny.activeEditor.dispatch('blur');
+            if (typeof tiny.activeEditor.fire === 'function') tiny.activeEditor.fire('blur');
+            if (tiny.activeEditor.windowManager && typeof tiny.activeEditor.windowManager.close === 'function') {
+                tiny.activeEditor.windowManager.close();
+            }
+        }
+    } catch (error) {
+        console.warn('No se pudo cerrar la UI activa de TinyMCE', error);
+    }
+
+    container.querySelectorAll('.tinymce[id]').forEach((area) => {
+        try {
+            if (tiny.get(area.id)) {
+                tiny.remove('#' + area.id);
+            }
+        } catch (error) {
+            console.warn('No se pudo destruir editor TinyMCE', error);
+        }
+    });
+
+    closeTinyAuxUi();
 }
 
 function showToast({mensaje, tipo = 'success', duracion = 3000}) {
@@ -275,11 +432,13 @@ async function handleResponse(resp, data, modalName = 'modalEdicion') {
     const myModal = new bootstrap.Modal(modalEdicion);
     myModal.show();
 
-    if (window.initDalSelect2InModal) {
-        modalEdicion.addEventListener('shown.bs.modal', () => {
-            window.initDalSelect2InModal(modalEdicion);
-        }, { once: true });
-    }
+    modalEdicion.addEventListener('shown.bs.modal', () => {
+        if (typeof window.initModalRequiredFunctions === 'function') {
+            window.initModalRequiredFunctions(modalEdicion);
+        }
+        // TinyMCE se inicializa siempre, independiente de DAL
+        initModalTinyMCEInContainer(modalEdicion);
+    }, { once: true });
 
     function agregarScript(src, container, esExterno = true, contenido = '') {
         if (esExterno && document.querySelector(`script[src="${src}"]`)) return;
@@ -317,6 +476,8 @@ async function handleResponse(resp, data, modalName = 'modalEdicion') {
                 $(modalEdicion).find('.select2-hidden-accessible').select2('destroy');
             } catch (e) { /* no-op */ }
         }
+        // 1.1) Destruir TinyMCE de los textareas del modal
+        destroyModalTinyMCEInContainer(modalEdicion);
         // 2) Limpiar scripts/estilos dinámicos
         const dynamicScripts = document.querySelectorAll('.dynamic-script');
         dynamicScripts.forEach(script => script.remove());
@@ -388,12 +549,12 @@ document.addEventListener("DOMContentLoaded", function() {
     if (form) {
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
-            submitModalForm1('mainForm');
+            submitModalForm1('mainForm', true, e);
         });
     }
 });
 
-const submitModalForm1 = async (formid = 'modalForm1', showError = true) => {
+const submitModalForm1 = async (formid = 'modalForm1', showError = true, submitEvent = null) => {
     const form = document.getElementById(formid);
     
     if (typeof tinymce !== 'undefined' && typeof tinymce.triggerSave === 'function') {
@@ -419,7 +580,9 @@ const submitModalForm1 = async (formid = 'modalForm1', showError = true) => {
     bloqueoInterfaz();
 
     try {
-        const submitButton = (typeof event !== 'undefined' && event) ? event.submitter : null; // Captura el botón que disparó el envío
+        const fallbackEvent = (typeof window !== 'undefined' && window.event) ? window.event : null;
+        const currentEvent = submitEvent || fallbackEvent;
+        const submitButton = currentEvent && currentEvent.submitter ? currentEvent.submitter : null; // Captura el botón que disparó el envío
         const formData = new FormData(form); // Crear los datos del formulario
 
         if (submitButton && submitButton.name) {
@@ -512,10 +675,13 @@ const submitModalForm1 = async (formid = 'modalForm1', showError = true) => {
                 try {
                     const contentModalForm = document.getElementById('form-render-modal');
                     contentModalForm.innerHTML = data.form;
-                    // Vuelve a inicializar los select2 de DAL dentro del modal abierto
-                    if (window.initDalSelect2InModal) {
+                    // Vuelve a inicializar funciones necesarias dentro del modal abierto
+                    if (typeof window.initModalRequiredFunctions === 'function') {
                         const modal = document.getElementById('modalEdicion');
-                        window.initDalSelect2InModal(modal);
+                        window.initModalRequiredFunctions(modal);
+                        initModalTinyMCEInContainer(modal);
+                    } else {
+                        initModalTinyMCEInContainer(document.getElementById('modalEdicion'));
                     }
 
                     form.classList.remove('was-validated');
@@ -584,7 +750,7 @@ function manualGetForwards(element) {
 }
 
 // Esta función se llama automáticamente al cargar el modal o al abrir un modal existente
-window.initDalSelect2InModal = function (modalElOrSelector) {
+window.initModalRequiredFunctions = function (modalElOrSelector) {
     // 1) No jQuery => no hacer nada
     var hasDjQuery = (window.django && django.jQuery);
     var $ = hasDjQuery ? django.jQuery : window.jQuery;
@@ -723,8 +889,8 @@ for (let i = 0; i < forms.length; i++) {
 
 
 ready(function(){
-    if (window.initDalSelect2InModal) {
-        window.initDalSelect2InModal(document.body);
+    if (typeof window.initModalRequiredFunctions === 'function') {
+        window.initModalRequiredFunctions(document.body);
     }
 
     // Inicializar tooltips de Bootstrap 5
