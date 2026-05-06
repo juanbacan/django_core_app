@@ -23,7 +23,9 @@
             <form 
                 id="modalForm1" 
                 class="form" 
-                {% if url %}
+                {% if modal_form_action %}
+                    action="{{ modal_form_action }}" 
+                {% elif url %}
                     action="{{ url }}" 
                 {% else %}
                     action="{{ request.path }}"
@@ -32,8 +34,8 @@
                 enctype="multipart/form-data"
             >
                 {% csrf_token %}
-                <input type="hidden" name="action" value={% block formaction %}{{ action }}{% endblock formaction %}>
-                <input type="hidden" name="id" value={% block formid %}{{ formid }}{% endblock formid %}>
+                <input type="hidden" name="action" value="{% block formaction %}{{ action }}{% endblock formaction %}">
+                <input type="hidden" name="id" value="{% block formid %}{{ formid }}{% endblock formid %}">
                 {% if campos_hidden %}
                     {% for key, value in campos_hidden.items %}
                     <input type="hidden" name="{{ key }}" value="{{ value }}">

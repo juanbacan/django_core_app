@@ -562,6 +562,7 @@ class BaseInline:
       - prefix: prefijo para el formset (opcional)
       - verbose_name: nombre singular del inline (opcional)
       - verbose_name_plural: nombre plural del inline (opcional)
+      - fk_name: nombre del ForeignKey/O2O en el hijo hacia el padre (obligatorio si hay varias FK al mismo modelo)
     """
     model = None
     form = None
@@ -574,6 +575,7 @@ class BaseInline:
     prefix = None
     verbose_name = None
     verbose_name_plural = None
+    fk_name = None
     fields = None
     layout = "tabular"
     show_fieldset_titles = False
@@ -644,6 +646,9 @@ class BaseInline:
                 {"Meta": type("Meta", (), {"model": self.model, "fields": self.fields})}
             )
             formset_params["form"] = BootstrapInlineForm
+
+        if getattr(self, 'fk_name', None):
+            formset_params['fk_name'] = self.fk_name
 
         # Generar el FormSet con el modelo adecuado
         FormSet = forms.inlineformset_factory(**formset_params)

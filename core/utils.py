@@ -431,34 +431,66 @@ def error_json(mensaje=None, error=None, forms=[], extradata=None, request=None,
     
 
 def get_query_params(request):
-    
+
     if request.method == 'GET':
         action = request.GET.get('action', '')
         data = request.GET.dict()
         if 'action' in data:
             del data['action']
         return action, data
-    elif request.method == 'POST':
-        action = ""
-        try:
-            data = json.loads(request.body)
-            if 'action' in data:
-                if 'action' in data:
-                    action = data['action']
-                else:
-                    action == None
-            if action == None or action == "":
+
+    if request.method == 'POST':
+        # Importante: leer SIEMPRE request.POST antes que request.body. Si se lee el body
+        # primero (p. ej. json.loads fallido), Django puede no rellenar POST en multipart
+        # y pierdes los campos (incl. action), resultando en "Acción no permitida".
+        post_data = request.POST.dict()
+        action = (post_data.get('action') or request.GET.get('action') or '').strip()
+        data = dict(post_data)
+
+        if not action and not post_data:
+            try:
+                raw = request.body or b''
+                if raw:
+                    payload = json.loads(raw)
+                    if isinstance(payload, dict):
+                        data = dict(payload)
+                        action = (
+                            payload.get('action')
+                            or request.GET.get('action')
+                            or ''
+                        ).strip()
+            except (
+                json.JSONDecodeError,
+                TypeError,
+                ValueError,
+                UnicodeDecodeError,
+            ):
+                pass
+
+        if not action:
+            action = (request.GET.get('action') or '').strip()
+
+        # Algunos despliegues dejan QUERY_STRING accesible vía META aunque GET esté incompleto.
+        if not action:
+            qs = request.META.get('QUERY_STRING', '')
+            if qs:
                 try:
-                    action = request.GET.get('action', '')    
-                except Exception as e:
-                    action = ""
-        except:
-            data = request.POST.dict()
-            pass
-        
-        if action == "" or action == None:
-            action = request.POST.get('action', None)  
-           
+                    from urllib.parse import parse_qsl
+
+                    for k, val in parse_qsl(qs, keep_blank_values=False):
+                        if k == 'action' and val.strip():
+                            action = val.strip()
+                            break
+                except Exception:
+                    pass
+
+        if isinstance(data, dict):
+            data = dict(data)
+            data.pop('action', None)
+            for key, val in request.GET.items():
+                if key != 'action' and key not in data:
+                    data[key] = val
+
         return action, data
 
 def get_hace_tiempo(created):

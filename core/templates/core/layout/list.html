@@ -31,7 +31,9 @@
                         <div class="ms-auto">
                             {% if not request.GET.popup %}
                                 {% block buttons %}
+                                    {% if not no_add_buttons %}
                                     <a class="btn btn-sm btn-dark" href="{{ path }}?action=add"><i class="fa-solid fa-circle-plus"></i> Agregar {{ modulo_activo }}</a>
+                                    {% endif %}
                                     {% if can_export %}
                                         <a class="btn btn-sm btn-success" href="{{ export_url }}" target="_blank">
                                             <i class="fa-solid fa-file-excel"></i> Exportar Excel
@@ -47,7 +49,7 @@
 
             {% block extra_headers %}{% endblock %}
 
-            <div class="card border-0">
+            <div class="card border-0 {% block card_list_extra_class %}{% endblock %}">
                 <div class="card-body">
                     <div class="table-responsive pb-5">
                         {% block table %}

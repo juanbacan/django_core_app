@@ -24,7 +24,7 @@ from django.contrib.sites.models import Site
 from django.views.decorators.http import require_POST
 from django.forms import modelform_factory
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage, InvalidPage
-from django.utils.safestring import mark_safe
+from django.utils.safestring import SafeData, mark_safe
 from django.utils.html import format_html
 from django.utils.dateparse import parse_date, parse_datetime
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -1027,6 +1027,11 @@ class ModelCRUDView(ViewAdministracionBase):
             for spec in specs:
                 value = spec(o) if callable(spec) else resolve_attr(o, spec)
 
+                # Marcado como HTML seguro (badges, enlaces): no aplicar heurísticas de fecha.
+                if isinstance(value, SafeData):
+                    cells.append(value)
+                    continue
+
                 # Formatear fechas/hora a zona local antes de renderizar
                 try:
                     # datetime.datetime (con o sin tzinfo)
@@ -1065,8 +1070,28 @@ class ModelCRUDView(ViewAdministracionBase):
 
     def post(self, request, *args, **kwargs):
         context = self.get_context_data(**kwargs)
-        if self.action and hasattr(self, f'post_{self.action}'):
-            return getattr(self, f'post_{self.action}')(request, context, *args, **kwargs)
+        action = (getattr(self, 'action', None) or '').strip()
+        if not action:
+            action = (
+                request.POST.get('action')
+                or request.GET.get('action')
+                or ''
+            ).strip()
+        if not action:
+            qs = request.META.get('QUERY_STRING', '')
+            if qs:
+                try:
+                    from urllib.parse import parse_qsl
+
+                    for k, val in parse_qsl(qs, keep_blank_values=False):
+                        if k == 'action' and val.strip():
+                            action = val.strip()
+                            break
+                except Exception:
+                    pass
+        handler = getattr(self, f'post_{action}', None) if action else None
+        if callable(handler):
+            return handler(request, context, *args, **kwargs)
         return error_json(mensaje="Acción no permitida")
 
     def get_form_kwargs(self, request, **extra_kwargs):

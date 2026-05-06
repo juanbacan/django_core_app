@@ -47,24 +47,30 @@ Parámetros disponibles:
                         <i class="fas fa-arrow-left me-1"></i>
                         Ver todos
                     </a>
+                    {% if not no_add_buttons %}
                     <a href="{{ path }}?action=add" class="btn btn-primary">
                         <i class="fas fa-plus me-1"></i>
                         Crear nuevo
                     </a>
+                    {% endif %}
                 {% elif filter_options and request.GET|length > 1 %}
                     <a href="{{ path }}" class="btn btn-outline-primary me-2">
                         <i class="fas fa-times me-1"></i>
                         Quitar filtros
                     </a>
+                    {% if not no_add_buttons %}
                     <a href="{{ path }}?action=add" class="btn btn-primary">
                         <i class="fas fa-plus me-1"></i>
                         Crear nuevo
                     </a>
+                    {% endif %}
                 {% else %}
+                    {% if not no_add_buttons %}
                     <a href="{{ path }}?action=add" class="btn btn-primary">
                         <i class="fas fa-plus me-2"></i>
                         Crear {{ modulo_activo.nombre|capfirst }}
                     </a>
+                    {% endif %}
                 {% endif %}
             {% endif %}
         </div>
