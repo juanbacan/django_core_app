@@ -646,16 +646,43 @@ const submitModalForm1 = async (formid = 'modalForm1', showError = true, submitE
             }
 
             if (data.redirected) {
+                // Siempre quitar el overlay: si solo cambia el #anchor el navegador puede no recargar
+                // y entonces bloqueoInterfaz() deja la página “cargando” para siempre.
+                desbloqueoInterfaz();
                 try {
-                    const currentUrl = window.location.href;
-                    if (currentUrl === data.url) {
-                        location.reload();
-                    } else {
-                        location.href = data.url;
+                    const modalEdicion = document.getElementById('modalEdicion');
+                    if (modalEdicion) {
+                        const inst = bootstrap.Modal.getInstance(modalEdicion);
+                        if (inst) inst.hide();
                     }
+                    document.querySelectorAll('.modal.show').forEach((el) => {
+                        const bs = bootstrap.Modal.getInstance(el);
+                        if (bs) bs.hide();
+                    });
+                } catch (e) {
+                    console.warn('Modal close tras OK:', e);
+                }
+                try {
+                    const raw = String(data.url || '').trim();
+                    const resolved = raw.startsWith('http') ? raw : new URL(raw || '.', window.location.href).href;
+                    const cur = new URL(window.location.href);
+                    const dest = new URL(resolved);
+                    // Misma ruta + query pero distinto # (ej. crear_test tras arreglar una pregunta): el navegador
+                    // suele cambiar solo el anchor sin recargar; forzamos recarga para ver el contenido actualizado.
+                    if (dest.pathname === cur.pathname && dest.search === cur.search) {
+                        if (dest.hash) {
+                            try {
+                                history.replaceState(null, '', `${dest.pathname}${dest.search}${dest.hash}`);
+                            } catch (ignore) {}
+                        }
+                        location.reload();
+                        return data;
+                    }
+                    window.location.href = resolved;
                 } catch {
                     window.location.replace(data.url);
                 }
+                return data;
             } else {
                 const myModal = bootstrap.Modal.getInstance(document.getElementById('modalEdicion'));
                 if (myModal) myModal.hide();
