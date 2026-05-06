@@ -542,6 +542,38 @@ function resetFormModals() {
     }
 }
 
+/** Descarga archivo binario enviado en JSON (base64), p. ej. credenciales tras importar Excel */
+function triggerDownloadFromSuccessResp(resp) {
+    if (!resp || !resp.download || !resp.download.content_base64 || !resp.download.filename) {
+        return false;
+    }
+    try {
+        const bin = atob(resp.download.content_base64);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) {
+            bytes[i] = bin.charCodeAt(i);
+        }
+        const mime = resp.download.mime_type || 'application/octet-stream';
+        const blob = new Blob([bytes], { type: mime });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = resp.download.filename;
+        a.rel = 'noopener';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(function () {
+            try {
+                URL.revokeObjectURL(a.href);
+            } catch (e2) {}
+        }, 60000);
+        return true;
+    } catch (e) {
+        console.warn('triggerDownloadFromSuccessResp:', e);
+        return false;
+    }
+}
+
 resetFormModals();
 
 document.addEventListener("DOMContentLoaded", function() {
@@ -635,6 +667,8 @@ const submitModalForm1 = async (formid = 'modalForm1', showError = true, submitE
         const data = await resp.json();
 
         if (data.result === "ok") {
+            const hadFileDownload = triggerDownloadFromSuccessResp(data.resp);
+
             if (data.popup) {
                 // Llama a la función en la ventana opener para actualizar el select
                 if (window.opener && typeof window.opener.dismissAddPopup === "function") {
@@ -662,25 +696,39 @@ const submitModalForm1 = async (formid = 'modalForm1', showError = true, submitE
                 } catch (e) {
                     console.warn('Modal close tras OK:', e);
                 }
-                try {
-                    const raw = String(data.url || '').trim();
-                    const resolved = raw.startsWith('http') ? raw : new URL(raw || '.', window.location.href).href;
-                    const cur = new URL(window.location.href);
-                    const dest = new URL(resolved);
-                    // Misma ruta + query pero distinto # (ej. crear_test tras arreglar una pregunta): el navegador
-                    // suele cambiar solo el anchor sin recargar; forzamos recarga para ver el contenido actualizado.
-                    if (dest.pathname === cur.pathname && dest.search === cur.search) {
-                        if (dest.hash) {
-                            try {
-                                history.replaceState(null, '', `${dest.pathname}${dest.search}${dest.hash}`);
-                            } catch (ignore) {}
+                const navigateAfterOk = function () {
+                    try {
+                        // Después de descargar binario (base64→blob), igualar pathname con `data.url` a veces
+                        // produce una asignación a href “sin cambio” y el navegador no recarga. Recarga la vista
+                        // actual conservando filtros y ?pagina=.
+                        if (hadFileDownload) {
+                            location.reload();
+                            return;
                         }
-                        location.reload();
-                        return data;
+                        const raw = String(data.url || '').trim();
+                        const resolved = raw.startsWith('http') ? raw : new URL(raw || '.', window.location.href).href;
+                        const cur = new URL(window.location.href);
+                        const dest = new URL(resolved);
+                        // Misma ruta + query pero distinto # (ej. crear_test tras arreglar una pregunta): el navegador
+                        // suele cambiar solo el anchor sin recargar; forzamos recarga para ver el contenido actualizado.
+                        if (dest.pathname === cur.pathname && dest.search === cur.search) {
+                            if (dest.hash) {
+                                try {
+                                    history.replaceState(null, '', `${dest.pathname}${dest.search}${dest.hash}`);
+                                } catch (ignore) {}
+                            }
+                            location.reload();
+                            return;
+                        }
+                        window.location.href = resolved;
+                    } catch {
+                        window.location.replace(data.url);
                     }
-                    window.location.href = resolved;
-                } catch {
-                    window.location.replace(data.url);
+                };
+                if (hadFileDownload) {
+                    setTimeout(navigateAfterOk, 450);
+                } else {
+                    navigateAfterOk();
                 }
                 return data;
             } else {
