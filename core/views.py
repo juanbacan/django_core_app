@@ -568,7 +568,9 @@ class ViewClassBase(ContextMixin, View):
             try:
                 with transaction.atomic():
                     response = super().dispatch(request, *args, **kwargs)
-
+            except Http404:
+                # Dejar que Django maneje 404 sin convertirlo en mensaje flash genérico.
+                raise
             except Exception as ex:
                 error_message = "Ha ocurrido un error inesperado, consulte con el administrador"
                 if request.user.is_superuser:
@@ -586,6 +588,9 @@ class ViewClassBase(ContextMixin, View):
         elif request.method == "GET":
             try:
                 response = super().dispatch(request, *args, **kwargs)
+            except Http404:
+                # Evita mostrar "error inesperado" para un 404 controlado.
+                raise
             except Exception as ex:
                 # Imprmir el error completo en la consola
                 traceback.print_exc()
