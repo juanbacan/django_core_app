@@ -17,6 +17,7 @@ from django.views.debug import ExceptionReporter
 from django.conf import settings
 from django.contrib.auth.models import Group
 from django.core.cache import cache
+from django.core.files.storage import default_storage
 from django.db import models
 from django.utils.html import strip_tags
 from django.utils.safestring import mark_safe
@@ -608,6 +609,52 @@ def upload_image_to_firebase_storage(image, bucket_name=settings.FIREBASE_BUCKET
         blob.upload_from_file(image, content_type=content_type)
         blob.make_public()
         return blob.public_url
+    except Exception as ex:
+        print(ex)
+        return None
+
+
+AUDIO_ALLOWED_EXTENSIONS = ('mp3', 'wav', 'ogg', 'm4a', 'aac', 'webm')
+AUDIO_MAX_BYTES = 15 * 1024 * 1024
+
+
+def _sanitize_filename_base(original_name):
+    base = os.path.splitext(os.path.basename(original_name or 'audio'))[0]
+    base = re.sub(r'[^a-zA-Z0-9_-]+', '-', base).strip('-_')[:40]
+    return base or 'audio'
+
+
+def _short_name_suffix():
+    return uuid.uuid4().hex[:10]
+
+
+def _resolve_upload_folder(folder):
+    folder = (folder or 'tests_precavidos/audio').strip().strip('/')
+    return folder or 'tests_precavidos/audio'
+
+
+def upload_audio_to_storage(audio_file, folder=None):
+    """
+    Sube un archivo de audio a default_storage.
+    Devuelve la URL pública o None en caso de error.
+    """
+    if not audio_file:
+        return None
+    try:
+        original_name = getattr(audio_file, 'name', 'audio.mp3') or 'audio.mp3'
+        ext = original_name.rsplit('.', 1)[-1].lower() if '.' in original_name else 'mp3'
+        if ext not in AUDIO_ALLOWED_EXTENSIONS:
+            return None
+        size = getattr(audio_file, 'size', None)
+        if size is not None and size > AUDIO_MAX_BYTES:
+            return None
+        target_folder = _resolve_upload_folder(folder or 'tests_precavidos/audio')
+        base_name = _sanitize_filename_base(original_name)
+        file_name = f"{target_folder}/{base_name}_{_short_name_suffix()}.{ext}"
+        if hasattr(audio_file, 'seek'):
+            audio_file.seek(0)
+        saved_name = default_storage.save(file_name, audio_file)
+        return default_storage.url(saved_name)
     except Exception as ex:
         print(ex)
         return None

@@ -135,16 +135,30 @@ def random_number(a, b=None):
 
 
 def get_photo_user(user):
-        if user.socialaccount_set.exists():
-            social_account = user.socialaccount_set.first()
-            return social_account.get_avatar_url()
-        else:
+    if user is None or isinstance(user, str):
+        return None
+    if not getattr(user, 'is_authenticated', True):
+        return None
+    getter = getattr(user, 'get_photo_user', None)
+    if callable(getter):
+        try:
+            return getter()
+        except Exception:
             return None
-        
+    socialaccount_set = getattr(user, 'socialaccount_set', None)
+    if socialaccount_set is None:
+        return None
+    social_account = socialaccount_set.first()
+    return social_account.get_avatar_url() if social_account else None
+
+
 def get_first_name(user):
-    if user.first_name == "":
-        return user.username
-    return user.first_name
+    if user is None or isinstance(user, str):
+        return user or ''
+    first_name = getattr(user, 'first_name', None) or ''
+    if first_name == '':
+        return getattr(user, 'username', '') or ''
+    return first_name
 
 
 def get_hace_tiempo(created):
@@ -576,3 +590,16 @@ register.filter("number_to_price", number_to_price)
 register.filter("convert_youtube_url", convert_youtube_url)
 register.filter("linkfy", linkfy)
 register.filter("tiempo_formateado", tiempo_formateado)
+
+@register.filter
+def menu_url_is_active(menu_url, request_path):
+    """Activo solo si menu_url encaja como segmento final del path actual."""
+    path = str(request_path or "")
+    url = str(menu_url or "").strip()
+    if not url:
+        return False
+    idx = path.find(url)
+    if idx < 0:
+        return False
+    after = path[idx + len(url) :]
+    return after == "" or after.startswith("?") or after.startswith("#")

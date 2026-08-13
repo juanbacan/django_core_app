@@ -51,7 +51,8 @@ from .forms import configure_auto_complete_widgets
 
 from .utils import bad_json, queryset_to_excel, success_json, get_query_params, \
     save_error, upload_image_to_firebase_storage, get_redirect_url, \
-    error_json, get_header, resolve_attr, register_all_crud_views
+    error_json, get_header, resolve_attr, register_all_crud_views, \
+    upload_audio_to_storage, AUDIO_ALLOWED_EXTENSIONS, AUDIO_MAX_BYTES
 
 
 def obtener_extra_data(data):
@@ -492,6 +493,38 @@ def upload_image(request, series: str=None, article: str=None):
         'message': 'Image uploaded successfully',
         'location': url
     })
+
+
+@login_required
+@require_POST
+def upload_audio(request):
+    file_obj = request.FILES.get('file')
+    if not file_obj:
+        return JsonResponse({'Error Message': 'No se envió ningún archivo'}, status=400)
+
+    ext = (file_obj.name.rsplit('.', 1)[-1] if '.' in file_obj.name else '').lower()
+    if ext not in AUDIO_ALLOWED_EXTENSIONS:
+        return JsonResponse({
+            'Error Message': f'Formato no soportado ({ext}). Use: {", ".join(AUDIO_ALLOWED_EXTENSIONS)}'
+        }, status=400)
+
+    if getattr(file_obj, 'size', 0) > AUDIO_MAX_BYTES:
+        return JsonResponse({
+            'Error Message': f'El audio supera el límite de {AUDIO_MAX_BYTES // (1024 * 1024)} MB'
+        }, status=400)
+
+    url = upload_audio_to_storage(file_obj)
+    if not url:
+        return JsonResponse({'Error Message': 'No se pudo subir el audio'}, status=400)
+
+    if url.startswith('/'):
+        url = request.build_absolute_uri(url)
+
+    return JsonResponse({
+        'message': 'Audio uploaded successfully',
+        'location': url,
+    })
+
 
 ALLOWED_PREFIXES = (
     settings.URL_BASE,

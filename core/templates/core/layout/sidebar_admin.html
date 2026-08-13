@@ -11,7 +11,7 @@
                     <div class="accordion-body p-0">
                         <div class="list-group list-group-flush">
                             {% for m in a.modulos_activos_filtrados|default:a.modulos_activos %}
-                                <a href="{% url 'administracion' %}{{ m.url }}" class="list-group-item list-group-item-action {% if m.url in request.path %}active{% endif %}">
+                                <a href="{% url 'administracion' %}{{ m.url }}" class="list-group-item list-group-item-action {% if m.url|menu_url_is_active:request.path %}active{% endif %}">
                                     <div class="d-flex w-100 justify-content-between">
                                         <p class="mb-0"><i class="fa-regular fa-circle mx-2 fa-2xs"></i> {{ m.nombre }}</p>
                                     </div>
