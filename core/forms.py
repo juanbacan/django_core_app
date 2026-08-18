@@ -9,8 +9,9 @@ from collections import OrderedDict
 from django.apps import apps
 from django.conf import settings
 from core.crud_registry import crud_registry
-from core.widgets import IconPickerWidget
+from core.widgets import BootstrapCheckboxSelectMultiple, IconPickerWidget
 from core.layout import FormHelper
+from django.forms.widgets import CheckboxSelectMultiple
 
 
 def serialize_q(qobj):
@@ -64,6 +65,19 @@ def build_forward_const(val, dst):
 
     # otherwise
     return dal_forward.Const(val, dst)
+
+
+def _apply_bootstrap_checkbox_widget(field):
+    widget = field.widget
+    if isinstance(widget, BootstrapCheckboxSelectMultiple):
+        return True
+    if isinstance(widget, CheckboxSelectMultiple):
+        field.widget = BootstrapCheckboxSelectMultiple(
+            choices=widget.choices,
+            attrs=dict(widget.attrs),
+        )
+        return True
+    return False
 
 
 class BootstrapFieldsMixin:
@@ -199,7 +213,9 @@ class BootstrapFieldsMixin:
                 field.initial = field.initial.strftime('%Y-%m-%d')
                 
         excluded_widgets = (TinyMCE, Select2, Select2Multiple, ModelSelect2, ModelSelect2Multiple)
-        if not isinstance(field.widget, excluded_widgets):
+        if _apply_bootstrap_checkbox_widget(field):
+            pass
+        elif not isinstance(field.widget, excluded_widgets):
             if "class" in field.widget.attrs:
                 field.widget.attrs["class"] += " form-control"
             else:
@@ -213,11 +229,11 @@ class BootstrapFieldsMixin:
                     field.widget.attrs["class"] += " form-select"
                 elif field.widget.input_type == "radio":
                     field.widget.attrs["class"] = field.widget.attrs["class"].replace("form-control", "form-check-input")
-                    
+
             if "validate" in field.widget.attrs:
                 validation_attrs = self.get_validation_attrs(field.widget.attrs["validate"])
                 field.widget.attrs.update(validation_attrs)
-        
+
         if field.required and hasattr(field, 'label') and field.label:
             field.label = mark_safe(field.label + '<span class="text-danger">*</span> ')
 
@@ -293,7 +309,9 @@ class FilterFieldsMixin:
                 field.initial = field.initial.strftime('%Y-%m-%d')
                 
         excluded_widgets = (TinyMCE, Select2, Select2Multiple, ModelSelect2, ModelSelect2Multiple)
-        if not isinstance(field.widget, excluded_widgets):
+        if _apply_bootstrap_checkbox_widget(field):
+            pass
+        elif not isinstance(field.widget, excluded_widgets):
             if "class" in field.widget.attrs:
                 field.widget.attrs["class"] += " form-control"
             else:

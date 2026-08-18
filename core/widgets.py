@@ -1,6 +1,34 @@
 from django import forms
+from django.forms.widgets import CheckboxSelectMultiple
 from django.utils.safestring import mark_safe
 from django.urls import reverse_lazy
+
+
+class BootstrapCheckboxSelectMultiple(CheckboxSelectMultiple):
+    """CheckboxSelectMultiple con markup Bootstrap 5 (form-check)."""
+
+    template_name = 'core/widgets/bootstrap_checkbox_select.html'
+    option_template_name = 'core/widgets/bootstrap_checkbox_option.html'
+
+    def __init__(self, *args, **kwargs):
+        attrs = dict(kwargs.pop('attrs', None) or {})
+        css = [
+            part
+            for part in (attrs.get('class') or '').split()
+            if part and part not in ('form-control', 'form-select')
+        ]
+        if 'core-checkbox-list' not in css:
+            css.insert(0, 'core-checkbox-list')
+        attrs['class'] = ' '.join(css)
+        super().__init__(*args, attrs=attrs, **kwargs)
+
+    def create_option(self, name, value, label, selected, index, subindex=None, attrs=None):
+        option = super().create_option(
+            name, value, label, selected, index, subindex=subindex, attrs=attrs,
+        )
+        option['wrap_label'] = False
+        option['attrs']['class'] = 'form-check-input'
+        return option
 
 class ModalForeignKeyWidget(forms.Widget):
     template_name = "core/widgets/modal_foreignkey.html"
