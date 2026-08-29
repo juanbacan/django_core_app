@@ -1,9 +1,11 @@
 import os
 import json
 import logging
-import requests
 import threading
-from typing import Optional, Dict, Any, Union
+from io import BytesIO
+from typing import Optional, Dict, Any, Union, Sequence
+
+import requests
 from django.apps import apps
 from django.core.cache import cache
 from django.conf import settings
@@ -85,12 +87,19 @@ class TelegramClient:
     # -------------------------
     # Núcleo HTTP
     # -------------------------
-    def _request(self, method: str, payload: Dict[str, Any], files: Optional[Dict[str, Any]] = None):
+    def _request(
+        self,
+        method: str,
+        payload: Dict[str, Any],
+        files: Optional[Dict[str, Any]] = None,
+        treat_as_ok: Optional[Sequence[str]] = None,
+    ):
         """
         Llamada genérica a Telegram API.
         - method: nombre del método (p. ej. 'sendMessage')
         - payload: parámetros del método
         - files: para multipart (p. ej. {'photo': open('path', 'rb')})
+        - treat_as_ok: substrings de description que se tratan como éxito (p. ej. 'message is not modified')
         """
         try:
             self._validate_credentials()
@@ -112,6 +121,9 @@ class TelegramClient:
             if not resp.get('ok'):
                 desc = (resp.get('description') or 'Error desconocido')
                 err_code = resp.get('error_code')
+                benign = tuple(treat_as_ok or ())
+                if any(fragment.lower() in desc.lower() for fragment in benign):
+                    return True, resp.get('result') or {}
                 logger.error(f"Telegram API Error {err_code}: {desc}")
                 raise TelegramAPIError(f"Telegram API Error {err_code}: {desc}")
 
@@ -199,18 +211,21 @@ class TelegramClient:
 
     def send_photo(
         self,
-        photo: str,
+        photo: Optional[str] = None,
         caption: Optional[str] = None,
         chat_id: Optional[Union[str, int]] = None,
         thread_id: Optional[int] = None,
         parse_mode: Optional[str] = "HTML",
         reply_markup: Optional[Dict[str, Any]] = None,
+        photo_bytes: Optional[bytes] = None,
+        filename: str = "photo.jpg",
     ):
         """
         photo: URL, file_id, o ruta local (p. ej. '/tmp/img.jpg').
+        photo_bytes: contenido binario (tiene prioridad sobre photo).
         """
-        if not photo or not photo.strip():
-            return False, {"error": "El parámetro 'photo' no puede estar vacío"}
+        if not photo_bytes and (not photo or not str(photo).strip()):
+            return False, {"error": "Debes pasar 'photo' o 'photo_bytes'"}
         if caption and len(caption) > 1024:
             return False, {"error": "El caption excede el límite de 1024 caracteres"}
         
@@ -227,7 +242,9 @@ class TelegramClient:
             payload["reply_markup"] = reply_markup
 
         files = None
-        if photo.startswith("http://") or photo.startswith("https://") or photo.startswith("attach://") or photo.startswith("BQAC"):  # file_id heurístico
+        if photo_bytes is not None:
+            files = {"photo": (filename or "photo.jpg", BytesIO(photo_bytes))}
+        elif str(photo).startswith("http://") or str(photo).startswith("https://") or str(photo).startswith("attach://") or str(photo).startswith("BQAC"):
             payload["photo"] = photo
         else:
             try:
@@ -238,20 +255,23 @@ class TelegramClient:
         try:
             return self._request("sendPhoto", payload, files=files)
         finally:
-            if files and files.get("photo") and not files["photo"].closed:
-                files["photo"].close()
+            handle = files.get("photo") if files else None
+            if handle is not None and hasattr(handle, "close") and not getattr(handle, "closed", True):
+                handle.close()
 
     def send_document(
         self,
-        document: str,
+        document: Optional[str] = None,
         caption: Optional[str] = None,
         chat_id: Optional[Union[str, int]] = None,
         thread_id: Optional[int] = None,
         parse_mode: Optional[str] = "HTML",
         reply_markup: Optional[Dict[str, Any]] = None,
+        document_bytes: Optional[bytes] = None,
+        filename: str = "archivo.pdf",
     ):
-        if not document or not document.strip():
-            return False, {"error": "El parámetro 'document' no puede estar vacío"}
+        if not document_bytes and (not document or not str(document).strip()):
+            return False, {"error": "Debes pasar 'document' o 'document_bytes'"}
         if caption and len(caption) > 1024:
             return False, {"error": "El caption excede el límite de 1024 caracteres"}
         
@@ -268,7 +288,9 @@ class TelegramClient:
             payload["reply_markup"] = reply_markup
 
         files = None
-        if document.startswith("http://") or document.startswith("https://") or document.startswith("attach://"):
+        if document_bytes is not None:
+            files = {"document": (filename or "archivo.pdf", BytesIO(document_bytes))}
+        elif str(document).startswith("http://") or str(document).startswith("https://") or str(document).startswith("attach://"):
             payload["document"] = document
         else:
             try:
@@ -279,8 +301,9 @@ class TelegramClient:
         try:
             return self._request("sendDocument", payload, files=files)
         finally:
-            if files and files.get("document") and not files["document"].closed:
-                files["document"].close()
+            handle = files.get("document") if files else None
+            if handle is not None and hasattr(handle, "close") and not getattr(handle, "closed", True):
+                handle.close()
 
     def send_video(
         self,
@@ -382,6 +405,126 @@ class TelegramClient:
     def get_chat(self, chat_id: Optional[Union[str, int]] = None):
         payload = {"chat_id": self._resolve_chat(chat_id)}
         return self._request("getChat", payload)
+
+    def edit_message_text(
+        self,
+        text: str,
+        chat_id: Union[str, int],
+        message_id: int,
+        parse_mode: Optional[str] = "HTML",
+        reply_markup: Optional[Dict[str, Any]] = None,
+        disable_web_page_preview: Optional[bool] = True,
+    ):
+        if not text or not str(text).strip():
+            return False, {"error": "El texto del mensaje no puede estar vacío"}
+        if not message_id or int(message_id) <= 0:
+            return False, {"error": "message_id inválido"}
+
+        payload = {
+            "chat_id": chat_id,
+            "message_id": message_id,
+            "text": text,
+        }
+        if parse_mode:
+            payload["parse_mode"] = parse_mode
+        if disable_web_page_preview is not None:
+            payload["disable_web_page_preview"] = disable_web_page_preview
+        if reply_markup is not None:
+            payload["reply_markup"] = reply_markup
+        return self._request(
+            "editMessageText",
+            payload,
+            treat_as_ok=("message is not modified",),
+        )
+
+    def edit_message_caption(
+        self,
+        caption: str,
+        chat_id: Union[str, int],
+        message_id: int,
+        parse_mode: Optional[str] = "HTML",
+        reply_markup: Optional[Dict[str, Any]] = None,
+    ):
+        if not message_id or int(message_id) <= 0:
+            return False, {"error": "message_id inválido"}
+        if caption and len(caption) > 1024:
+            return False, {"error": "El caption excede el límite de 1024 caracteres"}
+
+        payload = {
+            "chat_id": chat_id,
+            "message_id": message_id,
+            "caption": caption or "",
+        }
+        if parse_mode:
+            payload["parse_mode"] = parse_mode
+        if reply_markup is not None:
+            payload["reply_markup"] = reply_markup
+        return self._request(
+            "editMessageCaption",
+            payload,
+            treat_as_ok=("message is not modified",),
+        )
+
+    def edit_message_reply_markup(
+        self,
+        chat_id: Union[str, int],
+        message_id: int,
+        reply_markup: Optional[Dict[str, Any]] = None,
+    ):
+        if not message_id or int(message_id) <= 0:
+            return False, {"error": "message_id inválido"}
+        payload = {
+            "chat_id": chat_id,
+            "message_id": message_id,
+        }
+        if reply_markup is not None:
+            payload["reply_markup"] = reply_markup
+        return self._request(
+            "editMessageReplyMarkup",
+            payload,
+            treat_as_ok=("message is not modified",),
+        )
+
+    def answer_callback_query(
+        self,
+        callback_query_id: str,
+        text: Optional[str] = None,
+        show_alert: bool = False,
+    ):
+        if not callback_query_id:
+            return False, {"error": "callback_query_id vacío"}
+        payload = {
+            "callback_query_id": callback_query_id,
+            "show_alert": show_alert,
+        }
+        if text:
+            payload["text"] = text[:200]
+        return self._request("answerCallbackQuery", payload)
+
+    def set_webhook(
+        self,
+        url: str,
+        secret_token: Optional[str] = None,
+        drop_pending_updates: bool = False,
+        allowed_updates: Optional[Sequence[str]] = None,
+    ):
+        if not url or not str(url).strip():
+            return False, {"error": "url de webhook vacía"}
+        payload = {
+            "url": url,
+            "drop_pending_updates": drop_pending_updates,
+        }
+        if secret_token:
+            payload["secret_token"] = secret_token
+        if allowed_updates is not None:
+            payload["allowed_updates"] = json.dumps(list(allowed_updates))
+        return self._request("setWebhook", payload)
+
+    def delete_webhook(self, drop_pending_updates: bool = False):
+        return self._request("deleteWebhook", {"drop_pending_updates": drop_pending_updates})
+
+    def get_webhook_info(self):
+        return self._request("getWebhookInfo", {})
 
 
 def get_telegram_client() -> TelegramClient:
