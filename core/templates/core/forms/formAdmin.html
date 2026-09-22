@@ -4,7 +4,7 @@
 {% block breadcrumb %}
     {% if not request.GET.popup %}
         <li class="breadcrumb-item" aria-current="page">{{ agrupacion_activa.nombre }}</li>
-        <li class="breadcrumb-item"><a href="{% url 'administracion' %}{{ modulo_activo.url }}">{{ modulo_activo.nombre }}</a></li>
+        <li class="breadcrumb-item"><a href="{{ path }}{% if list_qs %}?{{ list_qs }}{% endif %}">{{ modulo_activo.nombre }}</a></li>
         <li class="breadcrumb-item active" aria-current="page">Crear {{ modulo_activo.nombre }}</li>
     {% else %}
         <li class="breadcrumb-item active" aria-current="page">Crear {{ modulo_activo.nombre }}</li>

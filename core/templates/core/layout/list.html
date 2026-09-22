@@ -32,7 +32,7 @@
                             {% if not request.GET.popup %}
                                 {% block buttons %}
                                     {% if not no_add_buttons %}
-                                    <a class="btn btn-sm btn-dark" href="{{ path }}?action=add"><i class="fa-solid fa-circle-plus"></i> Agregar {{ modulo_activo }}</a>
+                                    <a class="btn btn-sm btn-dark" href="{{ path }}?action=add{% if list_qs %}&{{ list_qs }}{% endif %}"><i class="fa-solid fa-circle-plus"></i> Agregar {{ modulo_activo }}</a>
                                     {% endif %}
                                     {% if can_export %}
                                         <a class="btn btn-sm btn-success" href="{{ export_url }}" target="_blank">
@@ -90,9 +90,9 @@
                                                         <li>
                                                             <a class="dropdown-item {% if act.modal %}formmodal{% endif %}"
                                                                 {% if act.modal %}
-                                                                    nhref="{{ path }}{{ act.url }}" href="javascript:void(0);"
+                                                                    nhref="{{ path }}{{ act.url }}{% if list_qs %}&{{ list_qs }}{% endif %}" href="javascript:void(0);"
                                                                 {% else %}
-                                                                    href="{{ path }}{{ act.url }}"
+                                                                    href="{{ path }}{{ act.url }}{% if list_qs %}&{{ list_qs }}{% endif %}"
                                                                 {% endif %}
                                                                 {% if act.attrs %}
                                                                     {% for attr_name, attr_value in act.attrs.items %}

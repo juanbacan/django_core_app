@@ -787,13 +787,25 @@ class ModelCRUDView(ViewAdministracionBase):
                 url = a["url"](obj) if callable(a["url"]) else a["url"]
                 actions.append({**a, "url": url})
         return actions
-    
-    def _querystring(self, exclude=('page','pagina')):
+
+    def _querystring(self, exclude=('page', 'pagina')):
         """Devuelve la query-string actual sin los parámetros excluidos."""
         params = self.request.GET.copy()
         for p in exclude:
             params.pop(p, None)
         return urlencode(params, doseq=True)
+
+    def _list_querystring(self, exclude=('action', 'id', 'popup', 'field_id')):
+        """Query del listado a arrastrar en editar/agregar (incluye page/filtros)."""
+        params = self.request.GET.copy()
+        for p in exclude:
+            params.pop(p, None)
+        return urlencode(params, doseq=True)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['list_qs'] = self._list_querystring()
+        return context
     
     def paginate_queryset(self, queryset, raw_page=None, paginate_by=None):
         """
@@ -1183,7 +1195,7 @@ class ModelCRUDView(ViewAdministracionBase):
     def post_delete(self, request, context, *args, **kwargs):
         obj = self.model.objects.get(id=request.POST.get('id'))
         obj.delete()
-        return success_json(url=get_redirect_url(request))
+        return success_json(url=get_redirect_url(request), request=request)
 
     def get(self, request, *args, **kwargs):
         context = self.get_context_data(**kwargs)
@@ -1202,6 +1214,7 @@ class ModelCRUDView(ViewAdministracionBase):
             "objs":          page_obj,                
             "is_paginated":  is_paginated,
             "url_params":    self._querystring(),
+            "list_qs":       self._list_querystring(),
             "view":          self,                    
         })
 

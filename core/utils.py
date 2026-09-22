@@ -903,9 +903,9 @@ def get_list_return_url(request, url=None):
     """
     Arma la URL de retorno al listado conservando page/filtros.
 
-    Cuando un modal hace POST y el backend responde con `request.path` (sin query),
-    se pierden `?page=`, fechas, search, etc. Esta helper los recupera del Referer
-    (la página del listado donde está abierto el modal) o del GET actual.
+    Fuentes (en orden de prioridad para rellenar):
+    1. Query del request (el form de edición usa get_full_path → trae page/filtros).
+    2. Referer (modales que postean solo a path sin query).
     """
     from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
@@ -913,32 +913,30 @@ def get_list_return_url(request, url=None):
     base = (url or getattr(request, 'path', '') or '').strip() or '/'
     parsed = urlparse(base)
 
-    # Si ya viene una URL absoluta o con query "de navegación" (action=add/edit…),
-    # hay que respetar esos params y solo rellenar filtros faltantes.
     existing = dict(parse_qsl(parsed.query, keep_blank_values=True))
-
     source = {}
+
+    # 1) Query del request (POST del form con action=...?...&page=2)
+    if hasattr(request, 'GET'):
+        for k in request.GET.keys():
+            v = request.GET.get(k)
+            if k not in exclude and v not in (None, ''):
+                source[k] = v
+
+    # 2) Referer completa lo que falte (p.ej. modales)
     referer = (request.META.get('HTTP_REFERER') or '').strip()
     if referer:
         ref = urlparse(referer)
         same_host = not ref.netloc or ref.netloc == request.get_host()
         same_path = ref.path.rstrip('/') == (parsed.path or request.path).rstrip('/')
         if same_host and same_path:
-            source = dict(parse_qsl(ref.query, keep_blank_values=True))
-
-    if not source:
-        # Fallback: query del request (GET del modal suele traer action/id).
-        source = {k: request.GET.get(k) for k in request.GET.keys()}
-
-    preserved = {
-        k: v for k, v in source.items()
-        if k not in exclude and v not in (None, '')
-    }
+            for k, v in parse_qsl(ref.query, keep_blank_values=True):
+                if k not in exclude and k not in source and v not in (None, ''):
+                    source[k] = v
 
     # existing gana (p.ej. action=add / action=edit&id=…)
-    merged = {**preserved, **existing}
-    # Quitar action/id del merge solo si el destino era un listado "limpio"
-    # (sin query propia): no queremos reintroducir action del referer modal.
+    merged = {**source, **existing}
+    # Destino de listado limpio: no reintroducir action/id
     if not existing:
         merged = {k: v for k, v in merged.items() if k not in exclude}
 
@@ -1055,7 +1053,13 @@ def resolve_attr(instance, attr_path: str, *,
     if isinstance(value, str) and looks_like_icon_class(value):
         return mark_safe(f'<i class="{value}"></i>')
 
-    return str(value)
+    try:
+        return str(value)
+    except Exception:
+        # FK huérfana u otros errores al renderizar __str__ no deben tumbar el listado.
+        pk = getattr(value, 'pk', None)
+        model_name = getattr(getattr(value, '_meta', None), 'object_name', type(value).__name__)
+        return f'{model_name}#{pk}' if pk is not None else f'{model_name}(?)'
 
 
 FieldSpec = Union[
