@@ -290,6 +290,10 @@ def null_safe_string(value):
 
 
 def success_json(mensaje=None, resp=None, url=None, request=None, obj=None):
+    # Conservar page/filtros del listado cuando el caller pasa solo request.path
+    if url and request is not None:
+        url = get_list_return_url(request, url)
+
     data = {
         'result': 'ok',
         'redirected': bool(url)
@@ -895,6 +899,63 @@ def replace_quizziz_html(html):
     html = html.replace('text-content-base ', '')
     return html
 
+def get_list_return_url(request, url=None):
+    """
+    Arma la URL de retorno al listado conservando page/filtros.
+
+    Cuando un modal hace POST y el backend responde con `request.path` (sin query),
+    se pierden `?page=`, fechas, search, etc. Esta helper los recupera del Referer
+    (la página del listado donde está abierto el modal) o del GET actual.
+    """
+    from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
+
+    exclude = {'action', 'id', 'popup', 'field_id'}
+    base = (url or getattr(request, 'path', '') or '').strip() or '/'
+    parsed = urlparse(base)
+
+    # Si ya viene una URL absoluta o con query "de navegación" (action=add/edit…),
+    # hay que respetar esos params y solo rellenar filtros faltantes.
+    existing = dict(parse_qsl(parsed.query, keep_blank_values=True))
+
+    source = {}
+    referer = (request.META.get('HTTP_REFERER') or '').strip()
+    if referer:
+        ref = urlparse(referer)
+        same_host = not ref.netloc or ref.netloc == request.get_host()
+        same_path = ref.path.rstrip('/') == (parsed.path or request.path).rstrip('/')
+        if same_host and same_path:
+            source = dict(parse_qsl(ref.query, keep_blank_values=True))
+
+    if not source:
+        # Fallback: query del request (GET del modal suele traer action/id).
+        source = {k: request.GET.get(k) for k in request.GET.keys()}
+
+    preserved = {
+        k: v for k, v in source.items()
+        if k not in exclude and v not in (None, '')
+    }
+
+    # existing gana (p.ej. action=add / action=edit&id=…)
+    merged = {**preserved, **existing}
+    # Quitar action/id del merge solo si el destino era un listado "limpio"
+    # (sin query propia): no queremos reintroducir action del referer modal.
+    if not existing:
+        merged = {k: v for k, v in merged.items() if k not in exclude}
+
+    query = urlencode(merged, doseq=True)
+    path = parsed.path or request.path
+    if parsed.scheme or parsed.netloc:
+        return urlunparse((
+            parsed.scheme,
+            parsed.netloc,
+            path,
+            '',
+            query,
+            parsed.fragment,
+        ))
+    return f'{path}?{query}' if query else path
+
+
 def get_redirect_url(request, object=None, action='edit'):
     """
     Genera la URL de redirección según los parámetros del formulario.
@@ -905,18 +966,17 @@ def get_redirect_url(request, object=None, action='edit'):
     """
     try:
         if '_addanother' in request.POST:
-            return f'{request.path}?action=add'
+            return get_list_return_url(request, f'{request.path}?action=add')
         elif '_continue' in request.POST:
             if object and hasattr(object, 'pk'):
-                return f'{request.path}?action={action}&id={object.pk}'
-            else:
-                return f'{request.path}?action={action}&id={object.pk}'
-        elif action:
-            if object and hasattr(object, 'pk'):
-                return f'{request.path}'
-            else:
-                return f'{request.path}?action={action}&id={object.pk}'
-        return request.path
+                return get_list_return_url(
+                    request, f'{request.path}?action={action}&id={object.pk}'
+                )
+            return get_list_return_url(
+                request, f'{request.path}?action={action}&id={object.pk}'
+            )
+        # Volver al listado conservando page/filtros
+        return get_list_return_url(request, request.path)
     except Exception as ex:
         print(ex)
         return request.path

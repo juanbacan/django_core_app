@@ -15,9 +15,12 @@ def main_context(request):
         context['webpush_habilitado'] = True
 
     if request.user.is_authenticated:
-        notificaciones = NotificacionUsuario.objects.filter(
-            usuario_notificado=request.user
-        ).order_by('-id')[:5]
+        notificaciones = list(
+            NotificacionUsuario.objects.filter(usuario_notificado=request.user)
+            .select_related('usuario_notifica', 'tipo')
+            .prefetch_related('usuario_notifica__socialaccount_set')
+            .order_by('-id')[:5]
+        )
         noti_count = NotificacionUsuarioCount.objects.filter(
             usuario=request.user
         ).first()

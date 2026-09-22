@@ -22,10 +22,22 @@ class CustomUser(AbstractUser):
         ordering = ['-id', 'last_name', 'first_name']
 
     def get_photo_user(self):
+        # Cache por request: el header/menú llaman esto varias veces por página.
+        if hasattr(self, '_cached_photo_user'):
+            return self._cached_photo_user
         if self.imagen:
-            return self.imagen.url
-        social = self.socialaccount_set.first()
-        return social.get_avatar_url() if social else None
+            url = self.imagen.url
+        else:
+            social = None
+            prefetched = getattr(self, '_prefetched_objects_cache', None)
+            if prefetched is not None and 'socialaccount_set' in prefetched:
+                accounts = prefetched['socialaccount_set']
+                social = accounts[0] if accounts else None
+            else:
+                social = self.socialaccount_set.first()
+            url = social.get_avatar_url() if social else None
+        self._cached_photo_user = url
+        return url
     
     def get_nombre_completo(self):
         nombre = f"{self.first_name or ''} {self.last_name or ''}".strip()
@@ -137,15 +149,19 @@ class ModeloBase(models.Model):
         if self.created_at is None:
             self.created_at = datetime.datetime.now()
 
-        for frame_record in inspect.stack():
-            if frame_record[3]=='get_response':
-                request = frame_record[0].f_locals['request']
+        request = None
+        # inspect.stack() es caro: salir al primer get_response.
+        for frame_record in inspect.stack(0):
+            if frame_record.function == 'get_response':
+                request = frame_record.frame.f_locals.get('request')
                 break
-            else:
-                request = None
 
-        user_id = request.user.id if request else 1
-        
+        user_id = None
+        if request is not None:
+            user = getattr(request, 'user', None)
+            if user is not None and getattr(user, 'is_authenticated', False):
+                user_id = getattr(user, 'pk', None) or None
+
         if not self.pk and not self.created_by:
             self.created_by_id = user_id
         self.modified_by_id = user_id

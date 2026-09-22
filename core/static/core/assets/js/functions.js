@@ -709,6 +709,21 @@ const submitModalForm1 = async (formid = 'modalForm1', showError = true, submitE
                         const resolved = raw.startsWith('http') ? raw : new URL(raw || '.', window.location.href).href;
                         const cur = new URL(window.location.href);
                         const dest = new URL(resolved);
+                        // Si el backend devolvió solo el path (o solo action/id del modal) en la misma ruta,
+                        // conservar page/filtros de la URL actual del listado.
+                        if (dest.pathname === cur.pathname && cur.search) {
+                            const destParams = new URLSearchParams(dest.search);
+                            const modalOnlyKeys = new Set(['action', 'id', 'popup', 'field_id']);
+                            const destKeys = [...destParams.keys()];
+                            const destIsBareOrModalOnly = destKeys.length === 0 || destKeys.every((k) => modalOnlyKeys.has(k));
+                            if (destIsBareOrModalOnly) {
+                                const keep = new URLSearchParams(cur.search);
+                                modalOnlyKeys.forEach((k) => keep.delete(k));
+                                destParams.forEach((v, k) => keep.set(k, v));
+                                const qs = keep.toString();
+                                dest.search = qs ? `?${qs}` : '';
+                            }
+                        }
                         // Misma ruta + query pero distinto # (ej. crear_test tras arreglar una pregunta): el navegador
                         // suele cambiar solo el anchor sin recargar; forzamos recarga para ver el contenido actualizado.
                         if (dest.pathname === cur.pathname && dest.search === cur.search) {
@@ -720,7 +735,7 @@ const submitModalForm1 = async (formid = 'modalForm1', showError = true, submitE
                             location.reload();
                             return;
                         }
-                        window.location.href = resolved;
+                        window.location.href = dest.pathname + dest.search + dest.hash;
                     } catch {
                         window.location.replace(data.url);
                     }

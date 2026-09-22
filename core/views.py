@@ -251,21 +251,28 @@ def api(request):
 
     if request.method == 'GET':
         if action == "volver_usuario":
-            if request.session.get('volver_usuario', None) and request.session.get('usuario_original', None):
-                usuario = CustomUser.objects.get(id=request.session['usuario_original'])
-                usuario.backend = 'allauth.account.auth_backends.AuthenticationBackend'
-                url = request.session.get('volver_usuario_url', "/administracion")
+            try:
+                from applications.authentication.impersonacion import (
+                    impersonacion_valida,
+                    limpiar_sesion_impersonacion,
+                    url_volver_admin,
+                )
+            except ImportError:
+                impersonacion_valida = None
+
+            if impersonacion_valida is not None:
+                original = impersonacion_valida(request)
+                if not original:
+                    return redirect('/')
+                original.backend = 'allauth.account.auth_backends.AuthenticationBackend'
+                destino = url_volver_admin(request)
+                limpiar_sesion_impersonacion(request)
                 logout(request)
-                login(request, usuario)
-                if "volver_usuario" in request.session:
-                    del request.session['volver_usuario']
-                if "volver_usuario_url" in request.session:
-                 del request.session['volver_usuario_url']
-                if "usuario_original" in request.session:
-                    del request.session['usuario_original']
-                return redirect(url)
-            else:
-                return redirect('/')
+                login(request, original)
+                return redirect(destino)
+
+            # Sin módulo de suplantación: no restaurar sesión admin (evita escalada).
+            return redirect('/')
 
     else:
         return success_json(mensaje = "Ok")

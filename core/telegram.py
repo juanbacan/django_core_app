@@ -526,6 +526,15 @@ class TelegramClient:
     def get_webhook_info(self):
         return self._request("getWebhookInfo", {})
 
+    def set_my_commands(self, commands: Sequence[Dict[str, str]]):
+        if not commands:
+            return False, {"error": "commands vacío"}
+        return self._request("setMyCommands", {"commands": json.dumps(list(commands))})
+
+    def set_chat_menu_button(self, menu_button: Optional[Dict[str, Any]] = None):
+        payload = {"menu_button": json.dumps(menu_button or {"type": "commands"})}
+        return self._request("setChatMenuButton", payload)
+
 
 def get_telegram_client() -> TelegramClient:
     return TelegramClient()
