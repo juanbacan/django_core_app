@@ -1157,13 +1157,23 @@ class ModelCRUDView(ViewAdministracionBase):
         Extrae automáticamente los parámetros del query string y los pasa al formulario.
         """
         form_kwargs = extra_kwargs.copy()
-        
-        # Extraer parámetros del query string (excepto los propios del CRUD)
-        exclude_params = {'action', 'id', 'page', 'pagina', 'popup', 'field_id', 'search', 'sort'}
+
+        # Params de navegación/listado: no deben llegar al ModelForm
+        # (p.ej. ?action=edit&id=1&page=2&fecha_inicio=... tras conservar list_qs).
+        exclude_params = {
+            'action', 'id', 'page', 'pagina', 'popup', 'field_id',
+            'search', 'q', 'sort', 'fecha_inicio', 'fecha_fin',
+        }
+        for filter_item in getattr(self, 'list_filter', None) or []:
+            if isinstance(filter_item, tuple):
+                exclude_params.add(filter_item[1])
+            else:
+                exclude_params.add(filter_item)
+
         for key, value in request.GET.items():
             if key not in exclude_params:
                 form_kwargs[key] = value
-        
+
         return form_kwargs
 
     def _get_add_form(self, request, data=None, files=None):
