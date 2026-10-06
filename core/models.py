@@ -4,6 +4,7 @@ from django.db import models
 from django.db import models
 from django.contrib.auth.models import AbstractUser, Group
 from django.db.models import Q
+from django.db.models.functions import Lower
 from django.utils.functional import cached_property
 
 from allauth.socialaccount.models import SocialAccount
@@ -15,11 +16,27 @@ from tinymce import models as tinymce_models
 class CustomUser(AbstractUser):
     premium = models.BooleanField(default=False)
     imagen = models.ImageField(upload_to='usuarios', null=True, blank=True)
-    
+
     class Meta:
         verbose_name = 'Usuario'
         verbose_name_plural = 'Usuarios'
         ordering = ['-id', 'last_name', 'first_name']
+        constraints = [
+            models.UniqueConstraint(
+                Lower('email'),
+                condition=~Q(email=''),
+                name='core_customuser_email_lower_uniq',
+            ),
+        ]
+
+    def save(self, *args, **kwargs):
+        correo = (self.email or '').strip().lower()
+        if self.email != correo:
+            self.email = correo
+            update_fields = kwargs.get('update_fields')
+            if update_fields is not None:
+                kwargs['update_fields'] = set(update_fields) | {'email'}
+        super().save(*args, **kwargs)
 
     def get_photo_user(self):
         # Cache por request: el header/menú llaman esto varias veces por página.
