@@ -1,2 +1,6 @@
 recursive-include core/templates *
 recursive-include core/static *
+
+# No empaquetar migrations generadas; viven solo en cada deploy
+recursive-exclude */migrations *.py
+recursive-include */migrations __init__.py
