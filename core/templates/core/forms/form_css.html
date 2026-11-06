@@ -222,4 +222,21 @@
         line-height: 1.35;
         cursor: pointer;
     }
+
+    /* En un modal, col-xl-2 se calcula con el ancho de la ventana y la etiqueta se parte. */
+    .modal .core-form-compact .core-form-label-col {
+        flex: 0 0 42%;
+        width: 42%;
+        max-width: 42%;
+    }
+
+    .modal .core-form-compact .core-form-input-col {
+        flex: 1 1 auto;
+        width: auto;
+        max-width: none;
+    }
+
+    .modal .core-form-compact .core-form-label-col .form-label {
+        line-height: 1.35;
+    }
 </style>

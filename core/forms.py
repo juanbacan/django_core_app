@@ -9,7 +9,7 @@ from collections import OrderedDict
 from django.apps import apps
 from django.conf import settings
 from core.crud_registry import crud_registry
-from core.widgets import BootstrapCheckboxSelectMultiple, IconPickerWidget
+from core.widgets import BootstrapCheckboxSelectMultiple, BootstrapRadioSelect, IconPickerWidget
 from core.layout import FormHelper
 from django.forms.widgets import CheckboxSelectMultiple
 
@@ -73,6 +73,20 @@ def _apply_bootstrap_checkbox_widget(field):
         return True
     if isinstance(widget, CheckboxSelectMultiple):
         field.widget = BootstrapCheckboxSelectMultiple(
+            choices=widget.choices,
+            attrs=dict(widget.attrs),
+        )
+        return True
+    return False
+
+
+def _apply_bootstrap_radio_widget(field):
+    """RadioSelect no debe llevar form-check-input en el div del grupo: lo aplasta a 1em."""
+    widget = field.widget
+    if isinstance(widget, BootstrapRadioSelect):
+        return True
+    if widget.__class__ is forms.RadioSelect:
+        field.widget = BootstrapRadioSelect(
             choices=widget.choices,
             attrs=dict(widget.attrs),
         )
@@ -213,7 +227,7 @@ class BootstrapFieldsMixin:
                 field.initial = field.initial.strftime('%Y-%m-%d')
                 
         excluded_widgets = (TinyMCE, Select2, Select2Multiple, ModelSelect2, ModelSelect2Multiple)
-        if _apply_bootstrap_checkbox_widget(field):
+        if _apply_bootstrap_checkbox_widget(field) or _apply_bootstrap_radio_widget(field):
             pass
         elif not isinstance(field.widget, excluded_widgets):
             if "class" in field.widget.attrs:
@@ -235,7 +249,7 @@ class BootstrapFieldsMixin:
                 field.widget.attrs.update(validation_attrs)
 
         if field.required and hasattr(field, 'label') and field.label:
-            field.label = mark_safe(field.label + '<span class="text-danger">*</span> ')
+            field.label = mark_safe(field.label + '<span class="text-danger">*</span>')
 
         # Si el campo usa el widget IconPickerWidget, establecer iconpicker en True
         if isinstance(field.widget, IconPickerWidget):
@@ -309,7 +323,7 @@ class FilterFieldsMixin:
                 field.initial = field.initial.strftime('%Y-%m-%d')
                 
         excluded_widgets = (TinyMCE, Select2, Select2Multiple, ModelSelect2, ModelSelect2Multiple)
-        if _apply_bootstrap_checkbox_widget(field):
+        if _apply_bootstrap_checkbox_widget(field) or _apply_bootstrap_radio_widget(field):
             pass
         elif not isinstance(field.widget, excluded_widgets):
             if "class" in field.widget.attrs:

@@ -592,6 +592,24 @@ register.filter("linkfy", linkfy)
 register.filter("tiempo_formateado", tiempo_formateado)
 
 @register.filter
+def absolute_with_site(path, site_base=''):
+    """Join site_base with path only when path is relative (R2/CDN returns full URLs)."""
+    if path is None:
+        return ''
+    path = str(path).strip()
+    if not path:
+        return ''
+    if path.lower().startswith(('http://', 'https://')):
+        return path
+    base = (site_base or '').rstrip('/')
+    if not base:
+        return path
+    if path.startswith('/'):
+        return base + path
+    return f'{base}/{path}'
+
+
+@register.filter
 def menu_url_is_active(menu_url, request_path):
     """Activo solo si menu_url encaja como segmento final del path actual."""
     path = str(request_path or "")
