@@ -541,7 +541,7 @@ class AgrupacionModulo(ModeloBase):
 class CredencialesAPI(ModeloBase):
     # Publicar en Páginas de Facebook
     facebook_page_id = models.CharField(max_length=255, blank=True, null=True)
-    facebook_token = models.CharField(max_length=255, blank=True, null=True)
+    facebook_token = models.TextField(blank=True, null=True)
     # Token Bot Telegram
     telegram_bot_token = models.CharField(max_length=255, blank=True, null=True, verbose_name="Token del Bot Telegram")
     telegram_default_chat_id = models.CharField(max_length=255, blank=True, null=True, verbose_name="Chat/Canal por defecto Telegram")
